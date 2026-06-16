@@ -1,0 +1,2802 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Data curation and synthetic data generation for LLM post-training — grounded quality gates, adaptive recovery, trainer-ready exports">
+      
+      
+      
+        <link rel="canonical" href="https://lexsi-labs.github.io/CuratorKIT/reference/configuration/">
+      
+      
+        <link rel="prev" href="../">
+      
+      
+        <link rel="next" href="../cli/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Configuration - CuratorKIT</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Schibsted+Grotesk:300,300i,400,400i,700,700i%7CIBM+Plex+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Schibsted Grotesk";--md-code-font:"IBM Plex Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/_mkdocstrings.css">
+    
+      <link rel="stylesheet" href="../../assets/extra.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="custom">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#curatorconfig-parameter-reference" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="CuratorKIT" class="md-header__button md-logo" aria-label="CuratorKIT" data-md-component="logo">
+      
+  <img src="../../assets/icon.png" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            CuratorKIT
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Configuration
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="custom"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="custom" data-md-color-accent="custom"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="Share" aria-label="Share" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/Lexsi-Labs/CuratorKIT" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Lexsi-Labs/CuratorKIT
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../getting-started/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Getting started
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../guides/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Guides
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../tutorials/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Tutorials
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../community/faq/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Community
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="CuratorKIT" class="md-nav__button md-logo" aria-label="CuratorKIT" data-md-component="logo">
+      
+  <img src="../../assets/icon.png" alt="logo">
+
+    </a>
+    CuratorKIT
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/Lexsi-Labs/CuratorKIT" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Lexsi-Labs/CuratorKIT
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../getting-started/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting started
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../guides/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guides
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_4" id="__nav_4_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#data-source" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Data source
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#column-mapping" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Column mapping
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#quality-filters-pre-generation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Quality filters (pre-generation)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#deduplication" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Deduplication
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#text-cleaning" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Text cleaning
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#data-hygiene-pre-generation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Data hygiene (pre-generation)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Data hygiene (pre-generation)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#secretsgate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SecretsGate
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#piipseudonymizer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PIIPseudonymizer
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#toxicitygate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ToxicityGate
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#export" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Export
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#misc" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Misc
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#resampling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Resampling
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#generator-llm" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Generator LLM
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#judge-llm" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Judge LLM
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#generation-task" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Generation task
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#grpo-specific" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GRPO-specific
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#prompt-templates" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Prompt templates
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adversarial-generation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Adversarial generation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#quality-gates-post-generation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Quality gates (post-generation)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#inline-recovery-adaptive-probe" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Inline recovery (adaptive probe)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#embedding-diversity-gate-dedup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Embedding (diversity gate + dedup)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cross-run-embedding-dedup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cross-run embedding dedup
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#pdf-extraction" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PDF extraction
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#see-also" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        See also
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../cli/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CLI & YAML
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../api/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tutorials
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../community/faq/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Community
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#data-source" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Data source
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#column-mapping" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Column mapping
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#quality-filters-pre-generation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Quality filters (pre-generation)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#deduplication" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Deduplication
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#text-cleaning" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Text cleaning
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#data-hygiene-pre-generation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Data hygiene (pre-generation)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Data hygiene (pre-generation)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#secretsgate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SecretsGate
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#piipseudonymizer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PIIPseudonymizer
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#toxicitygate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ToxicityGate
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#export" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Export
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#misc" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Misc
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#resampling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Resampling
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#generator-llm" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Generator LLM
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#judge-llm" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Judge LLM
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#generation-task" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Generation task
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#grpo-specific" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GRPO-specific
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#prompt-templates" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Prompt templates
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adversarial-generation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Adversarial generation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#quality-gates-post-generation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Quality gates (post-generation)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#inline-recovery-adaptive-probe" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Inline recovery (adaptive probe)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#embedding-diversity-gate-dedup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Embedding (diversity gate + dedup)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cross-run-embedding-dedup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cross-run embedding dedup
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#pdf-extraction" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PDF extraction
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#see-also" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        See also
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/Lexsi-Labs/CuratorKIT/edit/main/docs/reference/configuration.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="curatorconfig-parameter-reference">CuratorConfig Parameter Reference<a class="headerlink" href="#curatorconfig-parameter-reference" title="Permanent link">&para;</a></h1>
+<p>All parameters for the <code>CuratorConfig</code> dataclass, grouped by category. Every field has a default — none are required. The minimal working config is just <code>dataset</code> + <code>llm_model</code> + <code>generation_task</code>.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">curatorkit</span><span class="w"> </span><span class="kn">import</span> <span class="n">Curator</span><span class="p">,</span> <span class="n">CuratorConfig</span>
+</code></pre></div>
+<hr />
+<h2 id="data-source">Data source<a class="headerlink" href="#data-source" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>dataset</code></td>
+<td><code>str \| dict \| list</code></td>
+<td><code>""</code></td>
+<td>Input path, HuggingFace dataset name, dict with reader options, or list for multi-source</td>
+</tr>
+<tr>
+<td><code>split</code></td>
+<td><code>str</code></td>
+<td><code>"train"</code></td>
+<td>Dataset split when loading from HuggingFace (<code>"train"</code>, <code>"test"</code>, etc.)</td>
+</tr>
+<tr>
+<td><code>subset</code></td>
+<td><code>str \| None</code></td>
+<td><code>None</code></td>
+<td>HuggingFace dataset configuration name (e.g. <code>"en"</code> for multilingual datasets)</td>
+</tr>
+<tr>
+<td><code>streaming</code></td>
+<td><code>bool</code></td>
+<td><code>False</code></td>
+<td>Stream the dataset instead of loading into memory (HuggingFace only)</td>
+</tr>
+<tr>
+<td><code>hf_token</code></td>
+<td><code>str \| None</code></td>
+<td><code>None</code></td>
+<td>HuggingFace API token for gated datasets</td>
+</tr>
+<tr>
+<td><code>hf_subset</code></td>
+<td><code>str \| None</code></td>
+<td><code>None</code></td>
+<td>Alias for <code>subset</code></td>
+</tr>
+<tr>
+<td><code>hf_columns</code></td>
+<td><code>list[str] \| None</code></td>
+<td><code>None</code></td>
+<td>Load only these columns (reduces memory for large HF datasets)</td>
+</tr>
+<tr>
+<td><code>max_samples</code></td>
+<td><code>int \| None</code></td>
+<td><code>None</code></td>
+<td>Hard cap on the final sample count, applied late (after gates, dedup, and resampling) so distributions are preserved. To cap how much is <em>read</em> from a large source, use the per-reader form: <code>dataset={"name": "...", "max_samples": N}</code>.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="column-mapping">Column mapping<a class="headerlink" href="#column-mapping" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>format</code></td>
+<td><code>str</code></td>
+<td><code>"auto"</code></td>
+<td>Force a specific input format: <code>"alpaca"</code>, <code>"sharegpt"</code>, <code>"preference"</code>, <code>"implicit_preference"</code>, <code>"unpaired_preference"</code>, <code>"grpo"</code>, <code>"prompt_only"</code>, <code>"pretrain"</code>. <code>"auto"</code> detects from column names.</td>
+</tr>
+<tr>
+<td><code>field_mapping</code></td>
+<td><code>dict[str, str]</code></td>
+<td><code>{}</code></td>
+<td>Rename source columns to DataSample fields, as <code>{source_column: datasample_field}</code> — keys are <em>your</em> columns. E.g. <code>{"user_query": "instruction", "response": "output"}</code>. Keys may use dot notation for nested dict values: <code>{"meta.prompt": "instruction"}</code>.</td>
+</tr>
+<tr>
+<td><code>preprocessing_fn</code></td>
+<td><code>Callable \| list \| None</code></td>
+<td><code>None</code></td>
+<td>Function <code>(dict) -&gt; dict \| None</code> applied to every raw row. Return <code>None</code> to drop.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="quality-filters-pre-generation">Quality filters (pre-generation)<a class="headerlink" href="#quality-filters-pre-generation" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>min_tokens</code></td>
+<td><code>int</code></td>
+<td><code>10</code></td>
+<td>Minimum token count. Samples below this are rejected by SchemaGate.</td>
+</tr>
+<tr>
+<td><code>max_tokens</code></td>
+<td><code>int</code></td>
+<td><code>2048</code></td>
+<td>Maximum token count. Samples above this are rejected by SchemaGate.</td>
+</tr>
+<tr>
+<td><code>use_tiktoken</code></td>
+<td><code>bool</code></td>
+<td><code>False</code></td>
+<td>Use tiktoken for token counting instead of whitespace-based estimation</td>
+</tr>
+<tr>
+<td><code>schema_use_tiktoken</code></td>
+<td><code>bool</code></td>
+<td><code>False</code></td>
+<td>Use tiktoken specifically for SchemaGate (overrides <code>use_tiktoken</code> for gate only)</td>
+</tr>
+<tr>
+<td><code>schema_enforce_task_types</code></td>
+<td><code>list[str]</code></td>
+<td><code>[]</code></td>
+<td>Only pass samples with these <code>task_type</code> values. Empty = pass all.</td>
+</tr>
+<tr>
+<td><code>schema_gate</code></td>
+<td><code>bool</code></td>
+<td><code>True</code></td>
+<td>Enable SchemaGate. Set <code>False</code> to skip all schema checks.</td>
+</tr>
+<tr>
+<td><code>schema_required_fields</code></td>
+<td><code>list[str]</code></td>
+<td><code>[]</code></td>
+<td>Additional DataSample fields that must be non-empty to pass SchemaGate</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="deduplication">Deduplication<a class="headerlink" href="#deduplication" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>dedup</code></td>
+<td><code>str</code></td>
+<td><code>"exact"</code></td>
+<td>Deduplication strategy: <code>"exact"</code>, <code>"minhash"</code>, <code>"none"</code></td>
+</tr>
+<tr>
+<td><code>minhash_threshold</code></td>
+<td><code>float</code></td>
+<td><code>0.85</code></td>
+<td>Jaccard similarity threshold for MinHash dedup. Higher = more aggressive.</td>
+</tr>
+<tr>
+<td><code>minhash_ngram</code></td>
+<td><code>int</code></td>
+<td><code>3</code></td>
+<td>N-gram size for MinHash shingle construction</td>
+</tr>
+<tr>
+<td><code>minhash_num_perm</code></td>
+<td><code>int</code></td>
+<td><code>128</code></td>
+<td>Number of hash permutations. Higher = more accurate but slower.</td>
+</tr>
+<tr>
+<td><code>minhash_seed</code></td>
+<td><code>int</code></td>
+<td><code>42</code></td>
+<td>Random seed for MinHash permutations</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="text-cleaning">Text cleaning<a class="headerlink" href="#text-cleaning" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>clean</code></td>
+<td><code>bool</code></td>
+<td><code>True</code></td>
+<td>Enable text cleaning</td>
+</tr>
+<tr>
+<td><code>clean_transforms</code></td>
+<td><code>dict[str, bool]</code></td>
+<td><code>{}</code></td>
+<td>Toggle specific transforms. Keys: <code>"normalise_unicode"</code>, <code>"fix_encoding_artifacts"</code>, <code>"collapse_whitespace"</code>, <code>"remove_control_chars"</code>, <code>"strip_html"</code>. Default: all enabled.</td>
+</tr>
+<tr>
+<td><code>clean_fields</code></td>
+<td><code>list[str]</code></td>
+<td><code>[]</code></td>
+<td>Apply cleaning to these DataSample fields. Empty = applies to <code>instruction</code>, <code>input</code>, and <code>output</code>.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="data-hygiene-pre-generation">Data hygiene (pre-generation)<a class="headerlink" href="#data-hygiene-pre-generation" title="Permanent link">&para;</a></h2>
+<p>Hygiene steps run after text cleaning and before any generation task. Execution order is
+fixed: <code>SecretsGate → PIIPseudonymizer → ToxicityGate</code>. See <a href="../../guides/data-hygiene/">Data hygiene</a>
+for full usage examples.</p>
+<h3 id="secretsgate">SecretsGate<a class="headerlink" href="#secretsgate" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>secrets_gate</code></td>
+<td><code>bool</code></td>
+<td><code>False</code></td>
+<td>Enable <code>SecretsGate</code>. Rejects samples containing API keys, tokens, private keys, or high-entropy secrets detected by the <code>detect-secrets</code> battery.</td>
+</tr>
+<tr>
+<td><code>secrets_code_corpus_mode</code></td>
+<td><code>bool</code></td>
+<td><code>False</code></td>
+<td>Enable <code>KeywordDetector</code> in addition to entropy-based detectors. Set <code>True</code> for code datasets; leave <code>False</code> for prose (too noisy).</td>
+</tr>
+</tbody>
+</table>
+<h3 id="piipseudonymizer">PIIPseudonymizer<a class="headerlink" href="#piipseudonymizer" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>pii_pseudonymize</code></td>
+<td><code>bool</code></td>
+<td><code>False</code></td>
+<td>Enable <code>PIIPseudonymizer</code>. Replaces detected PII entities with consistent Faker-generated values. Modifies samples in-place; does not reject.</td>
+</tr>
+<tr>
+<td><code>pii_entity_types</code></td>
+<td><code>list[str]</code></td>
+<td><code>[]</code></td>
+<td>Presidio entity types to detect. Empty list = default set (<code>PERSON</code>, <code>EMAIL_ADDRESS</code>, <code>PHONE_NUMBER</code>, <code>US_SSN</code>, <code>CREDIT_CARD</code>, <code>IBAN_CODE</code>, <code>IP_ADDRESS</code>). Use <code>ENTITY_TYPES_CLINICAL</code> from <code>curatorkit.hygiene.pii</code> for medical/legal corpora.</td>
+</tr>
+<tr>
+<td><code>pii_score_threshold</code></td>
+<td><code>float</code></td>
+<td><code>0.7</code></td>
+<td>Presidio confidence threshold. Detections below this score are ignored. Lower values catch more PII at the cost of higher false-positive rate.</td>
+</tr>
+<tr>
+<td><code>pii_spacy_model</code></td>
+<td><code>str</code></td>
+<td><code>"en_core_web_lg"</code></td>
+<td>spaCy model for NER. <code>"en_core_web_lg"</code> for production; <code>"en_core_web_sm"</code> for dev/CI.</td>
+</tr>
+<tr>
+<td><code>pii_faker_seed</code></td>
+<td><code>int</code></td>
+<td><code>42</code></td>
+<td>Seed for Faker replacements. Same seed = same fake entities across runs for reproducibility.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="toxicitygate">ToxicityGate<a class="headerlink" href="#toxicitygate" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>toxicity_gate</code></td>
+<td><code>bool</code></td>
+<td><code>False</code></td>
+<td>Enable <code>ToxicityGate</code>. Two-stage: Stage 1 (local Detoxify classifier) first, then optional Stage 2 (LLM judge) for borderline samples.</td>
+</tr>
+<tr>
+<td><code>toxicity_classifier_pass_threshold</code></td>
+<td><code>float</code></td>
+<td><code>0.1</code></td>
+<td>Max-dimension Detoxify score below this → immediate pass (no LLM call).</td>
+</tr>
+<tr>
+<td><code>toxicity_classifier_reject_threshold</code></td>
+<td><code>float</code></td>
+<td><code>0.5</code></td>
+<td>Max-dimension Detoxify score above this → immediate reject (no LLM call). Scores between the two thresholds are escalated to the LLM judge if <code>toxicity_llm_judge=True</code>.</td>
+</tr>
+<tr>
+<td><code>toxicity_detoxify_model</code></td>
+<td><code>str</code></td>
+<td><code>"unbiased"</code></td>
+<td>Detoxify model variant. <code>"unbiased"</code> for general corpora; <code>"original"</code> for informal web text; <code>"multilingual"</code> for non-English.</td>
+</tr>
+<tr>
+<td><code>toxicity_llm_judge</code></td>
+<td><code>bool</code></td>
+<td><code>False</code></td>
+<td>Enable LLM second opinion for borderline samples. Requires <code>llm_model</code> to be set.</td>
+</tr>
+<tr>
+<td><code>toxicity_llm_reject_threshold</code></td>
+<td><code>float</code></td>
+<td><code>0.5</code></td>
+<td>LLM judge score at or above which a borderline sample is rejected (only used when <code>toxicity_llm_judge=True</code>).</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="export">Export<a class="headerlink" href="#export" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>output_dir</code></td>
+<td><code>str \| Path</code></td>
+<td><code>"output"</code></td>
+<td>Directory for all output files</td>
+</tr>
+<tr>
+<td><code>export_formats</code></td>
+<td><code>list[str]</code></td>
+<td><code>["alpaca", "sharegpt", "dpo"]</code></td>
+<td>Which exporters to run. Options: <code>"alpaca"</code>, <code>"sharegpt"</code>, <code>"dpo"</code>, <code>"grpo"</code>, <code>"ppo"</code>, <code>"corpus"</code></td>
+</tr>
+<tr>
+<td><code>output_split</code></td>
+<td><code>dict[str, float] \| None</code></td>
+<td><code>None</code></td>
+<td>Split accepted samples into subdirectories. E.g. <code>{"train": 0.8, "val": 0.1, "test": 0.1}</code>. Must sum to 1.0.</td>
+</tr>
+<tr>
+<td><code>output_split_seed</code></td>
+<td><code>int</code></td>
+<td><code>42</code></td>
+<td>Seed for the pre-split shuffle. Set the same value across runs to get identical train/val/test assignments.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="misc">Misc<a class="headerlink" href="#misc" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>name</code></td>
+<td><code>str</code></td>
+<td><code>"curatorkit_run"</code></td>
+<td>Pipeline name, written to <code>manifest.json</code> and <code>dataset_card.md</code></td>
+</tr>
+<tr>
+<td><code>detection_sample_size</code></td>
+<td><code>int</code></td>
+<td><code>10</code></td>
+<td>Number of rows to inspect for auto-format detection</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="resampling">Resampling<a class="headerlink" href="#resampling" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>resample</code></td>
+<td><code>bool</code></td>
+<td><code>False</code></td>
+<td>Enable stratified resampling to match <code>target_distribution</code></td>
+</tr>
+<tr>
+<td><code>target_distribution</code></td>
+<td><code>dict[str, float]</code></td>
+<td><code>{}</code></td>
+<td>Target class proportions. E.g. <code>{"finance": 0.5, "legal": 0.3, "general": 0.2}</code>. Must sum to 1.0.</td>
+</tr>
+<tr>
+<td><code>resample_field</code></td>
+<td><code>str</code></td>
+<td><code>"source_dataset"</code></td>
+<td>DataSample metadata field used as the stratification key</td>
+</tr>
+<tr>
+<td><code>resample_seed</code></td>
+<td><code>int</code></td>
+<td><code>42</code></td>
+<td>Random seed for resampling</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="generator-llm">Generator LLM<a class="headerlink" href="#generator-llm" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>llm_model</code></td>
+<td><code>str \| None</code></td>
+<td><code>None</code></td>
+<td>LiteLLM model string. E.g. <code>"openai/gpt-4o-mini"</code>, <code>"ollama/llama3.1:8b"</code>. Required for generation tasks.</td>
+</tr>
+<tr>
+<td><code>llm_temperature</code></td>
+<td><code>float</code></td>
+<td><code>0.7</code></td>
+<td>Sampling temperature for generation</td>
+</tr>
+<tr>
+<td><code>llm_max_tokens</code></td>
+<td><code>int</code></td>
+<td><code>1024</code></td>
+<td>Max tokens per LLM response</td>
+</tr>
+<tr>
+<td><code>llm_api_key</code></td>
+<td><code>str \| None</code></td>
+<td><code>None</code></td>
+<td>API key. Falls back to environment variable (e.g. <code>OPENAI_API_KEY</code>) if <code>None</code>.</td>
+</tr>
+<tr>
+<td><code>llm_api_base</code></td>
+<td><code>str \| None</code></td>
+<td><code>None</code></td>
+<td>Custom base URL for OpenAI-compatible endpoints (vLLM, Ollama, etc.)</td>
+</tr>
+<tr>
+<td><code>llm_concurrency</code></td>
+<td><code>int</code></td>
+<td><code>10</code></td>
+<td>Max parallel LLM requests for generation</td>
+</tr>
+<tr>
+<td><code>llm_timeout</code></td>
+<td><code>float</code></td>
+<td><code>120.0</code></td>
+<td>Request timeout in seconds</td>
+</tr>
+<tr>
+<td><code>llm_max_retries</code></td>
+<td><code>int</code></td>
+<td><code>3</code></td>
+<td>Retry attempts on transient errors</td>
+</tr>
+<tr>
+<td><code>llm_drop_params</code></td>
+<td><code>bool</code></td>
+<td><code>True</code></td>
+<td>Silently drop unsupported params rather than raising (LiteLLM behaviour)</td>
+</tr>
+<tr>
+<td><code>llm_extra_body</code></td>
+<td><code>dict</code></td>
+<td><code>{}</code></td>
+<td>Extra fields forwarded verbatim in the API request body (e.g. <code>{"chat_template_kwargs": {"enable_thinking": True}}</code>)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="judge-llm">Judge LLM<a class="headerlink" href="#judge-llm" title="Permanent link">&para;</a></h2>
+<p>Used by HallucinationGate and RewardGate. Defaults to the generator LLM when not set.</p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>judge_llm_model</code></td>
+<td><code>str \| None</code></td>
+<td><code>None</code></td>
+<td>Model for quality scoring. <code>None</code> = use <code>llm_model</code>. <strong>Recommended</strong>: set a separate model to avoid self-leniency bias.</td>
+</tr>
+<tr>
+<td><code>judge_llm_api_base</code></td>
+<td><code>str \| None</code></td>
+<td><code>None</code></td>
+<td>Base URL for judge model endpoint</td>
+</tr>
+<tr>
+<td><code>judge_llm_temperature</code></td>
+<td><code>float</code></td>
+<td><code>0.1</code></td>
+<td>Low temperature for deterministic scoring</td>
+</tr>
+<tr>
+<td><code>judge_llm_max_tokens</code></td>
+<td><code>int</code></td>
+<td><code>512</code></td>
+<td>Max tokens for judge responses (scores are short)</td>
+</tr>
+<tr>
+<td><code>judge_llm_timeout</code></td>
+<td><code>float</code></td>
+<td><code>120.0</code></td>
+<td>Judge request timeout in seconds</td>
+</tr>
+<tr>
+<td><code>judge_llm_max_retries</code></td>
+<td><code>int</code></td>
+<td><code>3</code></td>
+<td>Retry attempts for judge requests</td>
+</tr>
+<tr>
+<td><code>judge_llm_extra_body</code></td>
+<td><code>dict</code></td>
+<td><code>{}</code></td>
+<td>Extra body params for judge model (e.g. disable thinking mode for structured output)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="generation-task">Generation task<a class="headerlink" href="#generation-task" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>generation_task</code></td>
+<td><code>str \| None</code></td>
+<td><code>None</code></td>
+<td>Which task to run: <code>"qa"</code>, <code>"preference"</code>, <code>"grpo"</code>, <code>"multiturn"</code>, <code>"evol"</code>, <code>"cot"</code>, <code>"adversarial_preference"</code>, <code>"adversarial_qa"</code>. <code>None</code> = no generation, cleaning/filtering only.</td>
+</tr>
+<tr>
+<td><code>num_questions</code></td>
+<td><code>int</code></td>
+<td><code>3</code></td>
+<td>Number of QA pairs or questions to generate per source chunk (<code>qa</code>, <code>adversarial_qa</code>)</td>
+</tr>
+<tr>
+<td><code>num_responses</code></td>
+<td><code>int</code></td>
+<td><code>4</code></td>
+<td>Number of rollout responses per prompt (<code>grpo</code>)</td>
+</tr>
+<tr>
+<td><code>num_turns</code></td>
+<td><code>int</code></td>
+<td><code>3</code></td>
+<td>Number of turns in a multi-turn conversation (<code>multiturn</code>)</td>
+</tr>
+<tr>
+<td><code>num_evolutions</code></td>
+<td><code>int</code></td>
+<td><code>1</code></td>
+<td>Number of evolution rounds per instruction (<code>evol</code>)</td>
+</tr>
+<tr>
+<td><code>difficulty</code></td>
+<td><code>str</code></td>
+<td><code>"medium"</code></td>
+<td>Question difficulty level: <code>"easy"</code>, <code>"medium"</code>, <code>"hard"</code> (<code>qa</code>, <code>adversarial_qa</code>)</td>
+</tr>
+<tr>
+<td><code>score_responses</code></td>
+<td><code>bool</code></td>
+<td><code>True</code></td>
+<td>Score each rollout response after generation (<code>grpo</code>)</td>
+</tr>
+<tr>
+<td><code>generate_answers</code></td>
+<td><code>bool</code></td>
+<td><code>True</code></td>
+<td>Generate answers for evolved instructions (<code>evol</code>)</td>
+</tr>
+<tr>
+<td><code>cot_mode</code></td>
+<td><code>str</code></td>
+<td><code>"generate"</code></td>
+<td>Chain-of-thought mode: <code>"generate"</code> (LLM produces CoT from scratch) or <code>"wrap"</code> (wrap an existing answer with reasoning)</td>
+</tr>
+<tr>
+<td><code>cot_marker</code></td>
+<td><code>str \| None</code></td>
+<td><code>None</code></td>
+<td>Separator inserted between the reasoning block and the final answer in <code>cot</code> output. <code>None</code> = the built-in separator (<code>"\n\n## Answer\n"</code>).</td>
+</tr>
+<tr>
+<td><code>preference_mode</code></td>
+<td><code>str</code></td>
+<td><code>"single_call"</code></td>
+<td>Preference pair generation: <code>"single_call"</code> (one call for both chosen/rejected) or <code>"two_pass"</code> (separate calls)</td>
+</tr>
+<tr>
+<td><code>generation_concurrency</code></td>
+<td><code>int \| None</code></td>
+<td><code>None</code></td>
+<td>Concurrency for the generation task. <code>None</code> = use <code>llm_concurrency</code>.</td>
+</tr>
+<tr>
+<td><code>judge_concurrency</code></td>
+<td><code>int \| None</code></td>
+<td><code>None</code></td>
+<td>Concurrency for scoring/judging calls. <code>None</code> = use <code>llm_concurrency</code>.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="grpo-specific">GRPO-specific<a class="headerlink" href="#grpo-specific" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>grpo_temperature_spread</code></td>
+<td><code>float</code></td>
+<td><code>0.0</code></td>
+<td>Spread applied around <code>llm_temperature</code> to create a range of rollout temperatures. <code>0.0</code> = all rollouts use the same temperature.</td>
+</tr>
+<tr>
+<td><code>grpo_temperatures</code></td>
+<td><code>list[float] \| None</code></td>
+<td><code>None</code></td>
+<td>Explicit per-rollout temperatures. Overrides <code>grpo_temperature_spread</code>. Cycled if shorter than <code>num_responses</code>.</td>
+</tr>
+<tr>
+<td><code>grpo_scoring_llm_model</code></td>
+<td><code>str \| None</code></td>
+<td><code>None</code></td>
+<td>Model for scoring GRPO responses. <code>None</code> = use <code>llm_model</code> (the generator).</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="prompt-templates">Prompt templates<a class="headerlink" href="#prompt-templates" title="Permanent link">&para;</a></h2>
+<p>Override the default LLM prompt for each task. If you provide a template, all required placeholder variables must be present or construction raises <code>ValueError</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Required variables</th>
+<th>Task</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>qa_prompt_template</code></td>
+<td><code>{context}</code>, <code>{num_questions}</code> (optional: <code>{difficulty}</code> — if absent and <code>difficulty != "medium"</code>, a difficulty hint is appended as a suffix)</td>
+<td><code>qa</code></td>
+</tr>
+<tr>
+<td><code>qa_table_prompt_template</code></td>
+<td><code>{context}</code>, <code>{num_questions}</code> (optional: <code>{difficulty}</code>)</td>
+<td><code>qa</code> — separate prompt used for table-derived chunks</td>
+</tr>
+<tr>
+<td><code>evol_prompt_template</code></td>
+<td><code>{instruction}</code>, <code>{strategy}</code>, <code>{context}</code></td>
+<td><code>evol</code></td>
+</tr>
+<tr>
+<td><code>evol_answer_prompt_template</code></td>
+<td><code>{instruction}</code></td>
+<td><code>evol</code> — answer pass for evolved instructions without source context (requires <code>generate_answers=True</code>)</td>
+</tr>
+<tr>
+<td><code>preference_prompt_template</code></td>
+<td><code>{instruction}</code>, <code>{context_section}</code></td>
+<td><code>preference</code> (<code>single_call</code> mode)</td>
+</tr>
+<tr>
+<td><code>preference_chosen_prompt</code></td>
+<td><code>{instruction}</code>, <code>{context_section}</code></td>
+<td><code>preference</code> (<code>two_pass</code> mode) — chosen-response generation</td>
+</tr>
+<tr>
+<td><code>preference_rejected_prompt</code></td>
+<td><code>{instruction}</code>, <code>{context_section}</code></td>
+<td><code>preference</code> (<code>two_pass</code> mode) — rejected-response generation</td>
+</tr>
+<tr>
+<td><code>grpo_prompt_template</code></td>
+<td><code>{instruction}</code></td>
+<td><code>grpo</code></td>
+</tr>
+<tr>
+<td><code>multiturn_prompt_template</code></td>
+<td><code>{num_turns}</code>, <code>{context_section}</code>, <code>{initial_question}</code></td>
+<td><code>multiturn</code> (only used in <code>single_call</code> mode — not active via <code>CuratorConfig</code>, which always uses <code>turn_by_turn</code>; see the <a href="../../guides/customisation/">customisation guide</a>)</td>
+</tr>
+<tr>
+<td><code>cot_prompt_template</code></td>
+<td><code>{instruction}</code> (generate mode); <code>{instruction}</code>, <code>{answer}</code> (wrap mode)</td>
+<td><code>cot</code></td>
+</tr>
+<tr>
+<td><code>adversarial_prompt_template</code></td>
+<td><code>{context}</code>, <code>{question}</code>, <code>{injection_type}</code></td>
+<td><code>adversarial_preference</code> (template for the adversarially-corrupted rejected response)</td>
+</tr>
+<tr>
+<td><code>llm_prompt_template</code></td>
+<td>task-dependent</td>
+<td>fallback for unlisted tasks</td>
+</tr>
+</tbody>
+</table>
+<p>All default to <code>None</code> (built-in template used).</p>
+<hr />
+<h2 id="adversarial-generation">Adversarial generation<a class="headerlink" href="#adversarial-generation" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>injection_rate</code></td>
+<td><code>float</code></td>
+<td><code>0.5</code></td>
+<td>Fraction of questions to inject adversarial hallucinations into (0.0–1.0)</td>
+</tr>
+<tr>
+<td><code>injection_types</code></td>
+<td><code>list[str]</code></td>
+<td><code>[]</code></td>
+<td>Which injection strategies to use. For <code>adversarial_preference</code>: <code>"contradicts_source"</code>, <code>"parametric_drift"</code>, <code>"domain_mismatch"</code>, <code>"instruction_quality"</code>. For <code>adversarial_qa</code>: same four plus <code>"high_temperature_drift"</code>. Empty = all types for the active task.</td>
+</tr>
+<tr>
+<td><code>injection_seed</code></td>
+<td><code>int</code></td>
+<td><code>42</code></td>
+<td>Random seed for injection sampling</td>
+</tr>
+<tr>
+<td><code>high_temp</code></td>
+<td><code>float</code></td>
+<td><code>1.4</code></td>
+<td>Sampling temperature used for the <code>high_temperature_drift</code> injection type (<code>adversarial_qa</code> only)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="quality-gates-post-generation">Quality gates (post-generation)<a class="headerlink" href="#quality-gates-post-generation" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>hallucination_threshold</code></td>
+<td><code>float \| None</code></td>
+<td><code>None</code></td>
+<td>Enable HallucinationGate. Samples below this score are rejected. Range 0.0–1.0. <code>None</code> = gate disabled.</td>
+</tr>
+<tr>
+<td><code>hallucination_prompt_template</code></td>
+<td><code>str \| None</code></td>
+<td><code>None</code></td>
+<td>Custom hallucination judge prompt. Required variables: <code>{source}</code>, <code>{claim}</code>.</td>
+</tr>
+<tr>
+<td><code>reward_threshold</code></td>
+<td><code>float \| None</code></td>
+<td><code>None</code></td>
+<td>Enable RewardGate. Samples below this score are rejected. Range 0.0–1.0. <code>None</code> = gate disabled.</td>
+</tr>
+<tr>
+<td><code>reward_dimensions</code></td>
+<td><code>list[str]</code></td>
+<td><code>["helpfulness", "honesty", "instruction_following"]</code></td>
+<td>Built-in scoring axes. Valid values: <code>"helpfulness"</code>, <code>"honesty"</code>, <code>"instruction_following"</code>, <code>"truthfulness"</code>, <code>"depth"</code>, <code>"creativity"</code>, <code>"coherence"</code>.</td>
+</tr>
+<tr>
+<td><code>reward_prompt_template</code></td>
+<td><code>str \| None</code></td>
+<td><code>None</code></td>
+<td>Replace the entire reward judge prompt with a custom rubric. Required variables: <code>{instruction}</code>, <code>{response}</code>. Must return <code>{"score": 0.XX, "reasoning": "..."}</code>.</td>
+</tr>
+<tr>
+<td><code>reward_store_score</code></td>
+<td><code>bool</code></td>
+<td><code>True</code></td>
+<td>Write the overall reward score to each sample's <code>label</code> field (used by the reward refiner and downstream filtering)</td>
+</tr>
+<tr>
+<td><code>diversity_threshold</code></td>
+<td><code>float \| None</code></td>
+<td><code>None</code></td>
+<td>Enable DiversityGate. Samples with cosine similarity above this to any accepted sample are rejected. Range 0.0–1.0. <code>None</code> = gate disabled.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="inline-recovery-adaptive-probe">Inline recovery (adaptive probe)<a class="headerlink" href="#inline-recovery-adaptive-probe" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>enable_diagnostic_probe</code></td>
+<td><code>bool</code></td>
+<td><code>False</code></td>
+<td>Enable the inline probe. Fires after each gate's rejects, before the next gate sees samples.</td>
+</tr>
+<tr>
+<td><code>probe_temperatures</code></td>
+<td><code>list[float]</code></td>
+<td><code>[0.3, 0.5]</code></td>
+<td>Temperature values to try during the temperature sweep recovery path</td>
+</tr>
+<tr>
+<td><code>probe_generator_model</code></td>
+<td><code>str \| None</code></td>
+<td><code>None</code></td>
+<td>Model for probe re-generation. <code>None</code> = use <code>llm_model</code>.</td>
+</tr>
+<tr>
+<td><code>probe_score_split</code></td>
+<td><code>float</code></td>
+<td><code>0.5</code></td>
+<td>Score boundary for routing. Samples above this go to the temperature path; below go to the strict grounding path.</td>
+</tr>
+<tr>
+<td><code>probe_extra_templates</code></td>
+<td><code>dict[str, str]</code></td>
+<td><code>{}</code></td>
+<td>Override built-in probe templates (<code>"default"</code>, <code>"strict_grounding"</code>, <code>"domain_specific"</code>) or add new keys, selected per sample via <code>metadata["domain_prompt_key"]</code>. See <a href="../../guides/customisation/#custom-probe-templates">Customisation</a> for routing details.</td>
+</tr>
+<tr>
+<td><code>enable_reward_refiner</code></td>
+<td><code>bool</code></td>
+<td><code>False</code></td>
+<td>Enable the post-pipeline reward refiner (rewrites answers targeting the weakest quality dimension)</td>
+</tr>
+<tr>
+<td><code>reward_refine_prompt_template</code></td>
+<td><code>str \| None</code></td>
+<td><code>None</code></td>
+<td>Custom refiner prompt. <code>None</code> = built-in template.</td>
+</tr>
+<tr>
+<td><code>reward_instruction_refine_template</code></td>
+<td><code>str \| None</code></td>
+<td><code>None</code></td>
+<td>Custom template for instruction rewrites (used when <code>instruction_quality</code> failure mode is detected). <code>None</code> = built-in.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="embedding-diversity-gate-dedup">Embedding (diversity gate + dedup)<a class="headerlink" href="#embedding-diversity-gate-dedup" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>embedding_model</code></td>
+<td><code>str</code></td>
+<td><code>"sentence-transformers/all-MiniLM-L6-v2"</code></td>
+<td>SentenceTransformer model for diversity gate and embedding dedup</td>
+</tr>
+<tr>
+<td><code>diversity_embedding_model</code></td>
+<td><code>str \| None</code></td>
+<td><code>None</code></td>
+<td>Override <code>embedding_model</code> for the diversity gate only</td>
+</tr>
+<tr>
+<td><code>embedding_dedup_model</code></td>
+<td><code>str \| None</code></td>
+<td><code>None</code></td>
+<td>Override <code>embedding_model</code> for the embedding dedup normalizer only</td>
+</tr>
+<tr>
+<td><code>embedding_device</code></td>
+<td><code>str \| None</code></td>
+<td><code>None</code></td>
+<td>Device for embedding inference: <code>"cpu"</code>, <code>"cuda"</code>, <code>"mps"</code>. <code>None</code> = auto-detect.</td>
+</tr>
+<tr>
+<td><code>embedding_batch_size</code></td>
+<td><code>int</code></td>
+<td><code>64</code></td>
+<td>Batch size for embedding model inference</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="cross-run-embedding-dedup">Cross-run embedding dedup<a class="headerlink" href="#cross-run-embedding-dedup" title="Permanent link">&para;</a></h2>
+<p>Persists an FAISS index across runs to reject samples already seen in previous runs.</p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>embedding_dedup</code></td>
+<td><code>bool</code></td>
+<td><code>False</code></td>
+<td>Enable cross-run embedding dedup</td>
+</tr>
+<tr>
+<td><code>embedding_index_dir</code></td>
+<td><code>str</code></td>
+<td><code>"output/embedding_index"</code></td>
+<td>Directory where the FAISS index is stored and loaded</td>
+</tr>
+<tr>
+<td><code>embedding_dedup_threshold</code></td>
+<td><code>float</code></td>
+<td><code>0.92</code></td>
+<td>Cosine similarity threshold. Samples above this are rejected as near-duplicates of previously indexed samples.</td>
+</tr>
+<tr>
+<td><code>embedding_reset_index</code></td>
+<td><code>bool</code></td>
+<td><code>False</code></td>
+<td>Delete and rebuild the index at the start of this run</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="pdf-extraction">PDF extraction<a class="headerlink" href="#pdf-extraction" title="Permanent link">&para;</a></h2>
+<p>Controls how PDFs are chunked when <code>dataset</code> points to a <code>.pdf</code> file.</p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>pdf_output_mode</code></td>
+<td><code>str</code></td>
+<td><code>"chunk"</code></td>
+<td>How to yield content: <code>"chunk"</code> (raw source chunks), <code>"qa"</code>, <code>"preference"</code>, <code>"grpo"</code>, or <code>"multiturn"</code> (LLM generation runs inline in the reader). Use <code>"chunk"</code> and set <code>generation_task</code> separately — inline modes are legacy.</td>
+</tr>
+<tr>
+<td><code>pdf_chunk_strategy</code></td>
+<td><code>str</code></td>
+<td><code>"heading"</code></td>
+<td>Chunking strategy: <code>"heading"</code> (split on heading boundaries), <code>"sentence"</code> (sentence boundaries), or <code>"fixed"</code> (fixed token size)</td>
+</tr>
+<tr>
+<td><code>pdf_chunk_max_tokens</code></td>
+<td><code>int</code></td>
+<td><code>512</code></td>
+<td>Target max tokens per chunk</td>
+</tr>
+<tr>
+<td><code>pdf_chunk_overlap_tokens</code></td>
+<td><code>int</code></td>
+<td><code>50</code></td>
+<td>Token overlap between adjacent chunks</td>
+</tr>
+<tr>
+<td><code>pdf_extract_tables</code></td>
+<td><code>bool</code></td>
+<td><code>False</code></td>
+<td>Include table cells as text in chunks</td>
+</tr>
+<tr>
+<td><code>pdf_ocr</code></td>
+<td><code>bool</code></td>
+<td><code>False</code></td>
+<td>Run OCR on scanned pages (requires MinerU GPU setup)</td>
+</tr>
+<tr>
+<td><code>pdf_min_section_tokens</code></td>
+<td><code>int</code></td>
+<td><code>30</code></td>
+<td>Discard sections shorter than this (headers, footers, captions)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="see-also">See also<a class="headerlink" href="#see-also" title="Permanent link">&para;</a></h2>
+<ul>
+<li><a href="../cli/">CLI and YAML pipeline</a> — equivalent config via YAML</li>
+<li><a href="../../guides/data-sources/">Data sources</a> — reader-specific options</li>
+<li><a href="../../guides/generation/">Generation</a> — generation task details and prompt templates</li>
+<li><a href="../../guides/quality-gates/">Quality filtering</a> — gate behaviour and tuning</li>
+<li><a href="../../guides/adaptive-recovery/">Adaptive recovery</a> — probe and refiner details</li>
+<li><a href="../../guides/customisation/">Customisation</a> — custom prompts, backends, extensions</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href="../" class="md-footer__link md-footer__link--prev" aria-label="Previous: Reference">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                Reference
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../cli/" class="md-footer__link md-footer__link--next" aria-label="Next: CLI &amp; YAML">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                CLI & YAML
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2026 <a href="https://lexsi.ai" target="_blank" rel="noopener">Lexsi Labs</a>
+
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+    <a href="https://github.com/Lexsi-Labs" target="_blank" rel="noopener" title="Lexsi Labs on GitHub" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+    
+    
+    
+    
+    <a href="https://x.com/Lexsi_labs" target="_blank" rel="noopener" title="Lexsi Labs on X" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M357.2 48h70.6L273.6 224.2 455 464H313L201.7 318.6 74.5 464H3.8l164.9-188.5L-5.2 48h145.6l100.5 132.9zm-24.8 373.8h39.1L119.1 88h-42z"/></svg>
+    </a>
+  
+    
+    
+    
+    
+    <a href="https://www.linkedin.com/company/lexsi-labs/" target="_blank" rel="noopener" title="Lexsi Labs on LinkedIn" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M416 32H31.9C14.3 32 0 46.5 0 64.3v383.4C0 465.5 14.3 480 31.9 480H416c17.6 0 32-14.5 32-32.3V64.3c0-17.8-14.4-32.3-32-32.3M135.4 416H69V202.2h66.5V416zM102.2 96a38.5 38.5 0 1 1 0 77 38.5 38.5 0 1 1 0-77m282.1 320h-66.4V312c0-24.8-.5-56.7-34.5-56.7-34.6 0-39.9 27-39.9 54.9V416h-66.4V202.2h63.7v29.2h.9c8.9-16.8 30.6-34.5 62.9-34.5 67.2 0 79.7 44.3 79.7 101.9z"/></svg>
+    </a>
+  
+    
+    
+    
+    
+    <a href="https://huggingface.co/Lexsi" target="_blank" rel="noopener" title="Lexsi Labs on Hugging Face" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12.025 1.13c-5.77 0-10.449 4.647-10.449 10.378 0 1.112.178 2.181.503 3.185.064-.222.203-.444.416-.577a.96.96 0 0 1 .524-.15c.293 0 .584.124.84.284.278.173.48.408.71.694.226.282.458.611.684.951v-.014c.017-.324.106-.622.264-.874s.403-.487.762-.543c.3-.047.596.06.787.203s.31.313.4.467c.15.257.212.468.233.542.01.026.653 1.552 1.657 2.54.616.605 1.01 1.223 1.082 1.912.055.537-.096 1.059-.38 1.572.637.121 1.294.187 1.967.187.657 0 1.298-.063 1.921-.178-.287-.517-.44-1.041-.384-1.581.07-.69.465-1.307 1.081-1.913 1.004-.987 1.647-2.513 1.657-2.539.021-.074.083-.285.233-.542.09-.154.208-.323.4-.467a1.08 1.08 0 0 1 .787-.203c.359.056.604.29.762.543s.247.55.265.874v.015c.225-.34.457-.67.683-.952.23-.286.432-.52.71-.694.257-.16.547-.284.84-.285a.97.97 0 0 1 .524.151c.228.143.373.388.43.625l.006.04a10.3 10.3 0 0 0 .534-3.273c0-5.731-4.678-10.378-10.449-10.378M8.327 6.583a1.5 1.5 0 0 1 .713.174 1.487 1.487 0 0 1 .617 2.013c-.183.343-.762-.214-1.102-.094-.38.134-.532.914-.917.71a1.487 1.487 0 0 1 .69-2.803m7.486 0a1.487 1.487 0 0 1 .689 2.803c-.385.204-.536-.576-.916-.71-.34-.12-.92.437-1.103.094a1.487 1.487 0 0 1 .617-2.013 1.5 1.5 0 0 1 .713-.174m-10.68 1.55a.96.96 0 1 1 0 1.921.96.96 0 0 1 0-1.92m13.838 0a.96.96 0 1 1 0 1.92.96.96 0 0 1 0-1.92M8.489 11.458c.588.01 1.965 1.157 3.572 1.164 1.607-.007 2.984-1.155 3.572-1.164.196-.003.305.12.305.454 0 .886-.424 2.328-1.563 3.202-.22-.756-1.396-1.366-1.63-1.32q-.011.001-.02.006l-.044.026-.01.008-.03.024q-.018.017-.035.036l-.032.04a1 1 0 0 0-.058.09l-.014.025q-.049.088-.11.19a1 1 0 0 1-.083.116 1.2 1.2 0 0 1-.173.18q-.035.029-.075.058a1.3 1.3 0 0 1-.251-.243 1 1 0 0 1-.076-.107c-.124-.193-.177-.363-.337-.444-.034-.016-.104-.008-.2.022q-.094.03-.216.087-.06.028-.125.063l-.13.074q-.067.04-.136.086a3 3 0 0 0-.135.096 3 3 0 0 0-.26.219 2 2 0 0 0-.12.121 2 2 0 0 0-.106.128l-.002.002a2 2 0 0 0-.09.132l-.001.001a1.2 1.2 0 0 0-.105.212q-.013.036-.024.073c-1.139-.875-1.563-2.317-1.563-3.203 0-.334.109-.457.305-.454m.836 10.354c.824-1.19.766-2.082-.365-3.194-1.13-1.112-1.789-2.738-1.789-2.738s-.246-.945-.806-.858-.97 1.499.202 2.362c1.173.864-.233 1.45-.685.64-.45-.812-1.683-2.896-2.322-3.295s-1.089-.175-.938.647 2.822 2.813 2.562 3.244-1.176-.506-1.176-.506-2.866-2.567-3.49-1.898.473 1.23 2.037 2.16c1.564.932 1.686 1.178 1.464 1.53s-3.675-2.511-4-1.297c-.323 1.214 3.524 1.567 3.287 2.405-.238.839-2.71-1.587-3.216-.642-.506.946 3.49 2.056 3.522 2.064 1.29.33 4.568 1.028 5.713-.624m5.349 0c-.824-1.19-.766-2.082.365-3.194 1.13-1.112 1.789-2.738 1.789-2.738s.246-.945.806-.858.97 1.499-.202 2.362c-1.173.864.233 1.45.685.64.451-.812 1.683-2.896 2.322-3.295s1.089-.175.938.647-2.822 2.813-2.562 3.244 1.176-.506 1.176-.506 2.866-2.567 3.49-1.898-.473 1.23-2.037 2.16c-1.564.932-1.686 1.178-1.464 1.53s3.675-2.511 4-1.297c.323 1.214-3.524 1.567-3.287 2.405.238.839 2.71-1.587 3.216-.642.506.946-3.49 2.056-3.522 2.064-1.29.33-4.568 1.028-5.713-.624"/></svg>
+    </a>
+  
+    
+    
+    
+    
+    <a href="https://lexsi.ai" target="_blank" rel="noopener" title="lexsi.ai" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M351.9 280H161c2.9 64.5 17.2 123.9 37.5 167.4 11.4 24.5 23.7 41.8 35.1 52.4 11.2 10.5 18.9 12.2 22.9 12.2s11.7-1.7 22.9-12.2c11.4-10.6 23.7-28 35.1-52.4 20.3-43.5 34.6-102.9 37.5-167.4zm-191-48h190.9c-2.8-64.5-17.1-123.9-37.4-167.4-11.4-24.4-23.7-41.8-35.1-52.4C268.1 1.7 260.4 0 256.4 0s-11.7 1.7-22.9 12.2c-11.4 10.6-23.7 28-35.1 52.4-20.3 43.5-34.6 102.9-37.5 167.4m-48 0c3.5-85.6 25.6-165.1 57.9-217.3C78.7 47.3 10.9 131.2 1.5 232zM1.5 280c9.4 100.8 77.2 184.7 169.3 217.3-32.3-52.2-54.4-131.7-57.9-217.3zm398.4 0c-3.5 85.6-25.6 165.1-57.9 217.3 92.1-32.7 159.9-116.5 169.3-217.3zm111.4-48C501.9 131.2 434.1 47.3 342 14.7c32.3 52.2 54.4 131.7 57.9 217.3z"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+      <div class="md-progress" data-md-component="progress" role="progressbar"></div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.indexes", "navigation.top", "navigation.footer", "navigation.prune", "toc.follow", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tabs.link", "content.action.edit"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+        <script src="../../assets/extra.js"></script>
+      
+    
+  </body>
+</html>
