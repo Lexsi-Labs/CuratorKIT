@@ -1,0 +1,350 @@
+/* ============================================================================
+   CuratorKIT — design system
+   Direction: refined editorial-technical. The product is provenance and rigor;
+   the site reads like a precisely set lab journal. Ink-green dominates, the
+   logo's amber appears only as a sharp, deliberate accent. Dots — the sample
+   particles from the logo — are the recurring motif.
+   Type: Bricolage Grotesque (display) · Schibsted Grotesk (text, via theme)
+         · IBM Plex Mono (code, via theme)
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700&display=swap');
+
+:root {
+  --ck-ink: #14211b;          /* wordmark green-black */
+  --ck-ink-2: #2a3a30;
+  --ck-green: #0a8868;        /* funnel + "Kit" */
+  --ck-green-dark: #086b52;
+  --ck-green-bright: #2cc69b; /* dark-scheme accent */
+  --ck-amber: #e8a33d;        /* the dots — sharp accent, used sparingly */
+  --ck-paper: #faf9f5;        /* warm paper, light scheme */
+  --ck-display: "Bricolage Grotesque", "Schibsted Grotesk", sans-serif;
+}
+
+/* ── Palette: light ─────────────────────────────────────────────────────── */
+[data-md-color-scheme="default"] {
+  --md-primary-fg-color: var(--ck-ink);
+  --md-primary-fg-color--light: var(--ck-ink-2);
+  --md-primary-fg-color--dark: #0d1410;
+  --md-accent-fg-color: var(--ck-green);
+  --md-typeset-a-color: var(--ck-green-dark);
+  --md-default-bg-color: var(--ck-paper);
+  --md-code-bg-color: #f1efe8;
+  --md-footer-bg-color: var(--ck-ink);
+  --md-footer-bg-color--dark: #0d1410;
+}
+
+/* ── Palette: dark (green-tinted, not Material's blue slate) ────────────── */
+[data-md-color-scheme="slate"] {
+  --md-primary-fg-color: #0b110e;
+  --md-primary-fg-color--light: var(--ck-ink-2);
+  --md-primary-fg-color--dark: #080d0a;
+  --md-accent-fg-color: var(--ck-green-bright);
+  --md-typeset-a-color: var(--ck-green-bright);
+  --md-default-bg-color: #0e1512;
+  --md-default-fg-color--lightest: rgba(193, 210, 200, 0.12);
+  --md-code-bg-color: #131c17;
+  --md-footer-bg-color: #0b110e;
+  --md-footer-bg-color--dark: #080d0a;
+}
+
+/* ── Typography ─────────────────────────────────────────────────────────── */
+.md-typeset h1,
+.md-typeset h2,
+.md-typeset h3 {
+  font-family: var(--ck-display);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.md-typeset h1 {
+  color: var(--md-default-fg-color);
+  font-weight: 700;
+}
+
+.md-header__topic,
+.md-tabs__link {
+  font-family: var(--ck-display);
+  font-weight: 600;
+}
+
+/* ── Header & tabs ──────────────────────────────────────────────────────── */
+.md-header__button.md-logo img,
+.md-header__button.md-logo svg {
+  height: 1.6rem;
+  width: auto;
+}
+
+/* brand hairline under the tab bar: green flowing into amber */
+.md-tabs {
+  border-bottom: 2px solid transparent;
+  border-image: linear-gradient(90deg, var(--ck-green) 0%, var(--ck-green) 55%, var(--ck-amber) 100%) 1;
+}
+
+.md-header__title {
+  font-size: 0.95rem;
+}
+
+.md-tabs__link {
+  opacity: 0.78;
+  transition: color 125ms, opacity 125ms;
+}
+
+.md-tabs__link:hover {
+  color: var(--ck-amber);
+  opacity: 1;
+}
+
+.md-tabs__link--active {
+  color: #fff;
+  opacity: 1;
+  box-shadow: 0 2px 0 0 var(--ck-amber);
+}
+
+/* search field: rounder, calmer */
+.md-search__form {
+  border-radius: 0.3rem;
+}
+
+/* ── Landing hero ───────────────────────────────────────────────────────── */
+.ck-hero {
+  position: relative;
+  text-align: center;
+  padding: 3.2rem 1rem 2.6rem;
+  margin: 0 0 1.6rem;
+  overflow: hidden;
+}
+
+/* dot-grid motif — the logo's sample particles */
+.ck-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle, var(--ck-green) 1px, transparent 1.5px);
+  background-size: 26px 26px;
+  opacity: 0.10;
+  -webkit-mask-image: radial-gradient(ellipse 75% 90% at 50% 35%, black 30%, transparent 75%);
+  mask-image: radial-gradient(ellipse 75% 90% at 50% 35%, black 30%, transparent 75%);
+  pointer-events: none;
+}
+
+/* three amber dots — deliberate, tiny, brand-true */
+.ck-hero::after {
+  content: "";
+  position: absolute;
+  top: 2.0rem;
+  left: 50%;
+  width: 4rem;
+  height: 0.4rem;
+  transform: translateX(-50%);
+  background-image:
+    radial-gradient(circle at 12% 50%, var(--ck-amber) 0 0.16rem, transparent 0.2rem),
+    radial-gradient(circle at 50% 50%, var(--ck-green) 0 0.13rem, transparent 0.17rem),
+    radial-gradient(circle at 88% 50%, var(--ck-amber) 0 0.16rem, transparent 0.2rem);
+  pointer-events: none;
+}
+
+.ck-hero > * {
+  position: relative;
+}
+
+.ck-hero img.ck-hero-mark {
+  width: 4.6rem;
+  height: auto;
+  margin-bottom: 0.6rem;
+}
+
+.ck-hero h1.ck-hero-title {
+  font-family: var(--ck-display);
+  font-size: 2.5rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.12;
+  margin: 0.2rem auto 0.7rem;
+  max-width: 34rem;
+}
+
+.ck-hero h1.ck-hero-title em {
+  font-style: normal;
+  color: var(--ck-green);
+}
+
+[data-md-color-scheme="slate"] .ck-hero h1.ck-hero-title em {
+  color: var(--ck-green-bright);
+}
+
+.ck-hero p.ck-tagline {
+  font-size: 0.92rem;
+  line-height: 1.6;
+  max-width: 36rem;
+  margin: 0 auto 1.5rem;
+  color: var(--md-default-fg-color--light);
+}
+
+.ck-hero .md-button {
+  margin: 0.2rem 0.3rem;
+}
+
+/* meta chips under the hero buttons */
+.ck-chips {
+  margin-top: 1.1rem;
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+  color: var(--md-default-fg-color--light);
+}
+
+.ck-chips span {
+  display: inline-block;
+  border: 1px solid var(--md-default-fg-color--lightest);
+  border-radius: 1rem;
+  padding: 0.15rem 0.65rem;
+  margin: 0.15rem 0.15rem;
+  background: var(--md-default-bg-color);
+}
+
+.ck-hero .md-button--primary {
+  background-color: var(--ck-green);
+  border-color: var(--ck-green);
+  transition: background-color 125ms, border-color 125ms, transform 125ms;
+}
+
+.ck-hero .md-button--primary:hover {
+  background-color: var(--ck-green-dark);
+  border-color: var(--ck-amber);
+  transform: translateY(-1px);
+}
+
+/* secondary button must stay legible on the dark scheme */
+[data-md-color-scheme="slate"] .ck-hero .md-button:not(.md-button--primary) {
+  color: var(--md-default-fg-color);
+  border-color: var(--md-default-fg-color--light);
+}
+
+[data-md-color-scheme="slate"] .ck-hero .md-button:not(.md-button--primary):hover {
+  color: var(--ck-green-bright);
+  border-color: var(--ck-green-bright);
+  background-color: transparent;
+}
+
+/* ── Mermaid: brand palette instead of default blue ─────────────────────── */
+:root,
+[data-md-color-scheme="default"] {
+  --md-mermaid-node-bg-color: color-mix(in srgb, var(--ck-green) 10%, #ffffff);
+  --md-mermaid-node-fg-color: var(--ck-ink);
+  --md-mermaid-edge-color: var(--ck-ink-2);
+  --md-mermaid-label-bg-color: var(--ck-paper);
+  --md-mermaid-label-fg-color: var(--ck-ink);
+  --md-mermaid-font-family: var(--md-text-font-family);
+}
+
+[data-md-color-scheme="slate"] {
+  --md-mermaid-node-bg-color: #16241d;
+  --md-mermaid-node-fg-color: #d4e6dd;
+  --md-mermaid-edge-color: #7da393;
+  --md-mermaid-label-bg-color: #0e1512;
+  --md-mermaid-label-fg-color: #d4e6dd;
+}
+
+/* ── Full-width tables on the landing page ──────────────────────────────── */
+.ck-wide table {
+  width: 100%;
+  display: table;
+}
+
+/* staggered load reveal — respects reduced-motion */
+@media (prefers-reduced-motion: no-preference) {
+  .ck-hero > * {
+    opacity: 0;
+    transform: translateY(10px);
+    animation: ck-rise 480ms cubic-bezier(0.2, 0.6, 0.2, 1) forwards;
+  }
+  .ck-hero > *:nth-child(1) { animation-delay: 60ms; }
+  .ck-hero > *:nth-child(2) { animation-delay: 140ms; }
+  .ck-hero > *:nth-child(3) { animation-delay: 220ms; }
+  .ck-hero > *:nth-child(4) { animation-delay: 300ms; }
+  .ck-hero > *:nth-child(5) { animation-delay: 380ms; }
+}
+
+@keyframes ck-rise {
+  to { opacity: 1; transform: none; }
+}
+
+/* ── Grid cards (Material .grid.cards refinement) ───────────────────────── */
+.md-typeset .grid.cards > ul > li,
+.md-typeset .grid > .card {
+  border-radius: 0.35rem;
+  border-color: var(--md-default-fg-color--lightest);
+  transition: border-color 125ms, box-shadow 125ms, transform 125ms;
+}
+
+.md-typeset .grid.cards > ul > li:hover {
+  border-top: 2px solid var(--ck-amber);
+  box-shadow: 0 6px 18px rgba(20, 33, 27, 0.08);
+  transform: translateY(-2px);
+}
+
+[data-md-color-scheme="slate"] .md-typeset .grid.cards > ul > li:hover {
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+}
+
+/* icon medallion: soft green disc behind each card icon */
+.md-typeset .grid.cards > ul > li .twemoji.lg {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.1rem;
+  height: 2.1rem;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--ck-green) 12%, transparent);
+  vertical-align: middle;
+}
+
+.md-typeset .grid.cards > ul > li .twemoji svg {
+  color: var(--ck-green);
+}
+
+[data-md-color-scheme="slate"] .md-typeset .grid.cards > ul > li .twemoji.lg {
+  background: color-mix(in srgb, var(--ck-green-bright) 16%, transparent);
+}
+
+[data-md-color-scheme="slate"] .md-typeset .grid.cards > ul > li .twemoji svg {
+  color: var(--ck-green-bright);
+}
+
+/* ── Content details ────────────────────────────────────────────────────── */
+.md-typeset table:not([class]) th {
+  font-family: var(--ck-display);
+  font-weight: 600;
+  background-color: transparent;
+  border-bottom: 2px solid var(--ck-green);
+}
+
+.md-typeset code {
+  border-radius: 0.18rem;
+}
+
+.md-typeset .admonition,
+.md-typeset details {
+  border-left-color: var(--ck-green);
+}
+
+/* footer social icons pick up the accent on hover */
+.md-social__link:hover svg {
+  fill: var(--ck-amber);
+}
+
+/* ── Lexsi footer block (landing page) ──────────────────────────────────── */
+.ck-lexsi-footer {
+  text-align: center;
+  margin: 2.4rem 0 0.8rem;
+}
+
+.ck-lexsi-footer p {
+  margin: 0.25rem 0;
+  color: var(--md-default-fg-color--light);
+  font-size: 0.74rem;
+}
+
+.ck-lexsi-on-dark { display: none; }
+[data-md-color-scheme="slate"] .ck-lexsi-on-light { display: none; }
+[data-md-color-scheme="slate"] .ck-lexsi-on-dark { display: inline; }

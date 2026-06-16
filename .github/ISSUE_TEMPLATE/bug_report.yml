@@ -1,0 +1,67 @@
+name: Bug report
+description: Something in CuratorKIT doesn't work as documented
+labels: ["bug"]
+body:
+  - type: input
+    id: version
+    attributes:
+      label: CuratorKIT version
+      description: 'Output of: python -c "import curatorkit; print(curatorkit.__version__)"'
+      placeholder: "1.0.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: extras
+    attributes:
+      label: Installed extras
+      multiple: true
+      options:
+        - core (no extras)
+        - connectors
+        - generation
+        - generation-full
+        - embedding / embedding-faiss
+        - hygiene
+        - pdf
+        - all
+    validations:
+      required: true
+  - type: dropdown
+    id: python
+    attributes:
+      label: Python version
+      options:
+        - "3.11"
+        - "3.12"
+        - "3.13"
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: Operating system
+      placeholder: "Ubuntu 24.04 / macOS 15 / Windows 11"
+  - type: input
+    id: backend
+    attributes:
+      label: LLM backend + model (if generation involved)
+      placeholder: "openai/gpt-4o-mini via LiteLLM, or ollama/llama3.1"
+  - type: textarea
+    id: repro
+    attributes:
+      label: Minimal reproducing config
+      description: The smallest CuratorConfig or pipeline YAML that triggers the bug.
+      render: python
+    validations:
+      required: true
+  - type: textarea
+    id: behavior
+    attributes:
+      label: What happened vs. what you expected
+    validations:
+      required: true
+  - type: textarea
+    id: traceback
+    attributes:
+      label: Full traceback / relevant manifest.json or rejected.jsonl excerpt
+      render: text

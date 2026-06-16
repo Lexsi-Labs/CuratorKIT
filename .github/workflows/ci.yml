@@ -1,0 +1,79 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install ruff
+      - run: ruff check .
+
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: pip install -e . pytest pytest-asyncio pytest-cov
+      - run: pytest tests/unit -q
+
+  quickstart:
+    name: quickstart e2e (no LLM)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e .
+      - name: Run the quickstart pipeline end to end
+        run: |
+          curatorkit run examples/quickstart/pipeline.yaml --output-dir /tmp/quickstart_out
+          test -s /tmp/quickstart_out/manifest.json
+          test -s /tmp/quickstart_out/dataset_card.md
+          test -s /tmp/quickstart_out/sft_alpaca.jsonl
+          test -s /tmp/quickstart_out/sft_sharegpt.jsonl
+
+  package:
+    name: wheel build & install smoke test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install build twine check-wheel-contents
+      - run: python -m build
+      - run: twine check dist/*
+      - run: check-wheel-contents dist/*.whl
+      - name: Install the built wheel in a clean env and import
+        run: |
+          python -m venv /tmp/wheel-venv
+          /tmp/wheel-venv/bin/pip install dist/*.whl
+          /tmp/wheel-venv/bin/python -c "import curatorkit; from curatorkit import Curator, CuratorConfig, QAGenerationTask; print('wheel ok', curatorkit.__version__)"
+
+  docs-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e ".[docs]"   # the API reference imports the package
+      - run: mkdocs build --strict

@@ -1,0 +1,30 @@
+cff-version: 1.2.0
+message: "If you use CuratorKIT in your research, please cite it as below."
+type: software
+title: "CuratorKIT: Data Curation and Synthetic Data Generation for LLM Post-Training"
+authors:
+  - family-names: "Bhattacharjee"
+    given-names: "Soham"
+  - family-names: "Sharma"
+    given-names: "Karun"
+  - family-names: "Sankarapu"
+    given-names: "Vinay Kumar"
+  - family-names: "Seth"
+    given-names: "Pratinav"
+  - name: "Lexsi Labs"
+    website: "https://lexsi.ai"
+version: 1.0.0
+date-released: 2026-06-12
+url: "https://github.com/Lexsi-Labs/CuratorKIT"
+repository-code: "https://github.com/Lexsi-Labs/CuratorKIT"
+license: MIT
+contact:
+  - family-names: "Seth"
+    given-names: "Pratinav"
+    email: "pratinav.seth@lexsi.ai"
+keywords:
+  - llm
+  - synthetic-data
+  - data-curation
+  - post-training
+  - dataset-generation

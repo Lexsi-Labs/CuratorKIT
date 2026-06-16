@@ -1,0 +1,234 @@
+[build-system]
+requires = ["setuptools>=77", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "curatorkit"
+dynamic = ["version"]
+description = "Data curation and synthetic data generation for LLM post-training — provenance-grounded quality gates, adaptive recovery, trainer-ready exports"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [
+    { name = "Soham Bhattacharjee" },
+    { name = "Karun Sharma" },
+    { name = "Vinay Kumar Sankarapu" },
+    { name = "Pratinav Seth" },
+    { name = "Lexsi Labs", email = "hello@lexsi.ai" },
+]
+maintainers = [
+    { name = "Pratinav Seth", email = "pratinav.seth@lexsi.ai" },
+    { name = "Soham Bhattacharjee", email = "soham.bhattacharjee@lexsi.ai" },
+]
+keywords = [
+    "llm",
+    "synthetic-data",
+    "data-curation",
+    "post-training",
+    "fine-tuning",
+    "sft",
+    "dpo",
+    "grpo",
+    "dataset-generation",
+    "hallucination-detection",
+    "data-quality",
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Typing :: Typed",
+]
+dependencies = [
+    "pydantic>=2.7",
+    "typer>=0.12",
+    "tqdm>=4.66",
+    "pyyaml>=6.0",
+]
+
+[project.urls]
+Homepage = "https://lexsi.ai"
+Documentation = "https://lexsi-labs.github.io/CuratorKIT/"
+Repository = "https://github.com/Lexsi-Labs/CuratorKIT"
+Issues = "https://github.com/Lexsi-Labs/CuratorKIT/issues"
+Changelog = "https://github.com/Lexsi-Labs/CuratorKIT/blob/main/CHANGELOG.md"
+
+[project.optional-dependencies]
+# Token counting
+tiktoken = ["tiktoken>=0.7"]
+
+# PDF layout parsing (layout detection + OCR via MinerU).
+# Model weights download automatically on first PDF parse — no setup command needed.
+# Runs on CPU anywhere; for CUDA acceleration install a CUDA build of torch first:
+#   pip install torch --index-url https://download.pytorch.org/whl/cu121
+#   pip install "curatorkit[pdf]"
+pdf = [
+    "mineru[pipeline]>=3.0",
+]
+
+# Apache Parquet reading
+parquet = ["pyarrow>=15.0"]
+
+# HuggingFace Hub and datasets
+hf = ["datasets>=3.0", "huggingface_hub>=0.26"]
+
+# All connectors (except PDF, which pulls a heavy model stack — install separately)
+connectors = [
+    "pyarrow>=15.0",
+    "datasets>=3.0",
+    "huggingface_hub>=0.26",
+]
+
+# LLM generation (any LiteLLM-compatible backend, plus Ollama)
+generation = [
+    "litellm>=1.60",
+    "tenacity>=9.0",
+    "nest-asyncio>=1.6",
+]
+
+# Embedding (diversity gate, cross-run dedup)
+embedding = [
+    "sentence-transformers>=3.0",
+    "numpy>=2.0",
+]
+
+# Embedding with FAISS for fast ANN
+embedding-faiss = [
+    "sentence-transformers>=3.0",
+    "numpy>=2.0",
+    "faiss-cpu>=1.9",
+]
+
+# Generation + embedding + FAISS in one extra
+generation-full = [
+    "litellm>=1.60",
+    "tenacity>=9.0",
+    "nest-asyncio>=1.6",
+    "sentence-transformers>=3.0",
+    "numpy>=2.0",
+    "faiss-cpu>=1.9",
+]
+
+# Data hygiene gates (toxicity, secrets, PII)
+hygiene = [
+    # Toxicity classifier (fast, deterministic, no API cost)
+    "detoxify>=0.5",
+    # Credential and API-key detection
+    "detect-secrets>=1.4",
+    # PII entity detection + pseudonymization
+    "presidio-analyzer>=2.2",
+    "presidio-anonymizer>=2.2",
+    "spacy>=3.7",
+    "faker>=26.0",
+]
+
+# Everything: connectors + generation + embedding + hygiene.
+# Excludes PDF (heavy model stack) and TRL (heavy torch/transformers stack) —
+# install those separately if needed.
+all = [
+    # connectors
+    "pyarrow>=15.0",
+    "datasets>=3.0",
+    "huggingface_hub>=0.26",
+    "tiktoken>=0.7",
+    # generation-full
+    "litellm>=1.60",
+    "tenacity>=9.0",
+    "nest-asyncio>=1.6",
+    "sentence-transformers>=3.0",
+    "numpy>=2.0",
+    "faiss-cpu>=1.9",
+    # hygiene
+    "detoxify>=0.5",
+    "detect-secrets>=1.4",
+    "presidio-analyzer>=2.2",
+    "presidio-anonymizer>=2.2",
+    "spacy>=3.7",
+    "faker>=26.0",
+]
+
+# Documentation site
+docs = [
+    "mkdocs-material>=9.5",
+    "mkdocstrings[python]>=0.27",
+    "mike>=2.1",
+]
+
+# Development tools
+dev = [
+    "pytest>=8.0",
+    "pytest-cov>=6.0",
+    "pytest-asyncio>=0.23",
+    "pytest-timeout>=2.3",
+    "ruff>=0.4",
+    "mypy>=1.10",
+    "build>=1.2",
+    "twine>=5.0",
+    "check-wheel-contents>=0.6",
+    "pre-commit>=3.7",
+]
+
+# TRL integration test dependencies
+trl = [
+    "trl>=0.21",
+    "transformers>=5.0",
+    "torch>=2.3",
+    "datasets>=3.0",
+]
+
+[project.scripts]
+curatorkit = "curatorkit.cli:app"
+
+[tool.setuptools.dynamic]
+version = { attr = "curatorkit.__version__" }
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["curatorkit*"]
+
+[tool.setuptools.package-data]
+curatorkit = ["py.typed"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+# notebooks are tutorials; internal/ is research material kept on this branch
+# but stripped from the public export (RELEASING.md)
+extend-exclude = ["notebooks", "internal"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP"]
+# E501: long lines allowed (line-length is advisory)
+# UP042: str+Enum kept deliberately — StrEnum changes str()/f-string output,
+#        and the enum values are serialized into manifests and provenance records
+ignore = ["E501", "UP042"]
+
+[tool.ruff.lint.per-file-ignores]
+# Deliberate late imports after module-level setup code
+"curatorkit/connectors/pdf.py" = ["E402"]
+"curatorkit/curator.py" = ["E402"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+asyncio_mode = "auto"
+markers = [
+    "integration: marks tests as integration tests (may require external deps)",
+    "slow: marks tests as slow",
+    "hf: marks tests requiring the datasets library",
+    "parquet: marks tests requiring pyarrow",
+    "generation: marks tests requiring litellm",
+    "embedding: marks tests requiring sentence-transformers",
+]

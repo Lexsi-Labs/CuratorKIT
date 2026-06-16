@@ -1,0 +1,54 @@
+# CuratorKIT quickstart pipeline.
+#
+# Stages run in order: readers -> gates -> normalizers -> exporters.
+# Run it from the repo root with:
+#
+#   curatorkit run examples/quickstart/pipeline.yaml --output-dir ./out/
+#
+# Every sample that is filtered out lands in rejected.jsonl with a
+# structured reason — nothing is dropped silently.
+
+name: quickstart_pipeline
+version: "1.0.0"
+
+# --- Readers: load raw data into samples -------------------------------
+readers:
+  - type: jsonl
+    path: examples/quickstart/seed_data.jsonl
+    # `auto` detects the row format (Alpaca, ShareGPT, preference, ...)
+    # from the first few rows. Lines that fail to parse are rejected
+    # with a json_decode_error reason rather than crashing the run.
+    format: auto
+
+# --- Gates: validate samples, reject the ones that fail ----------------
+gates:
+  - type: schema
+    # Both fields must be present and non-empty.
+    required_fields:
+      - instruction
+      - output
+    # Token bounds apply to instruction + output combined.
+    min_tokens: 10
+    max_tokens: 2048
+    # false = fast whitespace tokenizer. Set true for exact
+    # cl100k_base counts (requires: pip install "curatorkit[tiktoken]").
+    use_tiktoken: false
+
+# --- Normalizers: transform or thin out the surviving samples ----------
+normalizers:
+  # Drop exact duplicates (case- and whitespace-insensitive hash of
+  # instruction + output). Removal counts appear in the manifest.
+  - type: exact_dedup
+  # Clean the text in place; each transform can be toggled independently.
+  - type: text_cleaner
+    transforms:
+      strip_html: true              # remove <tags> like <p> or <div>
+      normalise_unicode: true       # NFC unicode normalisation
+      fix_encoding_artifacts: true  # repair mojibake like "donât" -> "don't"
+      collapse_whitespace: true     # squeeze runs of spaces/tabs
+      remove_control_chars: true    # strip non-printable control bytes
+
+# --- Exporters: write the final dataset in training-ready formats ------
+exporters:
+  - type: alpaca     # sft_alpaca.jsonl   (instruction / input / output)
+  - type: sharegpt   # sft_sharegpt.jsonl (conversations: human / gpt turns)

@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Usage questions
+    url: https://github.com/Lexsi-Labs/CuratorKIT/discussions
+    about: Ask and answer questions in GitHub Discussions
+  - name: Documentation
+    url: https://lexsi-labs.github.io/CuratorKIT/
+    about: Guides, config reference, and tutorials

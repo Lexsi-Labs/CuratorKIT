@@ -1,0 +1,161 @@
+site_name: CuratorKIT
+site_description: Data curation and synthetic data generation for LLM post-training — grounded quality gates, adaptive recovery, trainer-ready exports
+site_url: https://lexsi-labs.github.io/CuratorKIT/
+repo_url: https://github.com/Lexsi-Labs/CuratorKIT
+repo_name: Lexsi-Labs/CuratorKIT
+edit_uri: edit/main/docs/
+copyright: >
+  Copyright &copy; 2026 <a href="https://lexsi.ai" target="_blank" rel="noopener">Lexsi Labs</a>
+
+theme:
+  name: material
+  logo: assets/icon.png
+  favicon: assets/favicon.png
+  font:
+    text: Schibsted Grotesk
+    code: IBM Plex Mono
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.instant
+    - navigation.instant.progress
+    - navigation.tracking
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.indexes
+    - navigation.top
+    - navigation.footer
+    - navigation.prune
+    - toc.follow
+    - search.suggest
+    - search.highlight
+    - search.share
+    - content.code.copy
+    - content.code.annotate
+    - content.tabs.link
+    - content.action.edit
+
+extra_css:
+  - assets/extra.css
+
+extra_javascript:
+  - assets/extra.js
+
+extra:
+  version:
+    provider: mike
+    default: latest
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/Lexsi-Labs
+      name: Lexsi Labs on GitHub
+    - icon: fontawesome/brands/x-twitter
+      link: https://x.com/Lexsi_labs
+      name: Lexsi Labs on X
+    - icon: fontawesome/brands/linkedin
+      link: https://www.linkedin.com/company/lexsi-labs/
+      name: Lexsi Labs on LinkedIn
+    - icon: simple/huggingface
+      link: https://huggingface.co/Lexsi
+      name: Lexsi Labs on Hugging Face
+    - icon: fontawesome/solid/globe
+      link: https://lexsi.ai
+      name: lexsi.ai
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            show_source: false
+            show_root_heading: true
+            members_order: source
+            separate_signature: true
+            show_signature_annotations: true
+            merge_init_into_class: true
+            docstring_section_style: table
+
+nav:
+  - Home: index.md
+  - Getting started:
+      - getting-started/index.md
+      - Installation: getting-started/installation.md
+      - Quickstart: getting-started/quickstart.md
+      - Reading the output: getting-started/outputs.md
+  - Guides:
+      - guides/index.md
+      - Data sources: guides/data-sources.md
+      - Generation: guides/generation.md
+      - Quality gates: guides/quality-gates.md
+      - Adaptive recovery: guides/adaptive-recovery.md
+      - Data hygiene: guides/data-hygiene.md
+      - Exporters: guides/exporters.md
+      - Train with AlignTune: guides/train-with-aligntune.md
+      - Customisation: guides/customisation.md
+  - Reference:
+      - reference/index.md
+      - Configuration: reference/configuration.md
+      - CLI & YAML: reference/cli.md
+      - API:
+          - reference/api/index.md
+          - Curator: reference/api/curator.md
+          - Data models: reference/api/schema.md
+          - Interfaces: reference/api/interfaces.md
+          - Connectors: reference/api/connectors.md
+          - Format detection: reference/api/detection.md
+          - Generators: reference/api/generators.md
+          - Gates: reference/api/gates.md
+          - Normalizers: reference/api/normalizers.md
+          - Hygiene: reference/api/hygiene.md
+          - Exporters: reference/api/exporters.md
+          - Diagnostics: reference/api/diagnostic.md
+          - LLM backends: reference/api/llm.md
+          - Pipeline & YAML config: reference/api/pipeline.md
+          - Manifest & dataset card: reference/api/manifest.md
+      - Architecture: reference/architecture.md
+  - Tutorials: tutorials/index.md
+  - Community:
+      - FAQ: community/faq.md
+      - Roadmap: community/roadmap.md
+      - Changelog: community/changelog.md
+      - Contributing: community/contributing.md
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - pymdownx.details
+  - pymdownx.snippets:
+      base_path: ["."]
+      check_paths: true
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.keys
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - tables
+  - toc:
+      permalink: true
