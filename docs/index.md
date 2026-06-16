@@ -148,14 +148,14 @@ Every run writes `manifest.json`, `rejected.jsonl`, `dataset_card.md`, and
 
 | | | |
 |---|---|---|
-| **01** Generate an SFT dataset from a PDF | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Lexsi-Labs/CuratorKIT/blob/main/notebooks/01_generate_sft_dataset.ipynb) | LLM endpoint |
-| **02** Generate DPO preference pairs | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Lexsi-Labs/CuratorKIT/blob/main/notebooks/02_generate_dpo_pairs.ipynb) | LLM endpoint |
-| **03** Generate GRPO rollouts | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Lexsi-Labs/CuratorKIT/blob/main/notebooks/03_generate_grpo_rollouts.ipynb) | LLM endpoint |
-| **04** Ingest multiple sources | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Lexsi-Labs/CuratorKIT/blob/main/notebooks/04_ingest_multiple_sources.ipynb) | no LLM |
-| **05** Clean and deduplicate a dataset | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Lexsi-Labs/CuratorKIT/blob/main/notebooks/05_clean_and_dedup.ipynb) | no LLM |
-| **06** Adaptive recovery | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Lexsi-Labs/CuratorKIT/blob/main/notebooks/06_adaptive_recovery.ipynb) | LLM endpoint |
-| **07** Adversarial generation | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Lexsi-Labs/CuratorKIT/blob/main/notebooks/07_adversarial_generation.ipynb) | LLM endpoint |
-| **08** Data hygiene pipeline | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Lexsi-Labs/CuratorKIT/blob/main/notebooks/08_data_hygiene_pipeline.ipynb) | no LLM |
+| **01** Generate an SFT dataset from a PDF | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1GqY-OoCz9WdyyUD6Qt9bCFI84bAFb52T?usp=sharing) | LLM endpoint |
+| **02** Generate DPO preference pairs | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1stGK2iPHUn_MM8xPtA9IlMifENSotXwH?usp=sharing) | LLM endpoint |
+| **03** Generate GRPO rollouts | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1U0XcubWNl7397PYx3cFpGxd7NIg2Kioz?usp=sharing) | LLM endpoint |
+| **04** Ingest multiple sources | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1SPG3mGHRVME1TrXM3Y1As6y_Tj3VjQSX?usp=sharing) | no LLM |
+| **05** Clean and deduplicate a dataset | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1JmF5MaE5cutvTB3LkwGlrr5nBc_c1dc3?usp=sharing) | no LLM |
+| **06** Adaptive recovery | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1OYGOUUWqH_HzgimTHq9R11eg6pyNjWs_?usp=sharing) | LLM endpoint |
+| **07** Adversarial generation | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1DSWNeHPI3elIL9Ts9U8s7DfFffTrPhoo?usp=sharing) | LLM endpoint |
+| **08** Data hygiene pipeline | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1HSXAKGSdXTPSw4CNN269Qj5N6ca0H89R?usp=sharing) | no LLM |
 
 </div>
 
