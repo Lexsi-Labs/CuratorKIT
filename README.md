@@ -176,15 +176,7 @@ Full documentation lives at **[lexsi-labs.github.io/CuratorKIT](https://lexsi-la
 
 ## Tutorials
 
-Nine runnable notebooks in [`notebooks/`](notebooks/) cover the feature set: generating SFT/DPO/GRPO datasets, multi-source ingestion, cleaning and dedup, adaptive recovery, adversarial generation, and the hygiene pipeline. Each opens in Colab. The [tutorials index](https://lexsi-labs.github.io/CuratorKIT/tutorials/) lists them with descriptions. Script versions of the same workflows live in [`examples/`](examples/).
-
-## Ecosystem
-
-CuratorKIT is part of the Lexsi Labs open-source stack:
-
-- **[AlignTune](https://github.com/Lexsi-Labs/aligntune)** fine-tunes with the data you curate here. CuratorKIT's Alpaca, DPO, GRPO, and PPO exports are AlignTune's native input formats.
-- **[TabTune](https://github.com/Lexsi-Labs/TabTune)** is a unified library for tabular foundation models.
-- **[DLBacktrace](https://github.com/Lexsi-Labs/DLBacktrace)** and **[xai_evals](https://github.com/Lexsi-Labs/xai_evals)** cover model interpretability and explanation evaluation.
+Eight runnable notebooks in [`notebooks/`](notebooks/) cover the feature set: generating SFT/DPO/GRPO datasets, multi-source ingestion, cleaning and dedup, adaptive recovery, adversarial generation, and the hygiene pipeline. Each opens in Colab. The [tutorials index](https://lexsi-labs.github.io/CuratorKIT/tutorials/) lists them with descriptions. Script versions of the same workflows live in [`examples/`](examples/).
 
 ## Contributing
 
@@ -195,7 +187,7 @@ The connector, generator, gate, and exporter layers are designed as plugin point
 - **Documentation**: [lexsi-labs.github.io/CuratorKIT](https://lexsi-labs.github.io/CuratorKIT/)
 - **GitHub Issues**: [github.com/Lexsi-Labs/CuratorKIT/issues](https://github.com/Lexsi-Labs/CuratorKIT/issues)
 - **Discussions**: [github.com/Lexsi-Labs/CuratorKIT/discussions](https://github.com/Lexsi-Labs/CuratorKIT/discussions)
-- **Email**: [hello@lexsi.ai](mailto:hello@lexsi.ai)
+- **Email**: [pratinav.seth@lexsi.ai](mailto:pratinav.seth@lexsi.ai)
 
 ## Citation
 
@@ -229,3 +221,11 @@ MIT; see [LICENSE](LICENSE). The optional `pdf` extra installs [MinerU](https://
   <p><a href="https://www.lexsi.ai">https://www.lexsi.ai</a></p>
   <p>Paris 🇫🇷 · Mumbai 🇮🇳 · London 🇬🇧</p>
 </div>
+
+## Ecosystem
+
+CuratorKIT is part of the Lexsi Labs open-source stack:
+
+- **[AlignTune](https://github.com/Lexsi-Labs/aligntune)** fine-tunes with the data you curate here. CuratorKIT's Alpaca, DPO, GRPO, and PPO exports are AlignTune's native input formats.
+- **[TabTune](https://github.com/Lexsi-Labs/TabTune)** is a unified library for tabular foundation models.
+- **[DLBacktrace](https://github.com/Lexsi-Labs/DLBacktrace)** and **[xai_evals](https://github.com/Lexsi-Labs/xai_evals)** cover model interpretability and explanation evaluation.

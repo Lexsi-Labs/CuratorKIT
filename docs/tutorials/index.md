@@ -1,6 +1,6 @@
 # Tutorials
 
-Hands-on notebooks covering every part of CuratorKIT, from ingestion and cleaning, through LLM generation and adaptive recovery, to data hygiene and a full fine-tuning case study. Each notebook runs standalone: open it on GitHub, or launch it directly in Google Colab.
+Hands-on notebooks covering every part of CuratorKIT, from ingestion and cleaning, through LLM generation and adaptive recovery, to data hygiene. Each notebook runs standalone: open it on GitHub, or launch it directly in Google Colab.
 
 | # | Tutorial | What you'll learn | Links |
 |---|----------|-------------------|-------|
@@ -12,7 +12,6 @@ Hands-on notebooks covering every part of CuratorKIT, from ingestion and cleanin
 | 06 | **Adaptive recovery** | Recover gate-rejected samples instead of discarding them, using inline diagnostic probes and a post-pipeline reward refiner. | [GitHub](https://github.com/Lexsi-Labs/CuratorKIT/blob/main/notebooks/06_adaptive_recovery.ipynb) · [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Lexsi-Labs/CuratorKIT/blob/main/notebooks/06_adaptive_recovery.ipynb) |
 | 07 | **Adversarial generation** | Use custom prompt templates to generate deliberately contaminated data (credentials, PII, toxic content) for stress-testing the hygiene gates. | [GitHub](https://github.com/Lexsi-Labs/CuratorKIT/blob/main/notebooks/07_adversarial_generation.ipynb) · [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Lexsi-Labs/CuratorKIT/blob/main/notebooks/07_adversarial_generation.ipynb) |
 | 08 | **Data hygiene pipeline** | Run `SecretsGate`, `PIIPseudonymizer`, and `ToxicityGate` over a contaminated dataset to catch secrets, pseudonymise PII, and reject toxic content with no LLM calls. | [GitHub](https://github.com/Lexsi-Labs/CuratorKIT/blob/main/notebooks/08_data_hygiene_pipeline.ipynb) · [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Lexsi-Labs/CuratorKIT/blob/main/notebooks/08_data_hygiene_pipeline.ipynb) |
-| 09 | **Case study: filtered vs. unfiltered fine-tuning** | Fine-tune Qwen2.5-1.5B on gate-filtered vs. unfiltered synthetic CUAD data and compare ROUGE-L, BERTScore, and faithfulness. | [GitHub](https://github.com/Lexsi-Labs/CuratorKIT/blob/main/notebooks/09_case_study_filtered_vs_unfiltered.ipynb) · [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Lexsi-Labs/CuratorKIT/blob/main/notebooks/09_case_study_filtered_vs_unfiltered.ipynb) |
 
 ## Prefer plain scripts?
 
@@ -23,7 +22,6 @@ file per workflow, with the required extras in each docstring.
 ## What you'll need
 
 - **No LLM required:** notebooks 04, 05, and 08 run entirely locally and are the best place to start.
-- **LLM endpoint required:** notebooks 01-03, 06, 07, and 09 need an OpenAI-compatible endpoint (a local vLLM or Ollama server, or any hosted API). Each notebook includes backend setup instructions.
-- **GPU required:** notebook 09 additionally needs a CUDA GPU for the QLoRA fine-tuning steps. A free Colab T4 is enough.
+- **LLM endpoint required:** notebooks 01-03, 06, and 07 need an OpenAI-compatible endpoint (a local vLLM or Ollama server, or any hosted API). Each notebook includes backend setup instructions.
 
-Suggested learning path: start with **05** (cleaning and deduplication), move to **04** (multi-source ingestion), then work through generation (**01-03**), recovery (**06**), and hygiene (**07-08**), and finish with the end-to-end case study (**09**).
+Suggested learning path: start with **05** (cleaning and deduplication), move to **04** (multi-source ingestion), then work through generation (**01-03**), recovery (**06**), and hygiene (**07-08**).
