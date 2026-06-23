@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import re
 import subprocess
 from pathlib import Path
@@ -128,6 +129,12 @@ def main() -> None:
     ensure_tag_available(version)
     configure_git_identity()
     create_release(version)
+
+    github_output = os.environ.get("GITHUB_OUTPUT")
+    if github_output:
+        with open(github_output, "a") as output:
+            output.write(f"version={version}\n")
+
     print(f"Created release {version}")
 
 
