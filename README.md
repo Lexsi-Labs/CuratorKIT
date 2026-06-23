@@ -215,6 +215,26 @@ If you use CuratorKIT in your research, please cite it (see [`CITATION.cff`](CIT
   publisher = {Lexsi Labs},
   url       = {https://github.com/Lexsi-Labs/CuratorKIT}
 }
+
+@misc{bhattacharjee2026curatorkitdatacuration,
+      title={CuratorKIT : Data Curation and Synthetic Data Generation for LLM Post-Training}, 
+      author={Soham Bhattacharjee and Karun Sharma and Vinay Kumar Sankarapu and Pratinav Seth},
+      year={2026},
+      eprint={2606.21631},
+      archivePrefix={arXiv},
+      primaryClass={cs.CL},
+      url={https://arxiv.org/abs/2606.21631}, 
+}
+
+@misc{bhattacharjee2026provenancegroundedgatingadaptiverecovery,
+      title={Provenance-Grounded Gating and Adaptive Recovery in Synthetic Post-Training Data Curation}, 
+      author={Soham Bhattacharjee and Karun Sharma and Vinay Kumar Sankarapu and Pratinav Seth},
+      year={2026},
+      eprint={2606.11127},
+      archivePrefix={arXiv},
+      primaryClass={cs.CL},
+      url={https://arxiv.org/abs/2606.11127}, 
+}
 ```
 
 ## License

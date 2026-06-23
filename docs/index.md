@@ -165,6 +165,42 @@ The [tutorials index](tutorials/index.md) has full descriptions.
 
 ---
 
+## Cite
+
+If you use CuratorKIT in your research, please cite the library and the relevant paper(s):
+
+```bibtex
+@software{curatorkit2026,
+  author    = {Bhattacharjee, Soham and Sharma, Karun and Sankarapu, Vinay Kumar and Seth, Pratinav},
+  title     = {CuratorKIT: Data Curation and Synthetic Data Generation for LLM Post-Training},
+  year      = {2026},
+  publisher = {Lexsi Labs},
+  url       = {https://github.com/Lexsi-Labs/CuratorKIT}
+}
+
+@misc{bhattacharjee2026curatorkitdatacuration,
+      title={CuratorKIT : Data Curation and Synthetic Data Generation for LLM Post-Training},
+      author={Soham Bhattacharjee and Karun Sharma and Vinay Kumar Sankarapu and Pratinav Seth},
+      year={2026},
+      eprint={2606.21631},
+      archivePrefix={arXiv},
+      primaryClass={cs.CL},
+      url={https://arxiv.org/abs/2606.21631},
+}
+
+@misc{bhattacharjee2026provenancegroundedgatingadaptiverecovery,
+      title={Provenance-Grounded Gating and Adaptive Recovery in Synthetic Post-Training Data Curation},
+      author={Soham Bhattacharjee and Karun Sharma and Vinay Kumar Sankarapu and Pratinav Seth},
+      year={2026},
+      eprint={2606.11127},
+      archivePrefix={arXiv},
+      primaryClass={cs.CL},
+      url={https://arxiv.org/abs/2606.11127},
+}
+```
+
+---
+
 CuratorKIT is built by [Lexsi Labs](https://lexsi.ai) alongside
 [AlignTune](https://github.com/Lexsi-Labs/aligntune), which consumes its exports
 natively: curate here, train there.
