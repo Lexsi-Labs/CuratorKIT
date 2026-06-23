@@ -1,6 +1,6 @@
 """CuratorKIT — data curation and synthesis for LLM post-training."""
 
-__version__ = "0.1.1"
+__version__ = "0.1.2"
 
 from curatorkit.connectors.csv_reader import CSVReader
 from curatorkit.connectors.huggingface import HuggingFaceReader
