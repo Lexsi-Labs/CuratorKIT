@@ -923,6 +923,12 @@
 <td>Run <code>SecretsGate</code>, <code>PIIPseudonymizer</code>, and <code>ToxicityGate</code> over a contaminated dataset to catch secrets, pseudonymise PII, and reject toxic content with no LLM calls.</td>
 <td><a href="https://github.com/Lexsi-Labs/CuratorKIT/blob/main/notebooks/08_data_hygiene_pipeline.ipynb">GitHub</a> · <a href="https://colab.research.google.com/drive/1HSXAKGSdXTPSw4CNN269Qj5N6ca0H89R?usp=sharing"><img alt="Open In Colab" src="https://colab.research.google.com/assets/colab-badge.svg" /></a></td>
 </tr>
+<tr>
+<td>09</td>
+<td><strong>Filtered vs unfiltered fine-tuning</strong></td>
+<td>Run <code>HallucinationGate</code> and <code>RewardGate</code> over a 4,500-sample synthetic QA corpus, sample disjoint pools of passed and rejected rows, then fine-tune the same base model (Qwen3-1.7B) twice and compare ROUGE-L, BERTScore-F1, and Faithfulness to quantify the impact of curation.</td>
+<td><a href="https://github.com/Lexsi-Labs/CuratorKIT/blob/main/notebooks/09_corpus_filtered_vs_unfiltered_ft.ipynb">GitHub</a> · <a href="https://colab.research.google.com/drive/1sJ_LL-f4VbVGMol2F-Y3XppIvnU1JXUB?usp=sharing"><img alt="Open In Colab" src="https://colab.research.google.com/assets/colab-badge.svg" /></a></td>
+</tr>
 </tbody>
 </table>
 <h2 id="prefer-plain-scripts">Prefer plain scripts?<a class="headerlink" href="#prefer-plain-scripts" title="Permanent link">&para;</a></h2>
@@ -933,6 +939,7 @@ file per workflow, with the required extras in each docstring.</p>
 <ul>
 <li><strong>No LLM required:</strong> notebooks 04, 05, and 08 run entirely locally and are the best place to start.</li>
 <li><strong>LLM endpoint required:</strong> notebooks 01-03, 06, and 07 need an OpenAI-compatible endpoint (a local vLLM or Ollama server, or any hosted API). Each notebook includes backend setup instructions.</li>
+<li><strong>LLM endpoint + GPU required:</strong> notebook 09 requires an LLM judge endpoint and a GPU (≥16 GB VRAM) for the fine-tuning stage.</li>
 </ul>
 <p>Suggested learning path: start with <strong>05</strong> (cleaning and deduplication), move to <strong>04</strong> (multi-source ingestion), then work through generation (<strong>01-03</strong>), recovery (<strong>06</strong>), and hygiene (<strong>07-08</strong>).</p>
 
