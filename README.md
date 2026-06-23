@@ -176,7 +176,21 @@ Full documentation lives at **[lexsi-labs.github.io/CuratorKIT](https://lexsi-la
 
 ## Tutorials
 
-Eight runnable notebooks in [`notebooks/`](notebooks/) cover the feature set: generating SFT/DPO/GRPO datasets, multi-source ingestion, cleaning and dedup, adaptive recovery, adversarial generation, and the hygiene pipeline. Each opens in Colab. The [tutorials index](https://lexsi-labs.github.io/CuratorKIT/tutorials/) lists them with descriptions. Script versions of the same workflows live in [`examples/`](examples/).
+Nine runnable notebooks cover the feature set end-to-end. 
+
+| # | Notebook | Links |
+|---|----------|-------|
+| 01 | Generate an SFT dataset from a PDF | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1GqY-OoCz9WdyyUD6Qt9bCFI84bAFb52T?usp=sharing) |
+| 02 | Generate DPO preference pairs | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1stGK2iPHUn_MM8xPtA9IlMifENSotXwH?usp=sharing) |
+| 03 | Generate GRPO rollouts | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1U0XcubWNl7397PYx3cFpGxd7NIg2Kioz?usp=sharing) |
+| 04 | Ingest multiple sources | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1SPG3mGHRVME1TrXM3Y1As6y_Tj3VjQSX?usp=sharing) |
+| 05 | Clean and deduplicate a dataset | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1JmF5MaE5cutvTB3LkwGlrr5nBc_c1dc3?usp=sharing) |
+| 06 | Adaptive recovery | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1OYGOUUWqH_HzgimTHq9R11eg6pyNjWs_?usp=sharing) |
+| 07 | Adversarial generation | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1DSWNeHPI3elIL9Ts9U8s7DfFffTrPhoo?usp=sharing) |
+| 08 | Data hygiene pipeline | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1HSXAKGSdXTPSw4CNN269Qj5N6ca0H89R?usp=sharing) |
+| 09 | Filtered vs unfiltered fine-tuning | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1sJ_LL-f4VbVGMol2F-Y3XppIvnU1JXUB?usp=sharing) |
+
+Full descriptions and prerequisites are in the [tutorials index](https://lexsi-labs.github.io/CuratorKIT/tutorials/).
 
 ## Contributing
 

@@ -137,7 +137,7 @@ Every run writes `manifest.json`, `rejected.jsonl`, `dataset_card.md`, and
 | **[Guides](guides/index.md)** | Each pipeline stage in depth |
 | **[Configuration](reference/configuration.md)** | Every `CuratorConfig` parameter |
 | **[API reference](reference/api/index.md)** | Generated from the source docstrings |
-| **[Tutorials](tutorials/index.md)** | Eight notebooks, each runnable in Colab |
+| **[Tutorials](tutorials/index.md)** | Nine notebooks, each runnable in Colab |
 | **[Roadmap](community/roadmap.md)** | Where 1.0 goes from here |
 
 </div>
@@ -156,6 +156,7 @@ Every run writes `manifest.json`, `rejected.jsonl`, `dataset_card.md`, and
 | **06** Adaptive recovery | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1OYGOUUWqH_HzgimTHq9R11eg6pyNjWs_?usp=sharing) | LLM endpoint |
 | **07** Adversarial generation | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1DSWNeHPI3elIL9Ts9U8s7DfFffTrPhoo?usp=sharing) | LLM endpoint |
 | **08** Data hygiene pipeline | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1HSXAKGSdXTPSw4CNN269Qj5N6ca0H89R?usp=sharing) | no LLM |
+| **09** Filtered vs unfiltered fine-tuning | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1sJ_LL-f4VbVGMol2F-Y3XppIvnU1JXUB?usp=sharing) | LLM endpoint + GPU |
 
 </div>
 
