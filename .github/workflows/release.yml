@@ -21,7 +21,7 @@ jobs:
       version: ${{ steps.release.outputs.version }}
     steps:
       - name: Checkout main
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: main
           fetch-depth: 0
@@ -52,7 +52,7 @@ jobs:
       RELEASE_TAG: ${{ needs.github.outputs.version }}
     steps:
       - name: Checkout release tag
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: ${{ needs.github.outputs.version }}
           fetch-depth: 0
