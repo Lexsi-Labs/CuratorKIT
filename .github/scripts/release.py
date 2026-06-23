@@ -109,7 +109,7 @@ def create_release(version: str) -> None:
 
     run(["git", "tag", "-a", version, "-m", f"Release {version}"])
     run(["git", "push", "origin", version])
-    run(["gh", "release", "create", version, "--generate-notes", "--latest", "--target", version])
+    run(["gh", "release", "create", version, "--generate-notes", "--latest"])
 
 
 def parse_args() -> argparse.Namespace:
