@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <a href="https://pypi.org/project/curatorkit/"><img src="https://img.shields.io/badge/pypi-v1.0.0-0a8868" alt="PyPI v1.0.0"></a>
+  <a href="https://pypi.org/project/curatorkit/"><img src="https://img.shields.io/badge/pypi-v0.1.0-0a8868" alt="PyPI v0.1.0"></a>
   <a href="https://www.python.org/"><img src="https://img.shields.io/badge/python-3.11%2B-blue" alt="Python 3.11+"></a>
   <a href="https://github.com/Lexsi-Labs/CuratorKIT/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="License: MIT"></a>
   <a href="https://lexsi-labs.github.io/CuratorKIT/"><img src="https://img.shields.io/badge/docs-available-brightgreen" alt="Documentation"></a>

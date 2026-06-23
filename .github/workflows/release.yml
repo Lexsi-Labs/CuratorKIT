@@ -1,0 +1,39 @@
+name: Create release
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version, for example 0.1.1. Leave blank to bump patch."
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  github:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Ensure tags are available
+        run: git fetch --prune --tags
+
+      - name: Create GitHub release
+        run: python .github/scripts/release.py --version "${{ inputs.version }}"
+        env:
+          GH_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
