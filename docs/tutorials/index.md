@@ -12,6 +12,7 @@ Hands-on notebooks covering every part of CuratorKIT, from ingestion and cleanin
 | 06 | **Adaptive recovery** | Recover gate-rejected samples instead of discarding them, using inline diagnostic probes and a post-pipeline reward refiner. | [GitHub](https://github.com/Lexsi-Labs/CuratorKIT/blob/main/notebooks/06_adaptive_recovery.ipynb) · [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1OYGOUUWqH_HzgimTHq9R11eg6pyNjWs_?usp=sharing) |
 | 07 | **Adversarial generation** | Use custom prompt templates to generate deliberately contaminated data (credentials, PII, toxic content) for stress-testing the hygiene gates. | [GitHub](https://github.com/Lexsi-Labs/CuratorKIT/blob/main/notebooks/07_adversarial_generation.ipynb) · [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1DSWNeHPI3elIL9Ts9U8s7DfFffTrPhoo?usp=sharing) |
 | 08 | **Data hygiene pipeline** | Run `SecretsGate`, `PIIPseudonymizer`, and `ToxicityGate` over a contaminated dataset to catch secrets, pseudonymise PII, and reject toxic content with no LLM calls. | [GitHub](https://github.com/Lexsi-Labs/CuratorKIT/blob/main/notebooks/08_data_hygiene_pipeline.ipynb) · [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1HSXAKGSdXTPSw4CNN269Qj5N6ca0H89R?usp=sharing) |
+| 09 | **Filtered vs unfiltered fine-tuning** | Run `HallucinationGate` and `RewardGate` over a 4,500-sample synthetic QA corpus, sample disjoint pools of passed and rejected rows, then fine-tune the same base model (Qwen3-1.7B) twice and compare ROUGE-L, BERTScore-F1, and Faithfulness to quantify the impact of curation. | [GitHub](https://github.com/Lexsi-Labs/CuratorKIT/blob/main/notebooks/09_corpus_filtered_vs_unfiltered_ft.ipynb) · [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1sJ_LL-f4VbVGMol2F-Y3XppIvnU1JXUB?usp=sharing) |
 
 ## Prefer plain scripts?
 
@@ -23,5 +24,6 @@ file per workflow, with the required extras in each docstring.
 
 - **No LLM required:** notebooks 04, 05, and 08 run entirely locally and are the best place to start.
 - **LLM endpoint required:** notebooks 01-03, 06, and 07 need an OpenAI-compatible endpoint (a local vLLM or Ollama server, or any hosted API). Each notebook includes backend setup instructions.
+- **LLM endpoint + GPU required:** notebook 09 requires an LLM judge endpoint and a GPU (≥16 GB VRAM) for the fine-tuning stage.
 
 Suggested learning path: start with **05** (cleaning and deduplication), move to **04** (multi-source ingestion), then work through generation (**01-03**), recovery (**06**), and hygiene (**07-08**).
