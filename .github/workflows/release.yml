@@ -91,7 +91,7 @@ jobs:
         uses: pypa/gh-action-pypi-publish@release/v1
 
       - name: Send release notes to Slack
-        uses: slackapi/slack-github-action@v1.24.0
+        uses: slackapi/slack-github-action@v3.0.3
         continue-on-error: true
         with:
           channel-id: "lexsi-labs-curator-kit-release"
