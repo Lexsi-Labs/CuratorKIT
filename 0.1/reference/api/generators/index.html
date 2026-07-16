@@ -2609,8 +2609,11 @@ into self.rejected (not returned in the output list).</p>
 
     <div class="doc doc-contents ">
 
-        <p>Async generation with concurrency control.</p>
-<p>Fires up to self.concurrency LLM calls in parallel.</p>
+        <p>Async generation with concurrency control and optional checkpointing.</p>
+<p>When self._checkpoint_mgr is set (by Curator._wire_checkpoint), each
+mini-batch of self._checkpoint_batch_size samples is written to disk
+after it completes. On resume after a crash, already-processed batches
+are loaded from disk and only remaining samples are regenerated.</p>
 
 
     </div>
