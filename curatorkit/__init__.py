@@ -7,13 +7,16 @@ from curatorkit.connectors.huggingface import HuggingFaceReader
 from curatorkit.connectors.json_reader import JSONReader
 from curatorkit.connectors.jsonl import JSONLReader
 from curatorkit.connectors.parquet_reader import ParquetReader
-from curatorkit.curator import Curator, CuratorConfig, CuratorResult
+from curatorkit.checkpoint import CheckpointManager
+from curatorkit.curator import Curator, CuratorConfig, CuratorResult, LLMOverride
 from curatorkit.schema import DataSample, RejectedSample
 
 __all__ = [
     "Curator",
     "CuratorConfig",
     "CuratorResult",
+    "LLMOverride",
+    "CheckpointManager",
     "DataSample",
     "RejectedSample",
     "JSONLReader",

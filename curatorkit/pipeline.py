@@ -82,10 +82,12 @@ class Pipeline:
         steps: list[Step],
         output_dir: Path | None = None,
         diagnostics: object = None,
+        checkpoint_mgr=None,  # CheckpointManager | None
     ) -> None:
         self.steps = steps
         self.output_dir = output_dir or Path("output")
         self._diagnostics = diagnostics
+        self._checkpoint_mgr = checkpoint_mgr
 
     def dry_run(self) -> list[dict[str, str]]:
         """
@@ -212,16 +214,38 @@ class Pipeline:
         Steps with a run_async() method (generation tasks and LLM gates) use
         native async with semaphore-bounded concurrency. All other steps
         (readers, non-LLM normalizers, exporters) run synchronously.
+
+        When self._checkpoint_mgr is set, stage-level checkpoints are saved
+        after each completed non-exporter step so the pipeline can skip
+        already-finished work on the next resume attempt. Generation tasks
+        additionally do mini-batch checkpointing internally.
         """
         t0 = time.monotonic()
         samples: list[DataSample] = []
         all_rejected: list[RejectedSample] = []
         stage_counts: dict[str, dict[str, int]] = {}
+        ckpt = self._checkpoint_mgr
+
+        # ── Reader-phase checkpoint ───────────────────────────────────────────
+        # All readers accumulate into `samples`; we checkpoint the combined
+        # result once after the reader phase ends (i.e. when the first non-reader
+        # step is encountered). On resume, skip all readers and load from disk.
+        _readers_stage_key = "_after_readers"
+        _skip_readers = bool(ckpt and ckpt.is_stage_complete(_readers_stage_key))
+        _readers_checkpointed = _skip_readers
+
+        if _skip_readers:
+            loaded = ckpt.load_stage(_readers_stage_key)  # type: ignore[union-attr]
+            samples = loaded if loaded is not None else []
+            stage_counts["_readers"] = {"restored_from_checkpoint": len(samples)}
 
         for step in self.steps:
             name = getattr(step, "_display_name", None) or type(step).__name__
 
+            # ── Readers ──────────────────────────────────────────────────────
             if isinstance(step, BaseReader):
+                if _skip_readers:
+                    continue
                 new_samples, reader_rejected = step.read()
                 all_rejected.extend(reader_rejected)
                 samples.extend(new_samples)
@@ -233,12 +257,34 @@ class Pipeline:
                         "output_count": len(new_samples),
                         "rejected_count": len(reader_rejected),
                     }
+                continue
 
-            elif isinstance(step, BaseGate):
+            # ── Transition: reader phase → processing phase ───────────────────
+            # Save the combined reader output once before any processing step runs.
+            if not _readers_checkpointed and ckpt:
+                ckpt.save_stage(_readers_stage_key, samples)
+                _readers_checkpointed = True
+
+            # ── Stage-key for this step ──────────────────────────────────────
+            stage_key = type(step).__name__
+
+            # ── Skip if this stage already has a complete checkpoint ──────────
+            # Generation tasks write their own stage checkpoint via
+            # finalize_batch_stage(), so they appear here as "complete" once
+            # the generation run fully finished.
+            if ckpt and ckpt.is_stage_complete(stage_key):
+                loaded = ckpt.load_stage(stage_key)
+                if loaded is not None:
+                    samples = loaded
+                stage_counts[name] = {"restored_from_checkpoint": len(samples)}
+                continue
+
+            # ── Gates ─────────────────────────────────────────────────────────
+            if isinstance(step, BaseGate):
                 input_count = len(samples)
 
                 if hasattr(step, "run_async"):
-                    passed, rejected = await step.run_async(samples)
+                    passed, rejected = await step.run_async(samples)  # type: ignore[union-attr]
                 else:
                     passed, rejected = step.run(samples)
 
@@ -250,7 +296,7 @@ class Pipeline:
                     for r, diag in zip(rejected, diagnoses):
                         r.diagnosis = diag
                         if self._diagnostics is not None:
-                            self._diagnostics.record(r)
+                            self._diagnostics.record(r)  # type: ignore[union-attr]
                         if diag.recovered_sample is not None:
                             probe_recovered_async.append(diag.recovered_sample)
 
@@ -262,12 +308,17 @@ class Pipeline:
                     "probe_recovered": len(probe_recovered_async),
                     "rejected_count": len(rejected),
                 }
+                # Save stage checkpoint after gate completes
+                if ckpt:
+                    ckpt.save_stage(stage_key, samples)
 
+            # ── Normalizers (including generation tasks) ──────────────────────
             elif isinstance(step, BaseNormalizer):
                 input_count = len(samples)
 
-                # Use async for generation tasks
                 if _is_generation_task(step) and hasattr(step, "run_async"):
+                    # Generation task checkpoints itself (batch-level inside
+                    # run_async, stage-level via finalize_batch_stage at the end).
                     samples = await step.run_async(samples)  # type: ignore[union-attr]
                     gen_rejected = step.flush_rejected()  # type: ignore[union-attr]
                     all_rejected.extend(gen_rejected)
@@ -291,7 +342,11 @@ class Pipeline:
                             "input_count": input_count,
                             "output_count": len(samples),
                         }
+                        # Save stage checkpoint for non-LLM normalizers
+                        if ckpt:
+                            ckpt.save_stage(stage_key, samples)
 
+            # ── Exporters ─────────────────────────────────────────────────────
             elif isinstance(step, BaseExporter):
                 self.output_dir.mkdir(parents=True, exist_ok=True)
                 step.export(samples, self.output_dir)

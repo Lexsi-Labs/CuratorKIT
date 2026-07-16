@@ -61,6 +61,28 @@ except ImportError:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# LLMOverride
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+@dataclass
+class LLMOverride:
+    """Per-task or per-role LLM routing override.
+
+    Each field cascades independently:
+      task-level → role-level (generator_llm / judge_llm) → global llm_* fields.
+    Leave a field as None to inherit from the next level.
+
+    Can be passed as a dict and will be coerced automatically by CuratorConfig:
+        qa_llm={"model": "openai/gpt-4o", "api_key": "sk-..."}
+    """
+
+    model: str | None = None
+    api_base: str | None = None
+    api_key: str | None = None
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # CuratorConfig
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -211,6 +233,35 @@ class CuratorConfig:
     judge_llm_max_retries: int = 3
     judge_llm_extra_body: dict = field(default_factory=dict)
 
+    # ═══════════════════════════════════════════════════════════════════════
+    # LLM routing overrides — three-level cascading fallback
+    # task-level → role-level (generator_llm / judge_llm) → global llm_* fields
+    # Each field in LLMOverride (model / api_base / api_key) resolves independently.
+    # Pass as LLMOverride(...) or as a plain dict — both are accepted.
+    # ═══════════════════════════════════════════════════════════════════════
+
+    # ── Role-level ──────────────────────────────────────────────────────────
+    generator_llm: LLMOverride = field(default_factory=LLMOverride)
+    judge_llm: LLMOverride = field(default_factory=LLMOverride)
+
+    # ── Task-level — Generation ─────────────────────────────────────────────
+    qa_llm: LLMOverride = field(default_factory=LLMOverride)
+    preference_llm: LLMOverride = field(default_factory=LLMOverride)
+    grpo_rollout_llm: LLMOverride = field(default_factory=LLMOverride)
+    evol_llm: LLMOverride = field(default_factory=LLMOverride)
+    multiturn_llm: LLMOverride = field(default_factory=LLMOverride)
+    cot_llm: LLMOverride = field(default_factory=LLMOverride)
+    adversarial_llm: LLMOverride = field(default_factory=LLMOverride)
+    pdf_gen_llm: LLMOverride = field(default_factory=LLMOverride)
+    probe_llm: LLMOverride = field(default_factory=LLMOverride)
+    refiner_llm: LLMOverride = field(default_factory=LLMOverride)
+
+    # ── Task-level — Judging ────────────────────────────────────────────────
+    hallucination_llm: LLMOverride = field(default_factory=LLMOverride)
+    reward_llm: LLMOverride = field(default_factory=LLMOverride)
+    grpo_scoring_llm: LLMOverride = field(default_factory=LLMOverride)
+    toxicity_llm: LLMOverride = field(default_factory=LLMOverride)
+
     # ── Generation task ─────────────────────────────────────────────────────
     generation_task: str | None = (
         None  # qa | preference | grpo | multiturn | evol | cot | adversarial_preference
@@ -345,6 +396,66 @@ class CuratorConfig:
     toxicity_llm_judge: bool = False
     toxicity_llm_reject_threshold: float = 0.5
     toxicity_text_field: str = "auto"
+
+    # ── Checkpointing ─────────────────────────────────────────────────────────
+    # enable_checkpoint    Save stage and batch checkpoints so a failed run can
+    #                      resume from the last safe point instead of starting over.
+    # checkpoint_dir       Directory for checkpoint files. Defaults to
+    #                      {output_dir}/.checkpoints if None.
+    # checkpoint_batch_size  Number of samples per mini-batch for LLM generation
+    #                        tasks. A crash loses at most one batch of work.
+    enable_checkpoint: bool = False
+    checkpoint_dir: str | None = None
+    checkpoint_batch_size: int = 256
+
+    # ── LLMOverride coercion and resolution ─────────────────────────────────
+
+    _OVERRIDE_FIELDS: tuple = (
+        "generator_llm", "judge_llm",
+        "qa_llm", "preference_llm", "grpo_rollout_llm", "evol_llm",
+        "multiturn_llm", "cot_llm", "adversarial_llm", "pdf_gen_llm",
+        "probe_llm", "refiner_llm",
+        "hallucination_llm", "reward_llm", "grpo_scoring_llm", "toxicity_llm",
+    )
+
+    def __post_init__(self) -> None:
+        for f in self._OVERRIDE_FIELDS:
+            val = getattr(self, f)
+            if isinstance(val, dict):
+                setattr(self, f, LLMOverride(**val))
+
+    def _resolve(self, task_llm: LLMOverride, role: str) -> LLMOverride:
+        """Cascade: task → role (generator_llm / judge_llm) → global llm_* fields.
+
+        Old flat fields (judge_llm_model, judge_llm_api_base) are honoured as
+        a fallback inside the judge role so existing configs keep working.
+        Each of model / api_base / api_key resolves independently.
+        """
+        if role == "generation":
+            role_llm = self.generator_llm
+        else:
+            # Merge old flat judge fields for backward compatibility
+            role_llm = LLMOverride(
+                model    = self.judge_llm.model    or self.judge_llm_model,
+                api_base = self.judge_llm.api_base or self.judge_llm_api_base,
+                api_key  = self.judge_llm.api_key,
+            )
+        return LLMOverride(
+            model    = task_llm.model    or role_llm.model    or self.llm_model,
+            api_base = task_llm.api_base or role_llm.api_base or self.llm_api_base,
+            api_key  = task_llm.api_key  or role_llm.api_key  or self.llm_api_key,
+        )
+
+    def _any_gen_model(self) -> bool:
+        """True if a generator model is reachable at any fallback level."""
+        return bool(self.generator_llm.model or self.llm_model)
+
+    def _any_judge_model(self) -> bool:
+        """True if a judge model is reachable at any fallback level."""
+        return bool(
+            self.judge_llm.model or self.judge_llm_model
+            or self.generator_llm.model or self.llm_model
+        )
 
     def apply_patch(self, patch: dict) -> CuratorConfig:
         """
@@ -501,12 +612,14 @@ class Curator:
         """
         from curatorkit.pipeline import Pipeline
 
+        ckpt = self._create_checkpoint_mgr()
         splitting = bool(self.config.output_split)
         steps = self._build_steps(include_exporters=not splitting)
+        self._wire_checkpoint(steps, ckpt)
         output_dir = Path(self.config.output_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
 
-        pipeline = Pipeline(steps, output_dir=output_dir, diagnostics=self._diagnostics)
+        pipeline = Pipeline(steps, output_dir=output_dir, diagnostics=self._diagnostics, checkpoint_mgr=ckpt)
         if self.config.generation_task:
             result = _run_async(pipeline.run_async())
         else:
@@ -543,12 +656,14 @@ class Curator:
         """Async pipeline execution — faster for generation-heavy pipelines."""
         from curatorkit.pipeline import Pipeline
 
+        ckpt = self._create_checkpoint_mgr()
         splitting = bool(self.config.output_split)
         steps = self._build_steps(include_exporters=not splitting)
+        self._wire_checkpoint(steps, ckpt)
         output_dir = Path(self.config.output_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
 
-        pipeline = Pipeline(steps, output_dir=output_dir, diagnostics=self._diagnostics)
+        pipeline = Pipeline(steps, output_dir=output_dir, diagnostics=self._diagnostics, checkpoint_mgr=ckpt)
         result = await pipeline.run_async()
 
         if splitting:
@@ -567,6 +682,37 @@ class Curator:
             wall_clock_seconds=result.wall_clock_seconds,
             diagnostics=result.diagnostics,
         )
+
+    # ═════════════════════════════════════════════════════════════════════════
+    # Checkpoint helpers
+    # ═════════════════════════════════════════════════════════════════════════
+
+    def _create_checkpoint_mgr(self):
+        """Return a CheckpointManager if enable_checkpoint=True, else None."""
+        if not self.config.enable_checkpoint:
+            return None
+        from curatorkit.checkpoint import CheckpointManager
+
+        ckpt_dir = (
+            Path(self.config.checkpoint_dir)
+            if self.config.checkpoint_dir
+            else Path(self.config.output_dir) / ".checkpoints"
+        )
+        return CheckpointManager(ckpt_dir, self._config_hash())
+
+    def _wire_checkpoint(self, steps: list, ckpt) -> None:
+        """Attach the CheckpointManager to every generation task in ``steps``."""
+        if ckpt is None:
+            return
+        try:
+            from curatorkit.generators.base import BaseGenerationTask
+
+            for step in steps:
+                if isinstance(step, BaseGenerationTask):
+                    step._checkpoint_mgr = ckpt
+                    step._checkpoint_batch_size = self.config.checkpoint_batch_size
+        except ImportError:
+            pass
 
     # ═════════════════════════════════════════════════════════════════════════
     # Internal step builder
@@ -719,7 +865,7 @@ class Curator:
         if cfg.toxicity_gate:
             from curatorkit.hygiene.toxicity import ToxicityGate
 
-            _tox_llm = self._build_llm() if cfg.toxicity_llm_judge and cfg.llm_model else None
+            _tox_llm = self._build_judge_backend(cfg.toxicity_llm) if cfg.toxicity_llm_judge and cfg._any_judge_model() else None
             steps.append(
                 ToxicityGate(
                     classifier_pass_threshold=cfg.toxicity_classifier_pass_threshold,
@@ -734,19 +880,18 @@ class Curator:
         # ═════════════════════════════════════════════════════════════════════
         # Generation task
         # ═════════════════════════════════════════════════════════════════════
-        if cfg.generation_task and cfg.llm_model:
-            llm = self._build_llm()
-            gen_step = self._build_generator(llm)
+        if cfg.generation_task and cfg._any_gen_model():
+            gen_step = self._build_generator()
             if gen_step is not None:
                 steps.append(gen_step)
 
         # ═════════════════════════════════════════════════════════════════════
         # Quality gates (after generation)
         # ═════════════════════════════════════════════════════════════════════
-        if cfg.hallucination_threshold is not None and cfg.llm_model:
+        if cfg.hallucination_threshold is not None and cfg._any_judge_model():
             from curatorkit.gates.hallucination import HallucinationGate
 
-            llm = self._build_judge_llm()
+            llm = self._build_judge_backend(cfg.hallucination_llm)
             _jconcurrency = cfg.judge_concurrency or cfg.llm_concurrency
             gate = HallucinationGate(
                 llm=llm,
@@ -758,9 +903,7 @@ class Curator:
             if cfg.enable_diagnostic_probe:
                 from curatorkit.diagnostic.probe import DiagnosticProbe
 
-                probe_llm = self._build_probe_llm()
-                if cfg.probe_generator_model and cfg.probe_generator_model != cfg.llm_model:
-                    probe_llm.model = cfg.probe_generator_model
+                probe_llm = self._build_probe_backend()
                 gate.probe = DiagnosticProbe(
                     generator_llm=probe_llm,
                     gate=gate,
@@ -773,10 +916,10 @@ class Curator:
 
             steps.append(gate)
 
-        if cfg.reward_threshold is not None and cfg.llm_model:
+        if cfg.reward_threshold is not None and cfg._any_judge_model():
             from curatorkit.gates.reward import RewardGate
 
-            llm = self._build_judge_llm()
+            llm = self._build_judge_backend(cfg.reward_llm)
             _reward_gate = RewardGate(
                 llm=llm,
                 threshold=cfg.reward_threshold,
@@ -789,7 +932,7 @@ class Curator:
             if cfg.enable_diagnostic_probe:
                 from curatorkit.diagnostic.probe import DiagnosticProbe
 
-                probe_llm = self._build_probe_llm()
+                probe_llm = self._build_probe_backend()
                 _reward_gate.probe = DiagnosticProbe(
                     generator_llm=probe_llm,
                     gate=_reward_gate,
@@ -800,11 +943,11 @@ class Curator:
 
             steps.append(_reward_gate)
 
-            if cfg.enable_reward_refiner and cfg.llm_model:
+            if cfg.enable_reward_refiner and cfg._any_gen_model():
                 # Store on instance so run() can call refiner.refine(reward_rejects) post-pipeline
                 from curatorkit.diagnostic.reward_refine import RewardRefiner
 
-                refiner_llm = self._build_probe_llm()
+                refiner_llm = self._build_refiner_backend()
                 self._reward_refiner = RewardRefiner(
                     generator_llm=refiner_llm,
                     reward_gate=_reward_gate,
@@ -891,135 +1034,141 @@ class Curator:
     # LLM builder
     # ─────────────────────────────────────────────────────────────────────────
 
-    def _build_llm(self):
-        """Build the generator LLM backend from config."""
-        cfg = self.config
-        model = cfg.llm_model
+    # ─────────────────────────────────────────────────────────────────────────
+    # LLM builders — three-level cascading (task → role → global)
+    # ─────────────────────────────────────────────────────────────────────────
 
-        if model and (model.startswith("ollama/") or model.startswith("ollama_chat/")):
-            from curatorkit.llm.ollama import OllamaBackend
+    def _make_backend(
+        self,
+        resolved: LLMOverride,
+        temperature: float,
+        max_tokens: int,
+        timeout: float,
+        max_retries: int,
+        drop_params: bool,
+        extra_body: dict,
+    ):
+        """Low-level constructor: builds LiteLLM or Ollama backend from a resolved LLMOverride."""
+        model = resolved.model or "openai/gpt-4o-mini"
+        api_base = resolved.api_base
+        api_key = resolved.api_key
 
-            return OllamaBackend(
-                model=model.split("/", 1)[1],
-                base_url=cfg.llm_api_base or "http://localhost:11434",
-                temperature=cfg.llm_temperature,
-                max_tokens=cfg.llm_max_tokens,
-                timeout=cfg.llm_timeout,
-            )
-
-        from curatorkit.llm.litellm import LiteLLMBackend
-
-        return LiteLLMBackend(
-            model=model or "openai/gpt-4o-mini",
-            temperature=cfg.llm_temperature,
-            max_tokens=cfg.llm_max_tokens,
-            api_key=cfg.llm_api_key,
-            api_base=cfg.llm_api_base,
-            timeout=cfg.llm_timeout,
-            max_retries=cfg.llm_max_retries,
-            drop_params=cfg.llm_drop_params,
-            extra_body=cfg.llm_extra_body or None,
-        )
-
-    def _build_llm_for_model(self, model: str):
-        """Build an LLM backend for an arbitrary model string using global LLM config."""
-        cfg = self.config
         if model.startswith("ollama/") or model.startswith("ollama_chat/"):
             from curatorkit.llm.ollama import OllamaBackend
 
             return OllamaBackend(
                 model=model.split("/", 1)[1],
-                base_url=cfg.llm_api_base or "http://localhost:11434",
-                temperature=cfg.llm_temperature,
-                max_tokens=cfg.llm_max_tokens,
-                timeout=cfg.llm_timeout,
+                base_url=api_base or "http://localhost:11434",
+                temperature=temperature,
+                max_tokens=max_tokens,
+                timeout=timeout,
             )
+
         from curatorkit.llm.litellm import LiteLLMBackend
 
         return LiteLLMBackend(
             model=model,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            api_key=api_key,
+            api_base=api_base,
+            timeout=timeout,
+            max_retries=max_retries,
+            drop_params=drop_params,
+            extra_body=extra_body or None,
+        )
+
+    def _build_gen_llm(self, task_llm: LLMOverride):
+        """Build a generation backend — cascades task_llm → generator_llm → global."""
+        cfg = self.config
+        resolved = cfg._resolve(task_llm, "generation")
+        return self._make_backend(
+            resolved,
             temperature=cfg.llm_temperature,
             max_tokens=cfg.llm_max_tokens,
-            api_key=cfg.llm_api_key,
-            api_base=cfg.llm_api_base,
             timeout=cfg.llm_timeout,
             max_retries=cfg.llm_max_retries,
             drop_params=cfg.llm_drop_params,
-            extra_body=cfg.llm_extra_body or None,
+            extra_body=cfg.llm_extra_body,
         )
 
-    def _build_probe_llm(self):
-        """Build a generator LLM for probe/refiner use with thinking disabled.
+    def _build_judge_backend(self, task_llm: LLMOverride):
+        """Build a judge backend — cascades task_llm → judge_llm → global."""
+        cfg = self.config
+        resolved = cfg._resolve(task_llm, "judging")
+        return self._make_backend(
+            resolved,
+            temperature=cfg.judge_llm_temperature,
+            max_tokens=cfg.judge_llm_max_tokens,
+            timeout=cfg.judge_llm_timeout,
+            max_retries=cfg.judge_llm_max_retries,
+            drop_params=cfg.llm_drop_params,
+            extra_body=cfg.judge_llm_extra_body,
+        )
 
-        Probe and refiner calls must produce structured text (answers, questions)
-        without reasoning preamble. Thinking mode is disabled at the API level
-        regardless of the main generator's llm_extra_body setting — this is
-        model-agnostic and more reliable than prompt-level tokens like /no_think.
+    def _build_probe_backend(self):
+        """Build probe backend (generation role) with thinking disabled.
+
+        Probe calls must produce structured text without reasoning preamble.
+        Thinking is disabled at the API level regardless of llm_extra_body.
         """
         cfg = self.config
         import copy
 
         probe_extra = copy.deepcopy(cfg.llm_extra_body or {})
-        # Force thinking off for any model that supports this kwarg
-        # (Qwen3, DeepSeek-R1, etc. honour chat_template_kwargs.enable_thinking)
         probe_extra.setdefault("chat_template_kwargs", {})["enable_thinking"] = False
-
-        model = cfg.llm_model
-        from curatorkit.llm.litellm import LiteLLMBackend
-
-        return LiteLLMBackend(
-            model=model or "openai/gpt-4o-mini",
+        resolved = cfg._resolve(cfg.probe_llm, "generation")
+        return self._make_backend(
+            resolved,
             temperature=cfg.llm_temperature,
             max_tokens=cfg.llm_max_tokens,
-            api_key=cfg.llm_api_key,
-            api_base=cfg.llm_api_base,
             timeout=cfg.llm_timeout,
             max_retries=cfg.llm_max_retries,
             drop_params=cfg.llm_drop_params,
             extra_body=probe_extra,
         )
 
-    def _build_judge_llm(self):
-        """Build the judge LLM backend — uses judge_llm_model if set, else falls back to generator LLM."""
+    def _build_refiner_backend(self):
+        """Build refiner backend (generation role) with thinking disabled."""
         cfg = self.config
-        if not cfg.judge_llm_model:
-            return self._build_llm()
+        import copy
 
-        model = cfg.judge_llm_model
-        if model.startswith("ollama/") or model.startswith("ollama_chat/"):
-            from curatorkit.llm.ollama import OllamaBackend
-
-            return OllamaBackend(
-                model=model.split("/", 1)[1],
-                base_url=cfg.judge_llm_api_base or "http://localhost:11434",
-                temperature=cfg.judge_llm_temperature,
-                max_tokens=cfg.judge_llm_max_tokens,
-                timeout=cfg.judge_llm_timeout,
-            )
-
-        from curatorkit.llm.litellm import LiteLLMBackend
-
-        return LiteLLMBackend(
-            model=model,
-            temperature=cfg.judge_llm_temperature,
-            max_tokens=cfg.judge_llm_max_tokens,
-            api_key=cfg.llm_api_key,
-            api_base=cfg.judge_llm_api_base,
-            timeout=cfg.judge_llm_timeout,
-            max_retries=cfg.judge_llm_max_retries,
+        refiner_extra = copy.deepcopy(cfg.llm_extra_body or {})
+        refiner_extra.setdefault("chat_template_kwargs", {})["enable_thinking"] = False
+        resolved = cfg._resolve(cfg.refiner_llm, "generation")
+        return self._make_backend(
+            resolved,
+            temperature=cfg.llm_temperature,
+            max_tokens=cfg.llm_max_tokens,
+            timeout=cfg.llm_timeout,
+            max_retries=cfg.llm_max_retries,
             drop_params=cfg.llm_drop_params,
-            extra_body=cfg.judge_llm_extra_body or None,
+            extra_body=refiner_extra,
         )
 
     # ─────────────────────────────────────────────────────────────────────────
     # Generation task builder
     # ─────────────────────────────────────────────────────────────────────────
 
-    def _build_generator(self, llm):
-        """Build the generation task from config."""
+    def _build_generator(self):
+        """Build the generation task from config, using per-task LLM overrides."""
         cfg = self.config
         task = cfg.generation_task
         concurrency = cfg.generation_concurrency or cfg.llm_concurrency
+
+        # Map each task to its task-level LLMOverride — cascades to generator_llm → global
+        _task_llm_map: dict[str, LLMOverride] = {
+            "qa":                    cfg.qa_llm,
+            "preference":            cfg.preference_llm,
+            "grpo":                  cfg.grpo_rollout_llm,
+            "evol":                  cfg.evol_llm,
+            "evol_instruct":         cfg.evol_llm,
+            "multiturn":             cfg.multiturn_llm,
+            "cot":                   cfg.cot_llm,
+            "adversarial_preference": cfg.adversarial_llm,
+            "adversarial_qa":        cfg.adversarial_llm,
+        }
+        llm = self._build_gen_llm(_task_llm_map.get(task, LLMOverride()))
 
         if task == "qa":
             from curatorkit.generators.qa_generator import QAGenerationTask
@@ -1046,9 +1195,12 @@ class Curator:
         elif task == "grpo":
             from curatorkit.generators.grpo_rollout import GRPORolloutTask
 
-            scoring_llm = None
-            if cfg.grpo_scoring_llm_model:
-                scoring_llm = self._build_llm_for_model(cfg.grpo_scoring_llm_model)
+            # grpo_scoring_llm cascades: task override → judge_llm → global.
+            # Old grpo_scoring_llm_model field used as model-only fallback.
+            _score_override = cfg.grpo_scoring_llm
+            if not _score_override.model and cfg.grpo_scoring_llm_model:
+                _score_override = LLMOverride(model=cfg.grpo_scoring_llm_model)
+            scoring_llm = self._build_judge_backend(_score_override) if cfg.score_responses else None
             return GRPORolloutTask(
                 llm=llm,
                 scoring_llm=scoring_llm,

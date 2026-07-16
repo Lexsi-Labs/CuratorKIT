@@ -64,6 +64,9 @@ class BaseGenerationTask(BaseNormalizer):
         self.concurrency = concurrency
         self.max_parse_retries = max_parse_retries
         self._rejected: list[RejectedSample] = []
+        # Set by Curator._wire_checkpoint() when enable_checkpoint=True
+        self._checkpoint_mgr = None
+        self._checkpoint_batch_size: int = 256
 
     @property
     def task_name(self) -> str:
@@ -209,14 +212,28 @@ class BaseGenerationTask(BaseNormalizer):
 
     async def run_async(self, samples: list[DataSample]) -> list[DataSample]:
         """
-        Async generation with concurrency control.
+        Async generation with concurrency control and optional checkpointing.
 
-        Fires up to self.concurrency LLM calls in parallel.
+        When self._checkpoint_mgr is set (by Curator._wire_checkpoint), each
+        mini-batch of self._checkpoint_batch_size samples is written to disk
+        after it completes. On resume after a crash, already-processed batches
+        are loaded from disk and only remaining samples are regenerated.
         """
         self._rejected = []
         results: list[DataSample] = []
         ts = datetime.now(UTC)
         semaphore = asyncio.Semaphore(self.concurrency)
+        ckpt = self._checkpoint_mgr
+        stage_key = type(self).__name__  # e.g. "QAGenerationTask"
+
+        # ── Resume from checkpoint ────────────────────────────────────────────
+        start_idx = 0
+        if ckpt is not None:
+            start_idx = ckpt.get_batch_resume_idx(stage_key)
+            if start_idx > 0:
+                pre_passed, pre_rejected = ckpt.load_batch_results(stage_key)
+                results.extend(pre_passed)
+                self._rejected.extend(pre_rejected)
 
         async def _process_one(sample: DataSample) -> list[DataSample]:
             async with semaphore:
@@ -275,20 +292,43 @@ class BaseGenerationTask(BaseNormalizer):
                     )
                     return []
 
-        # Process in chunks to bound the number of live coroutine objects.
-        # The semaphore already caps concurrent API calls; chunking caps memory
-        # from coroutine objects + pending result lists for very large corpora.
-        chunk_size = max(self.concurrency * 8, 256)
+        # When checkpointing is enabled, chunk_size equals checkpoint_batch_size
+        # so every chunk is an atomic checkpoint unit. Otherwise use the memory-
+        # management heuristic (concurrency * 8, min 256) from before.
+        chunk_size = self._checkpoint_batch_size if ckpt is not None else max(self.concurrency * 8, 256)
+        remaining = samples[start_idx:]
         pbar_desc = f"[{self.task_name}] generating"
-        with tqdm(total=len(samples), desc=pbar_desc, unit="sample") as pbar:
-            for chunk_start in range(0, len(samples), chunk_size):
-                chunk = samples[chunk_start : chunk_start + chunk_size]
+
+        with tqdm(total=len(samples), initial=start_idx, desc=pbar_desc, unit="sample") as pbar:
+            for chunk_start in range(0, len(remaining), chunk_size):
+                chunk = remaining[chunk_start : chunk_start + chunk_size]
                 chunk_tasks = [_process_one(s) for s in chunk]
+
+                # Snapshot rejected count before the batch fires so we can
+                # isolate this batch's rejections for the checkpoint record.
+                before_rejected = len(self._rejected)
                 chunk_results = await asyncio.gather(*chunk_tasks)
+
+                batch_passed: list[DataSample] = []
                 for generated in chunk_results:
                     results.extend(generated)
+                    batch_passed.extend(generated)
+
                 pbar.update(len(chunk))
+
+                # Append batch checkpoint — only the absolute sample index
+                # (next_start) needs to be atomic; the file append is best-effort.
+                if ckpt is not None:
+                    batch_rejected = self._rejected[before_rejected:]
+                    abs_next_start = start_idx + chunk_start + len(chunk)
+                    ckpt.append_batch(stage_key, batch_passed, batch_rejected, abs_next_start)
+
                 del chunk_tasks, chunk_results
+
+        # Consolidate: save a stage-level snapshot so the pipeline can skip
+        # this step entirely on the next resume attempt.
+        if ckpt is not None:
+            ckpt.finalize_batch_stage(stage_key, results)
 
         return results
 
