@@ -13,7 +13,7 @@
 <p align="center">
   <a href="https://pypi.org/project/curatorkit/"><img src="https://img.shields.io/badge/pypi-v0.1.0-0a8868" alt="PyPI v0.1.0"></a>
   <a href="https://www.python.org/"><img src="https://img.shields.io/badge/python-3.11%2B-blue" alt="Python 3.11+"></a>
-  <a href="https://github.com/Lexsi-Labs/CuratorKIT/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="License: MIT"></a>
+  <a href="https://github.com/Lexsi-Labs/CuratorKIT/blob/main/LICENSE.md"><img src="https://img.shields.io/badge/license-LSAL%20v1.1-orange" alt="License: LSAL v1.1 (source-available)"></a>
   <a href="https://lexsi-labs.github.io/CuratorKIT/"><img src="https://img.shields.io/badge/docs-available-brightgreen" alt="Documentation"></a>
 </p>
 
@@ -239,7 +239,7 @@ If you use CuratorKIT in your research, please cite it (see [`CITATION.cff`](CIT
 
 ## License
 
-MIT; see [LICENSE](LICENSE). The optional `pdf` extra installs [MinerU](https://github.com/opendatalab/MinerU), which is licensed AGPL-3.0. Install it only if that suits your use.
+LSAL v1.1; see [LICENSE](LICENSE.md). Free for research, education, and non-commercial use. Commercial use requires a separate license — contact support@lexsi.ai. The optional `pdf` extra installs [MinerU](https://github.com/opendatalab/MinerU), which is licensed AGPL-3.0. Install it only if that suits your use.
 
 ---
 
