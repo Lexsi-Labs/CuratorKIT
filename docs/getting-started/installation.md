@@ -38,6 +38,13 @@ The `pdf` extra is excluded from `all` because it pulls a large model stack. It 
 on CPU anywhere; for CUDA acceleration install a CUDA build of torch first. MinerU is
 licensed AGPL-3.0, so confirm that suits your use before installing.
 
+## License
+
+CuratorKIT is released under the **Lexsi Labs Source Available License (LSAL) v1.1** —
+free for research, education, and non-commercial use. Commercial use requires a separate
+license. See [LICENSE](https://github.com/Lexsi-Labs/CuratorKIT/blob/main/LICENSE.md)
+or contact support@lexsi.ai.
+
 ## From source
 
 ```bash

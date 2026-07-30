@@ -22,7 +22,7 @@ and export trainer-ready formats, with a provenance manifest on every run.
 
 <p class="ck-chips">
 <span>v1.0</span>
-<span>MIT</span>
+<span>LSAL v1.1</span>
 <span>Python 3.11+</span>
 <span>core runs CPU-only</span>
 <span>any LiteLLM backend</span>
