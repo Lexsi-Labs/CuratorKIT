@@ -2,12 +2,12 @@
 
 __version__ = "0.1.5"
 
+from curatorkit.checkpoint import CheckpointManager
 from curatorkit.connectors.csv_reader import CSVReader
 from curatorkit.connectors.huggingface import HuggingFaceReader
 from curatorkit.connectors.json_reader import JSONReader
 from curatorkit.connectors.jsonl import JSONLReader
 from curatorkit.connectors.parquet_reader import ParquetReader
-from curatorkit.checkpoint import CheckpointManager
 from curatorkit.curator import Curator, CuratorConfig, CuratorResult, LLMOverride
 from curatorkit.schema import DataSample, RejectedSample
 
