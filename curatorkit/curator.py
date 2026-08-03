@@ -74,7 +74,7 @@ class LLMOverride:
     Leave a field as None to inherit from the next level.
 
     Can be passed as a dict and will be coerced automatically by CuratorConfig:
-        qa_llm={"model": "openai/gpt-4o", "api_key": "sk-..."}
+        generator_llm={"model": "openai/gpt-4o", "api_key": "sk-..."}
     """
 
     model: str | None = None
@@ -244,15 +244,7 @@ class CuratorConfig:
     generator_llm: LLMOverride = field(default_factory=LLMOverride)
     judge_llm: LLMOverride = field(default_factory=LLMOverride)
 
-    # ── Task-level — Generation ─────────────────────────────────────────────
-    qa_llm: LLMOverride = field(default_factory=LLMOverride)
-    preference_llm: LLMOverride = field(default_factory=LLMOverride)
-    grpo_rollout_llm: LLMOverride = field(default_factory=LLMOverride)
-    evol_llm: LLMOverride = field(default_factory=LLMOverride)
-    multiturn_llm: LLMOverride = field(default_factory=LLMOverride)
-    cot_llm: LLMOverride = field(default_factory=LLMOverride)
-    adversarial_llm: LLMOverride = field(default_factory=LLMOverride)
-    pdf_gen_llm: LLMOverride = field(default_factory=LLMOverride)
+    # ── Task-level — Recovery ───────────────────────────────────────────────
     probe_llm: LLMOverride = field(default_factory=LLMOverride)
     refiner_llm: LLMOverride = field(default_factory=LLMOverride)
 
@@ -412,8 +404,6 @@ class CuratorConfig:
 
     _OVERRIDE_FIELDS: tuple = (
         "generator_llm", "judge_llm",
-        "qa_llm", "preference_llm", "grpo_rollout_llm", "evol_llm",
-        "multiturn_llm", "cot_llm", "adversarial_llm", "pdf_gen_llm",
         "probe_llm", "refiner_llm",
         "hallucination_llm", "reward_llm", "grpo_scoring_llm", "toxicity_llm",
     )
@@ -1157,18 +1147,7 @@ class Curator:
         concurrency = cfg.generation_concurrency or cfg.llm_concurrency
 
         # Map each task to its task-level LLMOverride — cascades to generator_llm → global
-        _task_llm_map: dict[str, LLMOverride] = {
-            "qa":                    cfg.qa_llm,
-            "preference":            cfg.preference_llm,
-            "grpo":                  cfg.grpo_rollout_llm,
-            "evol":                  cfg.evol_llm,
-            "evol_instruct":         cfg.evol_llm,
-            "multiturn":             cfg.multiturn_llm,
-            "cot":                   cfg.cot_llm,
-            "adversarial_preference": cfg.adversarial_llm,
-            "adversarial_qa":        cfg.adversarial_llm,
-        }
-        llm = self._build_gen_llm(_task_llm_map.get(task, LLMOverride()))
+        llm = self._build_gen_llm(LLMOverride())
 
         if task == "qa":
             from curatorkit.generators.qa_generator import QAGenerationTask
