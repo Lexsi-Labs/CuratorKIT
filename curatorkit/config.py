@@ -366,7 +366,11 @@ class NormalizerConfig(BaseModel):
     # ---- PIIPseudonymizer (data hygiene) ----
     pii_entity_types: list[str] = Field(default_factory=list)
     pii_score_threshold: float = 0.7
+    pii_nlp_engine: Literal["spacy", "transformers", "stanza"] = "spacy"
     pii_spacy_model: str = "en_core_web_lg"
+    pii_transformer_model: str | None = None
+    pii_stanza_model: str = "en"
+    pii_ner_model_configuration: dict[str, Any] | None = None
     pii_faker_seed: int = 42
     pii_language: str = "en"
     pii_fields: list[str] = Field(default_factory=list)

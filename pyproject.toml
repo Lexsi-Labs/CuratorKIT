@@ -129,6 +129,19 @@ hygiene = [
     "faker>=26.0",
 ]
 
+# PII detection with transformer-based NER models (PIIPseudonymizer nlp_engine=
+# "transformers") — clinical/legal-grade recall, at the cost of the torch +
+# transformers stack. Install alongside `hygiene`.
+hygiene-transformers = [
+    "presidio-analyzer[transformers]>=2.2",
+]
+
+# PII detection with Stanza NER models (PIIPseudonymizer nlp_engine="stanza") —
+# useful for languages spaCy has no good model for. Install alongside `hygiene`.
+hygiene-stanza = [
+    "presidio-analyzer[stanza]>=2.2",
+]
+
 # Everything: connectors + generation + embedding + hygiene.
 # Excludes PDF (heavy model stack) and TRL (heavy torch/transformers stack) —
 # install those separately if needed.
