@@ -13,6 +13,8 @@ from __future__ import annotations
 
 import pytest
 
+pytest.importorskip("litellm", reason="litellm not installed — install curatorkit[generation]")
+
 from curatorkit.curator import Curator, CuratorConfig
 
 
