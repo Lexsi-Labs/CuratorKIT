@@ -804,6 +804,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="PIIPseudonymizer">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#pii-ner-backbones" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PII NER backbones
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
         
           <li class="md-nav__item">
@@ -1449,6 +1466,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="PIIPseudonymizer">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#pii-ner-backbones" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PII NER backbones
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
         
           <li class="md-nav__item">
@@ -1837,254 +1871,349 @@
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">&quot;curatorkit[hygiene]&quot;</span>
 </code></pre></div>
 <p>This installs: <code>detoxify</code>, <code>detect-secrets</code>, <code>presidio-analyzer</code>, <code>presidio-anonymizer</code>, <code>spacy</code>, and <code>faker</code>.</p>
-<p>For <code>PIIPseudonymizer</code>, also download the spaCy model:</p>
+<p>For <code>PIIPseudonymizer</code>'s default (spaCy) backend, also download a spaCy model — it lazy-downloads
+on first use like HF datasets do, but you can pre-fetch it:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>python<span class="w"> </span>-m<span class="w"> </span>spacy<span class="w"> </span>download<span class="w"> </span>en_core_web_lg<span class="w">   </span><span class="c1"># default (~800 MB, highest accuracy)</span>
 <a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="c1"># or for dev/CI:</span>
 <a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>python<span class="w"> </span>-m<span class="w"> </span>spacy<span class="w"> </span>download<span class="w"> </span>en_core_web_sm<span class="w">   </span><span class="c1"># ~12 MB, adequate for standard PII types</span>
 </code></pre></div>
+<p>For clinical or legal corpora, a transformer or Stanza NER backend gives noticeably better
+recall than spaCy — see <a href="#pii-ner-backbones">PII NER backbones</a> below. Those need one more
+extra on top of <code>hygiene</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">&quot;curatorkit[hygiene,hygiene-transformers]&quot;</span><span class="w">   </span><span class="c1"># transformer NER backend</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">&quot;curatorkit[hygiene,hygiene-stanza]&quot;</span><span class="w">          </span><span class="c1"># Stanza NER backend</span>
+</code></pre></div>
+<p>Model weights for either backend are not downloaded by <code>pip install</code> — they lazy-download
+from the HuggingFace Hub (transformers) or on first <code>stanza</code> engine build, exactly like the
+spaCy model above.</p>
 <hr />
 <h2 id="channel-1-curatorconfig-python-api">Channel 1 — <code>CuratorConfig</code> Python API<a class="headerlink" href="#channel-1-curatorconfig-python-api" title="Permanent link">&para;</a></h2>
 <p>Set flags directly on <code>CuratorConfig</code>. The hygiene steps are inserted automatically in the right order.</p>
 <h3 id="secretsgate">SecretsGate<a class="headerlink" href="#secretsgate" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">curatorkit</span><span class="w"> </span><span class="kn">import</span> <span class="n">Curator</span><span class="p">,</span> <span class="n">CuratorConfig</span>
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="n">result</span> <span class="o">=</span> <span class="n">Curator</span><span class="p">(</span><span class="n">CuratorConfig</span><span class="p">(</span>
-<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>    <span class="n">dataset</span>             <span class="o">=</span> <span class="s2">&quot;data/raw.jsonl&quot;</span><span class="p">,</span>
-<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>    <span class="n">secrets_gate</span>        <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>    <span class="c1"># Enable KeywordDetector for code corpora (off by default — too noisy for prose)</span>
-<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>    <span class="n">secrets_code_corpus_mode</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="p">))</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
-</code></pre></div>
-<h3 id="piipseudonymizer">PIIPseudonymizer<a class="headerlink" href="#piipseudonymizer" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">curatorkit</span><span class="w"> </span><span class="kn">import</span> <span class="n">Curator</span><span class="p">,</span> <span class="n">CuratorConfig</span>
 <a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
 <a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="n">result</span> <span class="o">=</span> <span class="n">Curator</span><span class="p">(</span><span class="n">CuratorConfig</span><span class="p">(</span>
-<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    <span class="n">dataset</span>             <span class="o">=</span> <span class="s2">&quot;data/medical_notes.jsonl&quot;</span><span class="p">,</span>
-<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>    <span class="n">pii_pseudonymize</span>    <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>    <span class="c1"># pii_entity_types  = []       # empty = default types (no DATE_TIME)</span>
-<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>    <span class="c1"># pii_score_threshold = 0.7    # Presidio confidence threshold</span>
-<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>    <span class="c1"># pii_spacy_model   = &quot;en_core_web_lg&quot;</span>
-<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>    <span class="c1"># pii_faker_seed    = 42       # reproducible replacements</span>
-<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="p">))</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    <span class="n">dataset</span>             <span class="o">=</span> <span class="s2">&quot;data/raw.jsonl&quot;</span><span class="p">,</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>    <span class="n">secrets_gate</span>        <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>    <span class="c1"># Enable KeywordDetector for code corpora (off by default — too noisy for prose)</span>
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>    <span class="n">secrets_code_corpus_mode</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="p">))</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
 </code></pre></div>
-<p>For clinical or legal corpora where dates and locations are also PII:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">curatorkit.hygiene.pii</span><span class="w"> </span><span class="kn">import</span> <span class="n">ENTITY_TYPES_CLINICAL</span>
+<h3 id="piipseudonymizer">PIIPseudonymizer<a class="headerlink" href="#piipseudonymizer" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">curatorkit</span><span class="w"> </span><span class="kn">import</span> <span class="n">Curator</span><span class="p">,</span> <span class="n">CuratorConfig</span>
 <a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
 <a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="n">result</span> <span class="o">=</span> <span class="n">Curator</span><span class="p">(</span><span class="n">CuratorConfig</span><span class="p">(</span>
-<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>    <span class="n">dataset</span>          <span class="o">=</span> <span class="s2">&quot;data/clinical_notes.jsonl&quot;</span><span class="p">,</span>
-<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>    <span class="n">pii_pseudonymize</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>    <span class="n">pii_entity_types</span> <span class="o">=</span> <span class="n">ENTITY_TYPES_CLINICAL</span><span class="p">,</span>   <span class="c1"># adds DATE_TIME, LOCATION, MEDICAL_LICENSE</span>
-<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>    <span class="n">pii_spacy_model</span>  <span class="o">=</span> <span class="s2">&quot;en_core_web_lg&quot;</span><span class="p">,</span>
-<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="p">))</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>    <span class="n">dataset</span>             <span class="o">=</span> <span class="s2">&quot;data/medical_notes.jsonl&quot;</span><span class="p">,</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>    <span class="n">pii_pseudonymize</span>    <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>    <span class="c1"># pii_entity_types  = []       # empty = default types (no DATE_TIME)</span>
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>    <span class="c1"># pii_score_threshold = 0.7    # Presidio confidence threshold</span>
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>    <span class="c1"># pii_spacy_model   = &quot;en_core_web_lg&quot;</span>
+<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>    <span class="c1"># pii_faker_seed    = 42       # reproducible replacements</span>
+<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="p">))</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
 </code></pre></div>
-<h3 id="toxicitygate">ToxicityGate<a class="headerlink" href="#toxicitygate" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">curatorkit</span><span class="w"> </span><span class="kn">import</span> <span class="n">Curator</span><span class="p">,</span> <span class="n">CuratorConfig</span>
+<p>For clinical or legal corpora where dates and locations are also PII:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">curatorkit.hygiene.pii</span><span class="w"> </span><span class="kn">import</span> <span class="n">ENTITY_TYPES_CLINICAL</span>
 <a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>
 <a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="n">result</span> <span class="o">=</span> <span class="n">Curator</span><span class="p">(</span><span class="n">CuratorConfig</span><span class="p">(</span>
-<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>    <span class="n">dataset</span>                              <span class="o">=</span> <span class="s2">&quot;data/raw.jsonl&quot;</span><span class="p">,</span>
-<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>    <span class="n">toxicity_gate</span>                        <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>    <span class="c1"># Stage 1 (local classifier) thresholds:</span>
-<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>    <span class="c1">#   score &lt; pass_threshold  → pass immediately (no LLM call)</span>
-<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>    <span class="c1">#   score &gt; reject_threshold → reject immediately (no LLM call)</span>
-<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>    <span class="c1">#   in between               → Stage 2, LLM judge (only when toxicity_llm_judge=True)</span>
-<a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>    <span class="n">toxicity_classifier_pass_threshold</span>   <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span>
-<a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a>    <span class="n">toxicity_classifier_reject_threshold</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
-<a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a>    <span class="n">toxicity_detoxify_model</span>              <span class="o">=</span> <span class="s2">&quot;unbiased&quot;</span><span class="p">,</span>  <span class="c1"># or &quot;original&quot; / &quot;multilingual&quot;</span>
-<a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a>    <span class="c1"># Enable LLM second-opinion for borderline samples:</span>
-<a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a>    <span class="n">toxicity_llm_judge</span>                   <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-<a id="__codelineno-5-15" name="__codelineno-5-15" href="#__codelineno-5-15"></a>    <span class="n">toxicity_llm_reject_threshold</span>        <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>   <span class="c1"># LLM judge rejects at or above this score</span>
-<a id="__codelineno-5-16" name="__codelineno-5-16" href="#__codelineno-5-16"></a>    <span class="n">llm_model</span>                            <span class="o">=</span> <span class="s2">&quot;openai/gpt-4o-mini&quot;</span><span class="p">,</span>  <span class="c1"># required when llm_judge=True</span>
-<a id="__codelineno-5-17" name="__codelineno-5-17" href="#__codelineno-5-17"></a><span class="p">))</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>    <span class="n">dataset</span>          <span class="o">=</span> <span class="s2">&quot;data/clinical_notes.jsonl&quot;</span><span class="p">,</span>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>    <span class="n">pii_pseudonymize</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>    <span class="n">pii_entity_types</span> <span class="o">=</span> <span class="n">ENTITY_TYPES_CLINICAL</span><span class="p">,</span>   <span class="c1"># adds DATE_TIME, LOCATION, MEDICAL_LICENSE</span>
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>    <span class="n">pii_spacy_model</span>  <span class="o">=</span> <span class="s2">&quot;en_core_web_lg&quot;</span><span class="p">,</span>
+<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="p">))</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+</code></pre></div>
+<h4 id="pii-ner-backbones">PII NER backbones<a class="headerlink" href="#pii-ner-backbones" title="Permanent link">&para;</a></h4>
+<p><code>PIIPseudonymizer</code> supports three NER backends via <code>pii_nlp_engine</code> — <code>"spacy"</code> (default),
+<code>"transformers"</code>, or <code>"stanza"</code>. spaCy's default is fast but has weaker recall on
+domain-specific names than a NER model fine-tuned for the domain. For clinical/legal
+corpora, switch to the <code>"transformers"</code> engine and pick a model from
+<code>curatorkit.hygiene.pii.RECOMMENDED_NER_MODELS</code>:</p>
+<table>
+<thead>
+<tr>
+<th>Engine</th>
+<th>Model (<code>pii_transformer_model</code>)</th>
+<th>Domain</th>
+<th>Use for</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>transformers</code></td>
+<td><code>StanfordAIMI/stanford-deidentifier-base</code></td>
+<td>Clinical/medical</td>
+<td>Default pick for medical text — i2b2-trained PHI de-identification</td>
+</tr>
+<tr>
+<td><code>transformers</code></td>
+<td><code>obi/deid_roberta_i2b2</code></td>
+<td>Clinical/medical</td>
+<td>Second opinion / ensemble alongside the above on high-stakes medical corpora</td>
+</tr>
+<tr>
+<td><code>transformers</code></td>
+<td><code>dslim/bert-base-NER</code></td>
+<td>Legal/general</td>
+<td>Contracts, filings — general NER, no clinical PHI awareness</td>
+</tr>
+<tr>
+<td><code>transformers</code></td>
+<td><code>Jean-Baptiste/roberta-large-ner-english</code></td>
+<td>Legal/general</td>
+<td>Higher accuracy than <code>dslim/bert-base-NER</code>, ~3x the latency — use when it's missing entities</td>
+</tr>
+<tr>
+<td><code>stanza</code></td>
+<td><code>"en"</code> (<code>pii_stanza_model</code>, a language code)</td>
+<td>Multilingual/general</td>
+<td>Only when spaCy has no good model for your target language</td>
+</tr>
+</tbody>
+</table>
+<p>Requires the matching extra (<code>hygiene-transformers</code> or <code>hygiene-stanza</code>, see
+<a href="../../getting-started/installation/">Installation</a>). Example for a medical corpus:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="n">result</span> <span class="o">=</span> <span class="n">Curator</span><span class="p">(</span><span class="n">CuratorConfig</span><span class="p">(</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>    <span class="n">dataset</span>               <span class="o">=</span> <span class="s2">&quot;data/clinical_notes.jsonl&quot;</span><span class="p">,</span>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>    <span class="n">pii_pseudonymize</span>      <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>    <span class="n">pii_entity_types</span>      <span class="o">=</span> <span class="n">ENTITY_TYPES_CLINICAL</span><span class="p">,</span>
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>    <span class="n">pii_nlp_engine</span>        <span class="o">=</span> <span class="s2">&quot;transformers&quot;</span><span class="p">,</span>
+<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>    <span class="n">pii_spacy_model</span>       <span class="o">=</span> <span class="s2">&quot;en_core_web_sm&quot;</span><span class="p">,</span>   <span class="c1"># tokenizer only — NER comes from the transformer</span>
+<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>    <span class="n">pii_transformer_model</span> <span class="o">=</span> <span class="s2">&quot;StanfordAIMI/stanford-deidentifier-base&quot;</span><span class="p">,</span>
+<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a><span class="p">))</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+</code></pre></div>
+<p><code>pii_spacy_model</code> still applies when <code>pii_nlp_engine="transformers"</code> — it's only used as a
+lightweight tokenizer/sentence-splitter there, so <code>en_core_web_sm</code> is enough; the NER model
+choice is entirely controlled by <code>pii_transformer_model</code>.</p>
+<h3 id="toxicitygate">ToxicityGate<a class="headerlink" href="#toxicitygate" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">curatorkit</span><span class="w"> </span><span class="kn">import</span> <span class="n">Curator</span><span class="p">,</span> <span class="n">CuratorConfig</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="n">result</span> <span class="o">=</span> <span class="n">Curator</span><span class="p">(</span><span class="n">CuratorConfig</span><span class="p">(</span>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>    <span class="n">dataset</span>                              <span class="o">=</span> <span class="s2">&quot;data/raw.jsonl&quot;</span><span class="p">,</span>
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>    <span class="n">toxicity_gate</span>                        <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>    <span class="c1"># Stage 1 (local classifier) thresholds:</span>
+<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>    <span class="c1">#   score &lt; pass_threshold  → pass immediately (no LLM call)</span>
+<a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a>    <span class="c1">#   score &gt; reject_threshold → reject immediately (no LLM call)</span>
+<a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a>    <span class="c1">#   in between               → Stage 2, LLM judge (only when toxicity_llm_judge=True)</span>
+<a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a>    <span class="n">toxicity_classifier_pass_threshold</span>   <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span>
+<a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a>    <span class="n">toxicity_classifier_reject_threshold</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
+<a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a>    <span class="n">toxicity_detoxify_model</span>              <span class="o">=</span> <span class="s2">&quot;unbiased&quot;</span><span class="p">,</span>  <span class="c1"># or &quot;original&quot; / &quot;multilingual&quot;</span>
+<a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a>    <span class="c1"># Enable LLM second-opinion for borderline samples:</span>
+<a id="__codelineno-7-14" name="__codelineno-7-14" href="#__codelineno-7-14"></a>    <span class="n">toxicity_llm_judge</span>                   <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<a id="__codelineno-7-15" name="__codelineno-7-15" href="#__codelineno-7-15"></a>    <span class="n">toxicity_llm_reject_threshold</span>        <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>   <span class="c1"># LLM judge rejects at or above this score</span>
+<a id="__codelineno-7-16" name="__codelineno-7-16" href="#__codelineno-7-16"></a>    <span class="n">llm_model</span>                            <span class="o">=</span> <span class="s2">&quot;openai/gpt-4o-mini&quot;</span><span class="p">,</span>  <span class="c1"># required when llm_judge=True</span>
+<a id="__codelineno-7-17" name="__codelineno-7-17" href="#__codelineno-7-17"></a><span class="p">))</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
 </code></pre></div>
 <h3 id="all-three-together">All three together<a class="headerlink" href="#all-three-together" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="n">result</span> <span class="o">=</span> <span class="n">Curator</span><span class="p">(</span><span class="n">CuratorConfig</span><span class="p">(</span>
-<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>    <span class="n">dataset</span>                              <span class="o">=</span> <span class="s2">&quot;data/raw.jsonl&quot;</span><span class="p">,</span>
-<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>    <span class="n">secrets_gate</span>                         <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>    <span class="n">pii_pseudonymize</span>                     <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>    <span class="n">toxicity_gate</span>                        <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>    <span class="n">toxicity_classifier_pass_threshold</span>   <span class="o">=</span> <span class="mf">0.15</span><span class="p">,</span>  <span class="c1"># raised for academic corpora</span>
-<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>    <span class="n">toxicity_classifier_reject_threshold</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
-<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>    <span class="n">llm_model</span>                            <span class="o">=</span> <span class="s2">&quot;openai/gpt-4o-mini&quot;</span><span class="p">,</span>
-<a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a>    <span class="n">generation_task</span>                      <span class="o">=</span> <span class="s2">&quot;qa&quot;</span><span class="p">,</span>
-<a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a><span class="p">))</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="n">result</span> <span class="o">=</span> <span class="n">Curator</span><span class="p">(</span><span class="n">CuratorConfig</span><span class="p">(</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>    <span class="n">dataset</span>                              <span class="o">=</span> <span class="s2">&quot;data/raw.jsonl&quot;</span><span class="p">,</span>
+<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>    <span class="n">secrets_gate</span>                         <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>    <span class="n">pii_pseudonymize</span>                     <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+<a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>    <span class="n">toxicity_gate</span>                        <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+<a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>    <span class="n">toxicity_classifier_pass_threshold</span>   <span class="o">=</span> <span class="mf">0.15</span><span class="p">,</span>  <span class="c1"># raised for academic corpora</span>
+<a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a>    <span class="n">toxicity_classifier_reject_threshold</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
+<a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a>    <span class="n">llm_model</span>                            <span class="o">=</span> <span class="s2">&quot;openai/gpt-4o-mini&quot;</span><span class="p">,</span>
+<a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a>    <span class="n">generation_task</span>                      <span class="o">=</span> <span class="s2">&quot;qa&quot;</span><span class="p">,</span>
+<a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a><span class="p">))</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
 </code></pre></div>
 <p><strong>Execution order</strong> (fixed): <code>SecretsGate → PIIPseudonymizer → ToxicityGate → [generation]</code></p>
 <hr />
 <h2 id="channel-2-yaml-pipeline-config-cli">Channel 2 — YAML pipeline config (CLI)<a class="headerlink" href="#channel-2-yaml-pipeline-config-cli" title="Permanent link">&para;</a></h2>
 <h3 id="running-a-pipeline">Running a pipeline<a class="headerlink" href="#running-a-pipeline" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>curatorkit<span class="w"> </span>run<span class="w"> </span>pipeline.yaml
-<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>curatorkit<span class="w"> </span>run<span class="w"> </span>pipeline.yaml<span class="w"> </span>--dry-run<span class="w">   </span><span class="c1"># validate config, print step plan, exit</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>curatorkit<span class="w"> </span>run<span class="w"> </span>pipeline.yaml
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>curatorkit<span class="w"> </span>run<span class="w"> </span>pipeline.yaml<span class="w"> </span>--dry-run<span class="w">   </span><span class="c1"># validate config, print step plan, exit</span>
 </code></pre></div>
 <h3 id="secretsgate-in-yaml">SecretsGate in YAML<a class="headerlink" href="#secretsgate-in-yaml" title="Permanent link">&para;</a></h3>
 <p>Add a gate with <code>type: secrets</code> to the <code>gates</code> list. It runs before generators.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">hygiene_pipeline</span>
-<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="nt">version</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;0.1&quot;</span>
-<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>
-<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="nt">readers</span><span class="p">:</span>
-<a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">jsonl</span>
-<a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="w">    </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">data/raw.jsonl</span>
-<a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a>
-<a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a><span class="nt">gates</span><span class="p">:</span>
-<a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secrets</span>
-<a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a><span class="w">    </span><span class="nt">secrets_code_corpus_mode</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span><span class="w">   </span><span class="c1"># set true for datasets that include source code</span>
-<a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a>
-<a id="__codelineno-8-12" name="__codelineno-8-12" href="#__codelineno-8-12"></a><span class="nt">generators</span><span class="p">:</span>
-<a id="__codelineno-8-13" name="__codelineno-8-13" href="#__codelineno-8-13"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">qa</span>
-<a id="__codelineno-8-14" name="__codelineno-8-14" href="#__codelineno-8-14"></a><span class="w">    </span><span class="nt">num_questions</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">3</span>
-<a id="__codelineno-8-15" name="__codelineno-8-15" href="#__codelineno-8-15"></a>
-<a id="__codelineno-8-16" name="__codelineno-8-16" href="#__codelineno-8-16"></a><span class="nt">exporters</span><span class="p">:</span>
-<a id="__codelineno-8-17" name="__codelineno-8-17" href="#__codelineno-8-17"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">alpaca</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">hygiene_pipeline</span>
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="nt">version</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;0.1&quot;</span>
+<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>
+<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="nt">readers</span><span class="p">:</span>
+<a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">jsonl</span>
+<a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="w">    </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">data/raw.jsonl</span>
+<a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a>
+<a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a><span class="nt">gates</span><span class="p">:</span>
+<a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secrets</span>
+<a id="__codelineno-10-10" name="__codelineno-10-10" href="#__codelineno-10-10"></a><span class="w">    </span><span class="nt">secrets_code_corpus_mode</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span><span class="w">   </span><span class="c1"># set true for datasets that include source code</span>
+<a id="__codelineno-10-11" name="__codelineno-10-11" href="#__codelineno-10-11"></a>
+<a id="__codelineno-10-12" name="__codelineno-10-12" href="#__codelineno-10-12"></a><span class="nt">generators</span><span class="p">:</span>
+<a id="__codelineno-10-13" name="__codelineno-10-13" href="#__codelineno-10-13"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">qa</span>
+<a id="__codelineno-10-14" name="__codelineno-10-14" href="#__codelineno-10-14"></a><span class="w">    </span><span class="nt">num_questions</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">3</span>
+<a id="__codelineno-10-15" name="__codelineno-10-15" href="#__codelineno-10-15"></a>
+<a id="__codelineno-10-16" name="__codelineno-10-16" href="#__codelineno-10-16"></a><span class="nt">exporters</span><span class="p">:</span>
+<a id="__codelineno-10-17" name="__codelineno-10-17" href="#__codelineno-10-17"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">alpaca</span>
 </code></pre></div>
 <h3 id="piipseudonymizer-in-yaml">PIIPseudonymizer in YAML<a class="headerlink" href="#piipseudonymizer-in-yaml" title="Permanent link">&para;</a></h3>
 <p>Add a normalizer with <code>type: pii_pseudonymizer</code>. It runs before generators, after dedup and text cleaning.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="nt">normalizers</span><span class="p">:</span>
-<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">exact_dedup</span>
-<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">text_cleaner</span>
-<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">pii_pseudonymizer</span>
-<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="w">    </span><span class="nt">pii_score_threshold</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.7</span>
-<a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="w">    </span><span class="nt">pii_spacy_model</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">en_core_web_lg</span>
-<a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="w">    </span><span class="nt">pii_faker_seed</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">42</span>
-<a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a><span class="w">    </span><span class="c1"># pii_entity_types: []   # empty = default types; add DATE_TIME, LOCATION for clinical corpora</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="nt">normalizers</span><span class="p">:</span>
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">exact_dedup</span>
+<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">text_cleaner</span>
+<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">pii_pseudonymizer</span>
+<a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="w">    </span><span class="nt">pii_score_threshold</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.7</span>
+<a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="w">    </span><span class="nt">pii_spacy_model</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">en_core_web_lg</span>
+<a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a><span class="w">    </span><span class="nt">pii_faker_seed</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">42</span>
+<a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a><span class="w">    </span><span class="c1"># pii_entity_types: []   # empty = default types; add DATE_TIME, LOCATION for clinical corpora</span>
 </code></pre></div>
 <p>For clinical corpora, list entity types explicitly:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="nt">normalizers</span><span class="p">:</span>
-<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">pii_pseudonymizer</span>
-<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="w">    </span><span class="nt">pii_entity_types</span><span class="p">:</span>
-<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">PERSON</span>
-<a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">EMAIL_ADDRESS</span>
-<a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">PHONE_NUMBER</span>
-<a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">US_SSN</span>
-<a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">CREDIT_CARD</span>
-<a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">IP_ADDRESS</span>
-<a id="__codelineno-10-10" name="__codelineno-10-10" href="#__codelineno-10-10"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">DATE_TIME</span>
-<a id="__codelineno-10-11" name="__codelineno-10-11" href="#__codelineno-10-11"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">MEDICAL_LICENSE</span>
-<a id="__codelineno-10-12" name="__codelineno-10-12" href="#__codelineno-10-12"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">LOCATION</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="nt">normalizers</span><span class="p">:</span>
+<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">pii_pseudonymizer</span>
+<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="w">    </span><span class="nt">pii_entity_types</span><span class="p">:</span>
+<a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">PERSON</span>
+<a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">EMAIL_ADDRESS</span>
+<a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">PHONE_NUMBER</span>
+<a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">US_SSN</span>
+<a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">CREDIT_CARD</span>
+<a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">IP_ADDRESS</span>
+<a id="__codelineno-12-10" name="__codelineno-12-10" href="#__codelineno-12-10"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">DATE_TIME</span>
+<a id="__codelineno-12-11" name="__codelineno-12-11" href="#__codelineno-12-11"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">MEDICAL_LICENSE</span>
+<a id="__codelineno-12-12" name="__codelineno-12-12" href="#__codelineno-12-12"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">LOCATION</span>
+</code></pre></div>
+<p>Or switch to the transformer NER backend for better recall on clinical text (needs
+<code>curatorkit[hygiene,hygiene-transformers]</code>):</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="nt">normalizers</span><span class="p">:</span>
+<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">pii_pseudonymizer</span>
+<a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="w">    </span><span class="nt">pii_nlp_engine</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">transformers</span>
+<a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="w">    </span><span class="nt">pii_spacy_model</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">en_core_web_sm</span><span class="w">          </span><span class="c1"># tokenizer only</span>
+<a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a><span class="w">    </span><span class="nt">pii_transformer_model</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">StanfordAIMI/stanford-deidentifier-base</span>
+<a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a><span class="w">    </span><span class="nt">pii_entity_types</span><span class="p">:</span>
+<a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">PERSON</span>
+<a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">EMAIL_ADDRESS</span>
+<a id="__codelineno-13-9" name="__codelineno-13-9" href="#__codelineno-13-9"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">DATE_TIME</span>
+<a id="__codelineno-13-10" name="__codelineno-13-10" href="#__codelineno-13-10"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">LOCATION</span>
 </code></pre></div>
 <h3 id="toxicitygate-in-yaml">ToxicityGate in YAML<a class="headerlink" href="#toxicitygate-in-yaml" title="Permanent link">&para;</a></h3>
 <p>Add a gate with <code>type: toxicity</code>. Runs before generators.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="nt">gates</span><span class="p">:</span>
-<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">schema</span>
-<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secrets</span>
-<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">toxicity</span>
-<a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="w">    </span><span class="nt">toxicity_classifier_pass_threshold</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.1</span>
-<a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="w">    </span><span class="nt">toxicity_classifier_reject_threshold</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.5</span>
-<a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a><span class="w">    </span><span class="nt">toxicity_detoxify_model</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">unbiased</span>
-<a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a><span class="w">    </span><span class="c1"># toxicity_llm_model: openai/gpt-4o-mini   # enable LLM judge for borderline band</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="nt">gates</span><span class="p">:</span>
+<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">schema</span>
+<a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secrets</span>
+<a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">toxicity</span>
+<a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a><span class="w">    </span><span class="nt">toxicity_classifier_pass_threshold</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.1</span>
+<a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a><span class="w">    </span><span class="nt">toxicity_classifier_reject_threshold</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.5</span>
+<a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a><span class="w">    </span><span class="nt">toxicity_detoxify_model</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">unbiased</span>
+<a id="__codelineno-14-8" name="__codelineno-14-8" href="#__codelineno-14-8"></a><span class="w">    </span><span class="c1"># toxicity_llm_model: openai/gpt-4o-mini   # enable LLM judge for borderline band</span>
 </code></pre></div>
 <h3 id="full-hygiene-pipeline-yaml-example">Full hygiene pipeline YAML example<a class="headerlink" href="#full-hygiene-pipeline-yaml-example" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">full_hygiene_pipeline</span>
-<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="nt">version</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;0.1&quot;</span>
-<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>
-<a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="nt">llm</span><span class="p">:</span>
-<a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a><span class="w">  </span><span class="nt">model</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">openai/gpt-4o-mini</span>
-<a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a><span class="w">  </span><span class="nt">temperature</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.7</span>
-<a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a><span class="w">  </span><span class="nt">concurrency</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10</span>
-<a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a>
-<a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a><span class="nt">readers</span><span class="p">:</span>
-<a id="__codelineno-12-10" name="__codelineno-12-10" href="#__codelineno-12-10"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">jsonl</span>
-<a id="__codelineno-12-11" name="__codelineno-12-11" href="#__codelineno-12-11"></a><span class="w">    </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">data/raw_instructions.jsonl</span>
-<a id="__codelineno-12-12" name="__codelineno-12-12" href="#__codelineno-12-12"></a>
-<a id="__codelineno-12-13" name="__codelineno-12-13" href="#__codelineno-12-13"></a><span class="nt">gates</span><span class="p">:</span>
-<a id="__codelineno-12-14" name="__codelineno-12-14" href="#__codelineno-12-14"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">schema</span>
-<a id="__codelineno-12-15" name="__codelineno-12-15" href="#__codelineno-12-15"></a><span class="w">    </span><span class="nt">min_tokens</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10</span>
-<a id="__codelineno-12-16" name="__codelineno-12-16" href="#__codelineno-12-16"></a><span class="w">    </span><span class="nt">max_tokens</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">2048</span>
-<a id="__codelineno-12-17" name="__codelineno-12-17" href="#__codelineno-12-17"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secrets</span>
-<a id="__codelineno-12-18" name="__codelineno-12-18" href="#__codelineno-12-18"></a><span class="w">    </span><span class="nt">secrets_code_corpus_mode</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
-<a id="__codelineno-12-19" name="__codelineno-12-19" href="#__codelineno-12-19"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">toxicity</span>
-<a id="__codelineno-12-20" name="__codelineno-12-20" href="#__codelineno-12-20"></a><span class="w">    </span><span class="nt">toxicity_classifier_pass_threshold</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.1</span>
-<a id="__codelineno-12-21" name="__codelineno-12-21" href="#__codelineno-12-21"></a><span class="w">    </span><span class="nt">toxicity_classifier_reject_threshold</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.5</span>
-<a id="__codelineno-12-22" name="__codelineno-12-22" href="#__codelineno-12-22"></a><span class="w">    </span><span class="nt">toxicity_detoxify_model</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">unbiased</span>
-<a id="__codelineno-12-23" name="__codelineno-12-23" href="#__codelineno-12-23"></a>
-<a id="__codelineno-12-24" name="__codelineno-12-24" href="#__codelineno-12-24"></a><span class="nt">normalizers</span><span class="p">:</span>
-<a id="__codelineno-12-25" name="__codelineno-12-25" href="#__codelineno-12-25"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">exact_dedup</span>
-<a id="__codelineno-12-26" name="__codelineno-12-26" href="#__codelineno-12-26"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">text_cleaner</span>
-<a id="__codelineno-12-27" name="__codelineno-12-27" href="#__codelineno-12-27"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">pii_pseudonymizer</span>
-<a id="__codelineno-12-28" name="__codelineno-12-28" href="#__codelineno-12-28"></a><span class="w">    </span><span class="nt">pii_score_threshold</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.7</span>
-<a id="__codelineno-12-29" name="__codelineno-12-29" href="#__codelineno-12-29"></a><span class="w">    </span><span class="nt">pii_spacy_model</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">en_core_web_sm</span><span class="w">   </span><span class="c1"># use sm for faster CI runs</span>
-<a id="__codelineno-12-30" name="__codelineno-12-30" href="#__codelineno-12-30"></a>
-<a id="__codelineno-12-31" name="__codelineno-12-31" href="#__codelineno-12-31"></a><span class="nt">generators</span><span class="p">:</span>
-<a id="__codelineno-12-32" name="__codelineno-12-32" href="#__codelineno-12-32"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">qa</span>
-<a id="__codelineno-12-33" name="__codelineno-12-33" href="#__codelineno-12-33"></a><span class="w">    </span><span class="nt">num_questions</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">3</span>
-<a id="__codelineno-12-34" name="__codelineno-12-34" href="#__codelineno-12-34"></a>
-<a id="__codelineno-12-35" name="__codelineno-12-35" href="#__codelineno-12-35"></a><span class="nt">exporters</span><span class="p">:</span>
-<a id="__codelineno-12-36" name="__codelineno-12-36" href="#__codelineno-12-36"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">alpaca</span>
-<a id="__codelineno-12-37" name="__codelineno-12-37" href="#__codelineno-12-37"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">sharegpt</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">full_hygiene_pipeline</span>
+<a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a><span class="nt">version</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;0.1&quot;</span>
+<a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a>
+<a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a><span class="nt">llm</span><span class="p">:</span>
+<a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a><span class="w">  </span><span class="nt">model</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">openai/gpt-4o-mini</span>
+<a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a><span class="w">  </span><span class="nt">temperature</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.7</span>
+<a id="__codelineno-15-7" name="__codelineno-15-7" href="#__codelineno-15-7"></a><span class="w">  </span><span class="nt">concurrency</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10</span>
+<a id="__codelineno-15-8" name="__codelineno-15-8" href="#__codelineno-15-8"></a>
+<a id="__codelineno-15-9" name="__codelineno-15-9" href="#__codelineno-15-9"></a><span class="nt">readers</span><span class="p">:</span>
+<a id="__codelineno-15-10" name="__codelineno-15-10" href="#__codelineno-15-10"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">jsonl</span>
+<a id="__codelineno-15-11" name="__codelineno-15-11" href="#__codelineno-15-11"></a><span class="w">    </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">data/raw_instructions.jsonl</span>
+<a id="__codelineno-15-12" name="__codelineno-15-12" href="#__codelineno-15-12"></a>
+<a id="__codelineno-15-13" name="__codelineno-15-13" href="#__codelineno-15-13"></a><span class="nt">gates</span><span class="p">:</span>
+<a id="__codelineno-15-14" name="__codelineno-15-14" href="#__codelineno-15-14"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">schema</span>
+<a id="__codelineno-15-15" name="__codelineno-15-15" href="#__codelineno-15-15"></a><span class="w">    </span><span class="nt">min_tokens</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10</span>
+<a id="__codelineno-15-16" name="__codelineno-15-16" href="#__codelineno-15-16"></a><span class="w">    </span><span class="nt">max_tokens</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">2048</span>
+<a id="__codelineno-15-17" name="__codelineno-15-17" href="#__codelineno-15-17"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secrets</span>
+<a id="__codelineno-15-18" name="__codelineno-15-18" href="#__codelineno-15-18"></a><span class="w">    </span><span class="nt">secrets_code_corpus_mode</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+<a id="__codelineno-15-19" name="__codelineno-15-19" href="#__codelineno-15-19"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">toxicity</span>
+<a id="__codelineno-15-20" name="__codelineno-15-20" href="#__codelineno-15-20"></a><span class="w">    </span><span class="nt">toxicity_classifier_pass_threshold</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.1</span>
+<a id="__codelineno-15-21" name="__codelineno-15-21" href="#__codelineno-15-21"></a><span class="w">    </span><span class="nt">toxicity_classifier_reject_threshold</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.5</span>
+<a id="__codelineno-15-22" name="__codelineno-15-22" href="#__codelineno-15-22"></a><span class="w">    </span><span class="nt">toxicity_detoxify_model</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">unbiased</span>
+<a id="__codelineno-15-23" name="__codelineno-15-23" href="#__codelineno-15-23"></a>
+<a id="__codelineno-15-24" name="__codelineno-15-24" href="#__codelineno-15-24"></a><span class="nt">normalizers</span><span class="p">:</span>
+<a id="__codelineno-15-25" name="__codelineno-15-25" href="#__codelineno-15-25"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">exact_dedup</span>
+<a id="__codelineno-15-26" name="__codelineno-15-26" href="#__codelineno-15-26"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">text_cleaner</span>
+<a id="__codelineno-15-27" name="__codelineno-15-27" href="#__codelineno-15-27"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">pii_pseudonymizer</span>
+<a id="__codelineno-15-28" name="__codelineno-15-28" href="#__codelineno-15-28"></a><span class="w">    </span><span class="nt">pii_score_threshold</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.7</span>
+<a id="__codelineno-15-29" name="__codelineno-15-29" href="#__codelineno-15-29"></a><span class="w">    </span><span class="nt">pii_spacy_model</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">en_core_web_sm</span><span class="w">   </span><span class="c1"># use sm for faster CI runs</span>
+<a id="__codelineno-15-30" name="__codelineno-15-30" href="#__codelineno-15-30"></a>
+<a id="__codelineno-15-31" name="__codelineno-15-31" href="#__codelineno-15-31"></a><span class="nt">generators</span><span class="p">:</span>
+<a id="__codelineno-15-32" name="__codelineno-15-32" href="#__codelineno-15-32"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">qa</span>
+<a id="__codelineno-15-33" name="__codelineno-15-33" href="#__codelineno-15-33"></a><span class="w">    </span><span class="nt">num_questions</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">3</span>
+<a id="__codelineno-15-34" name="__codelineno-15-34" href="#__codelineno-15-34"></a>
+<a id="__codelineno-15-35" name="__codelineno-15-35" href="#__codelineno-15-35"></a><span class="nt">exporters</span><span class="p">:</span>
+<a id="__codelineno-15-36" name="__codelineno-15-36" href="#__codelineno-15-36"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">alpaca</span>
+<a id="__codelineno-15-37" name="__codelineno-15-37" href="#__codelineno-15-37"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">sharegpt</span>
 </code></pre></div>
 <hr />
 <h2 id="channel-3-direct-module-import">Channel 3 — Direct module import<a class="headerlink" href="#channel-3-direct-module-import" title="Permanent link">&para;</a></h2>
 <p>For use in custom pipelines, scripts, or when you need to compose steps manually outside of <code>Curator</code>.</p>
 <h3 id="secretsgate_1">SecretsGate<a class="headerlink" href="#secretsgate_1" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">curatorkit.hygiene.secrets</span><span class="w"> </span><span class="kn">import</span> <span class="n">SecretsGate</span>
-<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">curatorkit.schema</span><span class="w"> </span><span class="kn">import</span> <span class="n">DataSample</span>
-<a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>
-<a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="n">gate</span> <span class="o">=</span> <span class="n">SecretsGate</span><span class="p">(</span>
-<a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a>    <span class="n">code_corpus_mode</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-<a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a>    <span class="c1"># fields=None  → task-aware auto-selection (recommended)</span>
-<a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a>    <span class="c1"># fields=[&quot;instruction&quot;, &quot;output&quot;]  → explicit override</span>
-<a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a><span class="p">)</span>
-<a id="__codelineno-13-9" name="__codelineno-13-9" href="#__codelineno-13-9"></a>
-<a id="__codelineno-13-10" name="__codelineno-13-10" href="#__codelineno-13-10"></a><span class="n">samples</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">DataSample</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="o">...</span><span class="p">]</span>
-<a id="__codelineno-13-11" name="__codelineno-13-11" href="#__codelineno-13-11"></a><span class="n">passed</span><span class="p">,</span> <span class="n">rejected</span> <span class="o">=</span> <span class="n">gate</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">samples</span><span class="p">)</span>
-<a id="__codelineno-13-12" name="__codelineno-13-12" href="#__codelineno-13-12"></a>
-<a id="__codelineno-13-13" name="__codelineno-13-13" href="#__codelineno-13-13"></a><span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">rejected</span><span class="p">:</span>
-<a id="__codelineno-13-14" name="__codelineno-13-14" href="#__codelineno-13-14"></a>    <span class="nb">print</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">rejection_reason</span><span class="p">)</span>   <span class="c1"># e.g. &quot;secret_detected:AWS Access Key,PrivateKeyDetector&quot;</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">curatorkit.hygiene.secrets</span><span class="w"> </span><span class="kn">import</span> <span class="n">SecretsGate</span>
+<a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">curatorkit.schema</span><span class="w"> </span><span class="kn">import</span> <span class="n">DataSample</span>
+<a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a>
+<a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a><span class="n">gate</span> <span class="o">=</span> <span class="n">SecretsGate</span><span class="p">(</span>
+<a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a>    <span class="n">code_corpus_mode</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+<a id="__codelineno-16-6" name="__codelineno-16-6" href="#__codelineno-16-6"></a>    <span class="c1"># fields=None  → task-aware auto-selection (recommended)</span>
+<a id="__codelineno-16-7" name="__codelineno-16-7" href="#__codelineno-16-7"></a>    <span class="c1"># fields=[&quot;instruction&quot;, &quot;output&quot;]  → explicit override</span>
+<a id="__codelineno-16-8" name="__codelineno-16-8" href="#__codelineno-16-8"></a><span class="p">)</span>
+<a id="__codelineno-16-9" name="__codelineno-16-9" href="#__codelineno-16-9"></a>
+<a id="__codelineno-16-10" name="__codelineno-16-10" href="#__codelineno-16-10"></a><span class="n">samples</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">DataSample</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="o">...</span><span class="p">]</span>
+<a id="__codelineno-16-11" name="__codelineno-16-11" href="#__codelineno-16-11"></a><span class="n">passed</span><span class="p">,</span> <span class="n">rejected</span> <span class="o">=</span> <span class="n">gate</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">samples</span><span class="p">)</span>
+<a id="__codelineno-16-12" name="__codelineno-16-12" href="#__codelineno-16-12"></a>
+<a id="__codelineno-16-13" name="__codelineno-16-13" href="#__codelineno-16-13"></a><span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">rejected</span><span class="p">:</span>
+<a id="__codelineno-16-14" name="__codelineno-16-14" href="#__codelineno-16-14"></a>    <span class="nb">print</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">rejection_reason</span><span class="p">)</span>   <span class="c1"># e.g. &quot;secret_detected:AWS Access Key,PrivateKeyDetector&quot;</span>
 </code></pre></div>
 <h3 id="piipseudonymizer_1">PIIPseudonymizer<a class="headerlink" href="#piipseudonymizer_1" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">curatorkit.hygiene.pii</span><span class="w"> </span><span class="kn">import</span> <span class="n">PIIPseudonymizer</span><span class="p">,</span> <span class="n">ENTITY_TYPES_CLINICAL</span>
-<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>
-<a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a><span class="n">pseudonymizer</span> <span class="o">=</span> <span class="n">PIIPseudonymizer</span><span class="p">(</span>
-<a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a>    <span class="n">entity_types</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>           <span class="c1"># None = default types</span>
-<a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a>    <span class="n">score_threshold</span><span class="o">=</span><span class="mf">0.7</span><span class="p">,</span>
-<a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a>    <span class="n">spacy_model</span><span class="o">=</span><span class="s2">&quot;en_core_web_lg&quot;</span><span class="p">,</span>
-<a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a>    <span class="n">faker_seed</span><span class="o">=</span><span class="mi">42</span><span class="p">,</span>
-<a id="__codelineno-14-8" name="__codelineno-14-8" href="#__codelineno-14-8"></a><span class="p">)</span>
-<a id="__codelineno-14-9" name="__codelineno-14-9" href="#__codelineno-14-9"></a>
-<a id="__codelineno-14-10" name="__codelineno-14-10" href="#__codelineno-14-10"></a><span class="n">samples</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">DataSample</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="o">...</span><span class="p">]</span>
-<a id="__codelineno-14-11" name="__codelineno-14-11" href="#__codelineno-14-11"></a><span class="n">samples</span> <span class="o">=</span> <span class="n">pseudonymizer</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">samples</span><span class="p">)</span>  <span class="c1"># modifies in-place, returns same list</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">curatorkit.hygiene.pii</span><span class="w"> </span><span class="kn">import</span> <span class="n">PIIPseudonymizer</span><span class="p">,</span> <span class="n">ENTITY_TYPES_CLINICAL</span>
+<a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a>
+<a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a><span class="n">pseudonymizer</span> <span class="o">=</span> <span class="n">PIIPseudonymizer</span><span class="p">(</span>
+<a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a>    <span class="n">entity_types</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>           <span class="c1"># None = default types</span>
+<a id="__codelineno-17-5" name="__codelineno-17-5" href="#__codelineno-17-5"></a>    <span class="n">score_threshold</span><span class="o">=</span><span class="mf">0.7</span><span class="p">,</span>
+<a id="__codelineno-17-6" name="__codelineno-17-6" href="#__codelineno-17-6"></a>    <span class="n">nlp_engine</span><span class="o">=</span><span class="s2">&quot;spacy&quot;</span><span class="p">,</span>          <span class="c1"># &quot;spacy&quot; | &quot;transformers&quot; | &quot;stanza&quot;</span>
+<a id="__codelineno-17-7" name="__codelineno-17-7" href="#__codelineno-17-7"></a>    <span class="n">spacy_model</span><span class="o">=</span><span class="s2">&quot;en_core_web_lg&quot;</span><span class="p">,</span>
+<a id="__codelineno-17-8" name="__codelineno-17-8" href="#__codelineno-17-8"></a>    <span class="n">faker_seed</span><span class="o">=</span><span class="mi">42</span><span class="p">,</span>
+<a id="__codelineno-17-9" name="__codelineno-17-9" href="#__codelineno-17-9"></a><span class="p">)</span>
+<a id="__codelineno-17-10" name="__codelineno-17-10" href="#__codelineno-17-10"></a>
+<a id="__codelineno-17-11" name="__codelineno-17-11" href="#__codelineno-17-11"></a><span class="n">samples</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">DataSample</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="o">...</span><span class="p">]</span>
+<a id="__codelineno-17-12" name="__codelineno-17-12" href="#__codelineno-17-12"></a><span class="n">samples</span> <span class="o">=</span> <span class="n">pseudonymizer</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">samples</span><span class="p">)</span>  <span class="c1"># modifies in-place, returns same list</span>
+</code></pre></div>
+<p>For the transformer backend, <code>spacy_model</code> becomes tokenizer-only and <code>transformer_model</code>
+selects the actual NER model (see <code>curatorkit.hygiene.pii.RECOMMENDED_NER_MODELS</code>):</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="n">pseudonymizer</span> <span class="o">=</span> <span class="n">PIIPseudonymizer</span><span class="p">(</span>
+<a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a>    <span class="n">entity_types</span><span class="o">=</span><span class="n">ENTITY_TYPES_CLINICAL</span><span class="p">,</span>
+<a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a>    <span class="n">nlp_engine</span><span class="o">=</span><span class="s2">&quot;transformers&quot;</span><span class="p">,</span>
+<a id="__codelineno-18-4" name="__codelineno-18-4" href="#__codelineno-18-4"></a>    <span class="n">spacy_model</span><span class="o">=</span><span class="s2">&quot;en_core_web_sm&quot;</span><span class="p">,</span>
+<a id="__codelineno-18-5" name="__codelineno-18-5" href="#__codelineno-18-5"></a>    <span class="n">transformer_model</span><span class="o">=</span><span class="s2">&quot;StanfordAIMI/stanford-deidentifier-base&quot;</span><span class="p">,</span>
+<a id="__codelineno-18-6" name="__codelineno-18-6" href="#__codelineno-18-6"></a><span class="p">)</span>
 </code></pre></div>
 <p>Cross-field consistency is guaranteed within each sample: if "John Smith" appears in both <code>instruction</code> and <code>output</code>, both get the same fake name.</p>
 <h3 id="toxicitygate_1">ToxicityGate<a class="headerlink" href="#toxicitygate_1" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">curatorkit.hygiene.toxicity</span><span class="w"> </span><span class="kn">import</span> <span class="n">ToxicityGate</span>
-<a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>
-<a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a><span class="c1"># Classifier-only (no LLM)</span>
-<a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a><span class="n">gate</span> <span class="o">=</span> <span class="n">ToxicityGate</span><span class="p">(</span>
-<a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a>    <span class="n">classifier_pass_threshold</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
-<a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a>    <span class="n">classifier_reject_threshold</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>
-<a id="__codelineno-15-7" name="__codelineno-15-7" href="#__codelineno-15-7"></a>    <span class="n">detoxify_model</span><span class="o">=</span><span class="s2">&quot;unbiased&quot;</span><span class="p">,</span>
-<a id="__codelineno-15-8" name="__codelineno-15-8" href="#__codelineno-15-8"></a><span class="p">)</span>
-<a id="__codelineno-15-9" name="__codelineno-15-9" href="#__codelineno-15-9"></a>
-<a id="__codelineno-15-10" name="__codelineno-15-10" href="#__codelineno-15-10"></a><span class="c1"># With LLM judge for borderline samples</span>
-<a id="__codelineno-15-11" name="__codelineno-15-11" href="#__codelineno-15-11"></a><span class="kn">from</span><span class="w"> </span><span class="nn">curatorkit.llm.litellm</span><span class="w"> </span><span class="kn">import</span> <span class="n">LiteLLMBackend</span>
-<a id="__codelineno-15-12" name="__codelineno-15-12" href="#__codelineno-15-12"></a>
-<a id="__codelineno-15-13" name="__codelineno-15-13" href="#__codelineno-15-13"></a><span class="n">llm</span> <span class="o">=</span> <span class="n">LiteLLMBackend</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="s2">&quot;openai/gpt-4o-mini&quot;</span><span class="p">)</span>
-<a id="__codelineno-15-14" name="__codelineno-15-14" href="#__codelineno-15-14"></a><span class="n">gate</span> <span class="o">=</span> <span class="n">ToxicityGate</span><span class="p">(</span>
-<a id="__codelineno-15-15" name="__codelineno-15-15" href="#__codelineno-15-15"></a>    <span class="n">classifier_pass_threshold</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
-<a id="__codelineno-15-16" name="__codelineno-15-16" href="#__codelineno-15-16"></a>    <span class="n">classifier_reject_threshold</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>
-<a id="__codelineno-15-17" name="__codelineno-15-17" href="#__codelineno-15-17"></a>    <span class="n">llm</span><span class="o">=</span><span class="n">llm</span><span class="p">,</span>
-<a id="__codelineno-15-18" name="__codelineno-15-18" href="#__codelineno-15-18"></a>    <span class="n">llm_reject_threshold</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>
-<a id="__codelineno-15-19" name="__codelineno-15-19" href="#__codelineno-15-19"></a><span class="p">)</span>
-<a id="__codelineno-15-20" name="__codelineno-15-20" href="#__codelineno-15-20"></a>
-<a id="__codelineno-15-21" name="__codelineno-15-21" href="#__codelineno-15-21"></a><span class="n">passed</span><span class="p">,</span> <span class="n">rejected</span> <span class="o">=</span> <span class="n">gate</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">samples</span><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">curatorkit.hygiene.toxicity</span><span class="w"> </span><span class="kn">import</span> <span class="n">ToxicityGate</span>
+<a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a>
+<a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a><span class="c1"># Classifier-only (no LLM)</span>
+<a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a><span class="n">gate</span> <span class="o">=</span> <span class="n">ToxicityGate</span><span class="p">(</span>
+<a id="__codelineno-19-5" name="__codelineno-19-5" href="#__codelineno-19-5"></a>    <span class="n">classifier_pass_threshold</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
+<a id="__codelineno-19-6" name="__codelineno-19-6" href="#__codelineno-19-6"></a>    <span class="n">classifier_reject_threshold</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>
+<a id="__codelineno-19-7" name="__codelineno-19-7" href="#__codelineno-19-7"></a>    <span class="n">detoxify_model</span><span class="o">=</span><span class="s2">&quot;unbiased&quot;</span><span class="p">,</span>
+<a id="__codelineno-19-8" name="__codelineno-19-8" href="#__codelineno-19-8"></a><span class="p">)</span>
+<a id="__codelineno-19-9" name="__codelineno-19-9" href="#__codelineno-19-9"></a>
+<a id="__codelineno-19-10" name="__codelineno-19-10" href="#__codelineno-19-10"></a><span class="c1"># With LLM judge for borderline samples</span>
+<a id="__codelineno-19-11" name="__codelineno-19-11" href="#__codelineno-19-11"></a><span class="kn">from</span><span class="w"> </span><span class="nn">curatorkit.llm.litellm</span><span class="w"> </span><span class="kn">import</span> <span class="n">LiteLLMBackend</span>
+<a id="__codelineno-19-12" name="__codelineno-19-12" href="#__codelineno-19-12"></a>
+<a id="__codelineno-19-13" name="__codelineno-19-13" href="#__codelineno-19-13"></a><span class="n">llm</span> <span class="o">=</span> <span class="n">LiteLLMBackend</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="s2">&quot;openai/gpt-4o-mini&quot;</span><span class="p">)</span>
+<a id="__codelineno-19-14" name="__codelineno-19-14" href="#__codelineno-19-14"></a><span class="n">gate</span> <span class="o">=</span> <span class="n">ToxicityGate</span><span class="p">(</span>
+<a id="__codelineno-19-15" name="__codelineno-19-15" href="#__codelineno-19-15"></a>    <span class="n">classifier_pass_threshold</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
+<a id="__codelineno-19-16" name="__codelineno-19-16" href="#__codelineno-19-16"></a>    <span class="n">classifier_reject_threshold</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>
+<a id="__codelineno-19-17" name="__codelineno-19-17" href="#__codelineno-19-17"></a>    <span class="n">llm</span><span class="o">=</span><span class="n">llm</span><span class="p">,</span>
+<a id="__codelineno-19-18" name="__codelineno-19-18" href="#__codelineno-19-18"></a>    <span class="n">llm_reject_threshold</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>
+<a id="__codelineno-19-19" name="__codelineno-19-19" href="#__codelineno-19-19"></a><span class="p">)</span>
+<a id="__codelineno-19-20" name="__codelineno-19-20" href="#__codelineno-19-20"></a>
+<a id="__codelineno-19-21" name="__codelineno-19-21" href="#__codelineno-19-21"></a><span class="n">passed</span><span class="p">,</span> <span class="n">rejected</span> <span class="o">=</span> <span class="n">gate</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">samples</span><span class="p">)</span>
 </code></pre></div>
 <h3 id="composing-in-a-custom-pipeline">Composing in a custom pipeline<a class="headerlink" href="#composing-in-a-custom-pipeline" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">curatorkit.pipeline</span><span class="w"> </span><span class="kn">import</span> <span class="n">Pipeline</span>
-<a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">curatorkit.hygiene.secrets</span><span class="w"> </span><span class="kn">import</span> <span class="n">SecretsGate</span>
-<a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">curatorkit.hygiene.pii</span><span class="w"> </span><span class="kn">import</span> <span class="n">PIIPseudonymizer</span>
-<a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a><span class="kn">from</span><span class="w"> </span><span class="nn">curatorkit.hygiene.toxicity</span><span class="w"> </span><span class="kn">import</span> <span class="n">ToxicityGate</span>
-<a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a><span class="kn">from</span><span class="w"> </span><span class="nn">curatorkit.connectors.jsonl</span><span class="w"> </span><span class="kn">import</span> <span class="n">JSONLReader</span>
-<a id="__codelineno-16-6" name="__codelineno-16-6" href="#__codelineno-16-6"></a><span class="kn">from</span><span class="w"> </span><span class="nn">curatorkit.exporters.alpaca</span><span class="w"> </span><span class="kn">import</span> <span class="n">AlpacaExporter</span>
-<a id="__codelineno-16-7" name="__codelineno-16-7" href="#__codelineno-16-7"></a><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
-<a id="__codelineno-16-8" name="__codelineno-16-8" href="#__codelineno-16-8"></a>
-<a id="__codelineno-16-9" name="__codelineno-16-9" href="#__codelineno-16-9"></a><span class="n">steps</span> <span class="o">=</span> <span class="p">[</span>
-<a id="__codelineno-16-10" name="__codelineno-16-10" href="#__codelineno-16-10"></a>    <span class="n">JSONLReader</span><span class="p">(</span><span class="s2">&quot;data/raw.jsonl&quot;</span><span class="p">),</span>
-<a id="__codelineno-16-11" name="__codelineno-16-11" href="#__codelineno-16-11"></a>    <span class="n">SecretsGate</span><span class="p">(),</span>
-<a id="__codelineno-16-12" name="__codelineno-16-12" href="#__codelineno-16-12"></a>    <span class="n">PIIPseudonymizer</span><span class="p">(</span><span class="n">spacy_model</span><span class="o">=</span><span class="s2">&quot;en_core_web_sm&quot;</span><span class="p">),</span>
-<a id="__codelineno-16-13" name="__codelineno-16-13" href="#__codelineno-16-13"></a>    <span class="n">ToxicityGate</span><span class="p">(),</span>
-<a id="__codelineno-16-14" name="__codelineno-16-14" href="#__codelineno-16-14"></a>    <span class="n">AlpacaExporter</span><span class="p">(),</span>
-<a id="__codelineno-16-15" name="__codelineno-16-15" href="#__codelineno-16-15"></a><span class="p">]</span>
-<a id="__codelineno-16-16" name="__codelineno-16-16" href="#__codelineno-16-16"></a>
-<a id="__codelineno-16-17" name="__codelineno-16-17" href="#__codelineno-16-17"></a><span class="n">pipeline</span> <span class="o">=</span> <span class="n">Pipeline</span><span class="p">(</span><span class="n">steps</span><span class="p">,</span> <span class="n">output_dir</span><span class="o">=</span><span class="n">Path</span><span class="p">(</span><span class="s2">&quot;output/&quot;</span><span class="p">))</span>
-<a id="__codelineno-16-18" name="__codelineno-16-18" href="#__codelineno-16-18"></a><span class="n">result</span> <span class="o">=</span> <span class="n">pipeline</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">curatorkit.pipeline</span><span class="w"> </span><span class="kn">import</span> <span class="n">Pipeline</span>
+<a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">curatorkit.hygiene.secrets</span><span class="w"> </span><span class="kn">import</span> <span class="n">SecretsGate</span>
+<a id="__codelineno-20-3" name="__codelineno-20-3" href="#__codelineno-20-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">curatorkit.hygiene.pii</span><span class="w"> </span><span class="kn">import</span> <span class="n">PIIPseudonymizer</span>
+<a id="__codelineno-20-4" name="__codelineno-20-4" href="#__codelineno-20-4"></a><span class="kn">from</span><span class="w"> </span><span class="nn">curatorkit.hygiene.toxicity</span><span class="w"> </span><span class="kn">import</span> <span class="n">ToxicityGate</span>
+<a id="__codelineno-20-5" name="__codelineno-20-5" href="#__codelineno-20-5"></a><span class="kn">from</span><span class="w"> </span><span class="nn">curatorkit.connectors.jsonl</span><span class="w"> </span><span class="kn">import</span> <span class="n">JSONLReader</span>
+<a id="__codelineno-20-6" name="__codelineno-20-6" href="#__codelineno-20-6"></a><span class="kn">from</span><span class="w"> </span><span class="nn">curatorkit.exporters.alpaca</span><span class="w"> </span><span class="kn">import</span> <span class="n">AlpacaExporter</span>
+<a id="__codelineno-20-7" name="__codelineno-20-7" href="#__codelineno-20-7"></a><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<a id="__codelineno-20-8" name="__codelineno-20-8" href="#__codelineno-20-8"></a>
+<a id="__codelineno-20-9" name="__codelineno-20-9" href="#__codelineno-20-9"></a><span class="n">steps</span> <span class="o">=</span> <span class="p">[</span>
+<a id="__codelineno-20-10" name="__codelineno-20-10" href="#__codelineno-20-10"></a>    <span class="n">JSONLReader</span><span class="p">(</span><span class="s2">&quot;data/raw.jsonl&quot;</span><span class="p">),</span>
+<a id="__codelineno-20-11" name="__codelineno-20-11" href="#__codelineno-20-11"></a>    <span class="n">SecretsGate</span><span class="p">(),</span>
+<a id="__codelineno-20-12" name="__codelineno-20-12" href="#__codelineno-20-12"></a>    <span class="n">PIIPseudonymizer</span><span class="p">(</span><span class="n">spacy_model</span><span class="o">=</span><span class="s2">&quot;en_core_web_sm&quot;</span><span class="p">),</span>
+<a id="__codelineno-20-13" name="__codelineno-20-13" href="#__codelineno-20-13"></a>    <span class="n">ToxicityGate</span><span class="p">(),</span>
+<a id="__codelineno-20-14" name="__codelineno-20-14" href="#__codelineno-20-14"></a>    <span class="n">AlpacaExporter</span><span class="p">(),</span>
+<a id="__codelineno-20-15" name="__codelineno-20-15" href="#__codelineno-20-15"></a><span class="p">]</span>
+<a id="__codelineno-20-16" name="__codelineno-20-16" href="#__codelineno-20-16"></a>
+<a id="__codelineno-20-17" name="__codelineno-20-17" href="#__codelineno-20-17"></a><span class="n">pipeline</span> <span class="o">=</span> <span class="n">Pipeline</span><span class="p">(</span><span class="n">steps</span><span class="p">,</span> <span class="n">output_dir</span><span class="o">=</span><span class="n">Path</span><span class="p">(</span><span class="s2">&quot;output/&quot;</span><span class="p">))</span>
+<a id="__codelineno-20-18" name="__codelineno-20-18" href="#__codelineno-20-18"></a><span class="n">result</span> <span class="o">=</span> <span class="n">pipeline</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
 </code></pre></div>
 <hr />
 <h2 id="task-awareness">Task awareness<a class="headerlink" href="#task-awareness" title="Permanent link">&para;</a></h2>
@@ -2128,66 +2257,75 @@
 </tbody>
 </table>
 <p><strong>Override the field list</strong> for any component by passing an explicit <code>fields=</code> argument. When an explicit list is provided, task-aware selection is disabled entirely.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="c1"># Only scan the output field, regardless of task type</span>
-<a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a><span class="n">gate</span> <span class="o">=</span> <span class="n">SecretsGate</span><span class="p">(</span><span class="n">fields</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;output&quot;</span><span class="p">])</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a><span class="c1"># Only scan the output field, regardless of task type</span>
+<a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a><span class="n">gate</span> <span class="o">=</span> <span class="n">SecretsGate</span><span class="p">(</span><span class="n">fields</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;output&quot;</span><span class="p">])</span>
 </code></pre></div>
 <hr />
 <h2 id="rejection-reasons-and-provenance">Rejection reasons and provenance<a class="headerlink" href="#rejection-reasons-and-provenance" title="Permanent link">&para;</a></h2>
 <h3 id="secretsgate_2">SecretsGate<a class="headerlink" href="#secretsgate_2" title="Permanent link">&para;</a></h3>
 <p>Rejected samples have <code>rejection_reason = "secret_detected:{type_list}"</code> where <code>type_list</code> is a sorted comma-separated list of detected secret types.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>secret_detected:AWSKeyDetector,GitHubTokenDetector
-<a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a>secret_detected:Base64HighEntropyString
-<a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a>secret_detected:PrivateKeyDetector
+<div class="highlight"><pre><span></span><code><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a>secret_detected:AWSKeyDetector,GitHubTokenDetector
+<a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a>secret_detected:Base64HighEntropyString
+<a id="__codelineno-22-3" name="__codelineno-22-3" href="#__codelineno-22-3"></a>secret_detected:PrivateKeyDetector
 </code></pre></div>
 <p>The provenance record on each sample (passed or rejected) includes:
-<div class="highlight"><pre><span></span><code><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="p">{</span>
-<a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a><span class="w">  </span><span class="nt">&quot;passed&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
-<a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a><span class="w">  </span><span class="nt">&quot;secret_type_counts&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">&quot;AWSKeyDetector&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">},</span>
-<a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a><span class="w">  </span><span class="nt">&quot;fields_scanned&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;instruction&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;input&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;output&quot;</span><span class="p">],</span>
-<a id="__codelineno-19-5" name="__codelineno-19-5" href="#__codelineno-19-5"></a><span class="w">  </span><span class="nt">&quot;total_findings&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span>
-<a id="__codelineno-19-6" name="__codelineno-19-6" href="#__codelineno-19-6"></a><span class="p">}</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a><span class="p">{</span>
+<a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a><span class="w">  </span><span class="nt">&quot;passed&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
+<a id="__codelineno-23-3" name="__codelineno-23-3" href="#__codelineno-23-3"></a><span class="w">  </span><span class="nt">&quot;secret_type_counts&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">&quot;AWSKeyDetector&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">},</span>
+<a id="__codelineno-23-4" name="__codelineno-23-4" href="#__codelineno-23-4"></a><span class="w">  </span><span class="nt">&quot;fields_scanned&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;instruction&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;input&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;output&quot;</span><span class="p">],</span>
+<a id="__codelineno-23-5" name="__codelineno-23-5" href="#__codelineno-23-5"></a><span class="w">  </span><span class="nt">&quot;total_findings&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span>
+<a id="__codelineno-23-6" name="__codelineno-23-6" href="#__codelineno-23-6"></a><span class="p">}</span>
 </code></pre></div></p>
 <h3 id="piipseudonymizer_2">PIIPseudonymizer<a class="headerlink" href="#piipseudonymizer_2" title="Permanent link">&para;</a></h3>
 <p>Provenance records log entity type counts — never the original or replaced values.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a><span class="p">{</span>
-<a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a><span class="w">  </span><span class="nt">&quot;entities_replaced&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">&quot;PERSON&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">3</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;EMAIL_ADDRESS&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">},</span>
-<a id="__codelineno-20-3" name="__codelineno-20-3" href="#__codelineno-20-3"></a><span class="w">  </span><span class="nt">&quot;fields_processed&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;instruction&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;input&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;output&quot;</span><span class="p">],</span>
-<a id="__codelineno-20-4" name="__codelineno-20-4" href="#__codelineno-20-4"></a><span class="w">  </span><span class="nt">&quot;total_replacements&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">4</span>
-<a id="__codelineno-20-5" name="__codelineno-20-5" href="#__codelineno-20-5"></a><span class="p">}</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a><span class="p">{</span>
+<a id="__codelineno-24-2" name="__codelineno-24-2" href="#__codelineno-24-2"></a><span class="w">  </span><span class="nt">&quot;entities_replaced&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">&quot;PERSON&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">3</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;EMAIL_ADDRESS&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">},</span>
+<a id="__codelineno-24-3" name="__codelineno-24-3" href="#__codelineno-24-3"></a><span class="w">  </span><span class="nt">&quot;fields_processed&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;instruction&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;input&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;output&quot;</span><span class="p">],</span>
+<a id="__codelineno-24-4" name="__codelineno-24-4" href="#__codelineno-24-4"></a><span class="w">  </span><span class="nt">&quot;total_replacements&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">4</span>
+<a id="__codelineno-24-5" name="__codelineno-24-5" href="#__codelineno-24-5"></a><span class="p">}</span>
 </code></pre></div>
 <h3 id="toxicitygate_2">ToxicityGate<a class="headerlink" href="#toxicitygate_2" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a>toxic_content:classifier:0.621          # rejected at Stage 1 (local classifier), score=0.621
-<a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a>toxic_content:llm_judge:0.710           # borderline at Stage 1, escalated to Stage 2 (LLM judge), rejected
+<div class="highlight"><pre><span></span><code><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a>toxic_content:classifier:0.621          # rejected at Stage 1 (local classifier), score=0.621
+<a id="__codelineno-25-2" name="__codelineno-25-2" href="#__codelineno-25-2"></a>toxic_content:llm_judge:0.710           # borderline at Stage 1, escalated to Stage 2 (LLM judge), rejected
 </code></pre></div>
 <p>Provenance on passing samples (the <code>phase</code> key records which stage decided — <code>"classifier"</code> or <code>"llm_judge"</code>):
-<div class="highlight"><pre><span></span><code><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a><span class="p">{</span>
-<a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a><span class="w">  </span><span class="nt">&quot;passed&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
-<a id="__codelineno-22-3" name="__codelineno-22-3" href="#__codelineno-22-3"></a><span class="w">  </span><span class="nt">&quot;max_score&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.042</span><span class="p">,</span>
-<a id="__codelineno-22-4" name="__codelineno-22-4" href="#__codelineno-22-4"></a><span class="w">  </span><span class="nt">&quot;worst_field&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;instruction&quot;</span><span class="p">,</span>
-<a id="__codelineno-22-5" name="__codelineno-22-5" href="#__codelineno-22-5"></a><span class="w">  </span><span class="nt">&quot;phase&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;classifier&quot;</span>
-<a id="__codelineno-22-6" name="__codelineno-22-6" href="#__codelineno-22-6"></a><span class="p">}</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a><span class="p">{</span>
+<a id="__codelineno-26-2" name="__codelineno-26-2" href="#__codelineno-26-2"></a><span class="w">  </span><span class="nt">&quot;passed&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<a id="__codelineno-26-3" name="__codelineno-26-3" href="#__codelineno-26-3"></a><span class="w">  </span><span class="nt">&quot;max_score&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.042</span><span class="p">,</span>
+<a id="__codelineno-26-4" name="__codelineno-26-4" href="#__codelineno-26-4"></a><span class="w">  </span><span class="nt">&quot;worst_field&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;instruction&quot;</span><span class="p">,</span>
+<a id="__codelineno-26-5" name="__codelineno-26-5" href="#__codelineno-26-5"></a><span class="w">  </span><span class="nt">&quot;phase&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;classifier&quot;</span>
+<a id="__codelineno-26-6" name="__codelineno-26-6" href="#__codelineno-26-6"></a><span class="p">}</span>
 </code></pre></div></p>
 <hr />
 <h2 id="tuning-guide">Tuning guide<a class="headerlink" href="#tuning-guide" title="Permanent link">&para;</a></h2>
 <h3 id="secretsgate-false-positives">SecretsGate false positives<a class="headerlink" href="#secretsgate-false-positives" title="Permanent link">&para;</a></h3>
-<p><code>code_corpus_mode=False</code> disables <code>KeywordDetector</code> by default. If you still see false positives in prose corpora, check which plugin is triggering using <code>result.rejected[i].provenance_chain[-1].notes["secret_type_counts"]</code>. High entropy strings that aren't secrets (base64 images, encoded payloads) can be addressed by raising the entropy thresholds:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a><span class="n">SecretsGate</span><span class="p">(</span><span class="n">plugins</span><span class="o">=</span><span class="p">[</span>
-<a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a>    <span class="p">{</span><span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;AWSKeyDetector&quot;</span><span class="p">},</span>
-<a id="__codelineno-23-3" name="__codelineno-23-3" href="#__codelineno-23-3"></a>    <span class="p">{</span><span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;GitHubTokenDetector&quot;</span><span class="p">},</span>
-<a id="__codelineno-23-4" name="__codelineno-23-4" href="#__codelineno-23-4"></a>    <span class="p">{</span><span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;PrivateKeyDetector&quot;</span><span class="p">},</span>
-<a id="__codelineno-23-5" name="__codelineno-23-5" href="#__codelineno-23-5"></a>    <span class="p">{</span><span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;Base64HighEntropyString&quot;</span><span class="p">,</span> <span class="s2">&quot;base64_limit&quot;</span><span class="p">:</span> <span class="mf">5.5</span><span class="p">},</span>  <span class="c1"># raised from 4.5</span>
-<a id="__codelineno-23-6" name="__codelineno-23-6" href="#__codelineno-23-6"></a>    <span class="p">{</span><span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;HexHighEntropyString&quot;</span><span class="p">,</span>    <span class="s2">&quot;hex_limit&quot;</span><span class="p">:</span>    <span class="mf">4.0</span><span class="p">},</span>  <span class="c1"># raised from 3.0</span>
-<a id="__codelineno-23-7" name="__codelineno-23-7" href="#__codelineno-23-7"></a><span class="p">])</span>
+<p><code>code_corpus_mode=False</code> disables <code>KeywordDetector</code> by default. The <code>HexHighEntropyString</code>/
+<code>Base64HighEntropyString</code> plugins re-check their own Shannon entropy against the configured
+limit on every candidate before counting it as a finding — so ordinary prose (no long
+random-looking tokens) passes cleanly by default. If you still see false positives — typically
+genuinely high-entropy but non-secret content, like base64-encoded images or hashes — check
+which plugin is triggering via <code>result.rejected[i].provenance_chain[-1].notes["secret_type_counts"]</code>,
+then raise the entropy thresholds (the dict key for both entropy plugins is <code>"limit"</code>, not a
+per-type key):</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a><span class="n">SecretsGate</span><span class="p">(</span><span class="n">plugins</span><span class="o">=</span><span class="p">[</span>
+<a id="__codelineno-27-2" name="__codelineno-27-2" href="#__codelineno-27-2"></a>    <span class="p">{</span><span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;AWSKeyDetector&quot;</span><span class="p">},</span>
+<a id="__codelineno-27-3" name="__codelineno-27-3" href="#__codelineno-27-3"></a>    <span class="p">{</span><span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;GitHubTokenDetector&quot;</span><span class="p">},</span>
+<a id="__codelineno-27-4" name="__codelineno-27-4" href="#__codelineno-27-4"></a>    <span class="p">{</span><span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;PrivateKeyDetector&quot;</span><span class="p">},</span>
+<a id="__codelineno-27-5" name="__codelineno-27-5" href="#__codelineno-27-5"></a>    <span class="p">{</span><span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;Base64HighEntropyString&quot;</span><span class="p">,</span> <span class="s2">&quot;limit&quot;</span><span class="p">:</span> <span class="mf">5.5</span><span class="p">},</span>  <span class="c1"># raised from 4.5</span>
+<a id="__codelineno-27-6" name="__codelineno-27-6" href="#__codelineno-27-6"></a>    <span class="p">{</span><span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;HexHighEntropyString&quot;</span><span class="p">,</span>    <span class="s2">&quot;limit&quot;</span><span class="p">:</span> <span class="mf">4.0</span><span class="p">},</span>  <span class="c1"># raised from 3.0</span>
+<a id="__codelineno-27-7" name="__codelineno-27-7" href="#__codelineno-27-7"></a><span class="p">])</span>
 </code></pre></div>
+<p>Or use the <code>secrets_hex_limit</code> / <code>secrets_base64_limit</code> fields on <code>CuratorConfig</code> /
+<code>GateConfig</code> instead of building the plugin list by hand — they apply to the same two plugins.</p>
 <h3 id="piipseudonymizer-over-redaction">PIIPseudonymizer over-redaction<a class="headerlink" href="#piipseudonymizer-over-redaction" title="Permanent link">&para;</a></h3>
 <p>Lower <code>score_threshold</code> (e.g. <code>0.5</code>) catches more PII but also mislabels common nouns as entities. Start at <code>0.7</code> and lower only if real PII is slipping through. Use <code>en_core_web_lg</code> over <code>en_core_web_sm</code> for higher precision.</p>
 <h3 id="toxicitygate-thresholds-for-academic-corpora">ToxicityGate thresholds for academic corpora<a class="headerlink" href="#toxicitygate-thresholds-for-academic-corpora" title="Permanent link">&para;</a></h3>
 <p>Academic text discussing crime, medication, or social issues typically scores 0.1–0.25 on <code>toxicity</code> even when completely clean. If you see excessive LLM escalations, raise <code>classifier_pass_threshold</code> to <code>0.2</code>:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a><span class="n">CuratorConfig</span><span class="p">(</span>
-<a id="__codelineno-24-2" name="__codelineno-24-2" href="#__codelineno-24-2"></a>    <span class="n">toxicity_gate</span>                      <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-<a id="__codelineno-24-3" name="__codelineno-24-3" href="#__codelineno-24-3"></a>    <span class="n">toxicity_classifier_pass_threshold</span> <span class="o">=</span> <span class="mf">0.2</span><span class="p">,</span>   <span class="c1"># raised for academic/legal/medical corpora</span>
-<a id="__codelineno-24-4" name="__codelineno-24-4" href="#__codelineno-24-4"></a>    <span class="n">toxicity_classifier_reject_threshold</span> <span class="o">=</span> <span class="mf">0.6</span><span class="p">,</span>
-<a id="__codelineno-24-5" name="__codelineno-24-5" href="#__codelineno-24-5"></a><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a><span class="n">CuratorConfig</span><span class="p">(</span>
+<a id="__codelineno-28-2" name="__codelineno-28-2" href="#__codelineno-28-2"></a>    <span class="n">toxicity_gate</span>                      <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+<a id="__codelineno-28-3" name="__codelineno-28-3" href="#__codelineno-28-3"></a>    <span class="n">toxicity_classifier_pass_threshold</span> <span class="o">=</span> <span class="mf">0.2</span><span class="p">,</span>   <span class="c1"># raised for academic/legal/medical corpora</span>
+<a id="__codelineno-28-4" name="__codelineno-28-4" href="#__codelineno-28-4"></a>    <span class="n">toxicity_classifier_reject_threshold</span> <span class="o">=</span> <span class="mf">0.6</span><span class="p">,</span>
+<a id="__codelineno-28-5" name="__codelineno-28-5" href="#__codelineno-28-5"></a><span class="p">)</span>
 </code></pre></div>
 <p>Use <code>detoxify_model="multilingual"</code> for non-English corpora. Use <code>"unbiased"</code> (default) over <code>"original"</code> for any corpus with legitimate discussion of sensitive topics — the unbiased model suppresses false positives.</p>
 <hr />
@@ -2228,9 +2366,29 @@
 <td>Presidio detection confidence threshold</td>
 </tr>
 <tr>
+<td><code>pii_nlp_engine</code></td>
+<td><code>"spacy"</code></td>
+<td>NER backend: <code>"spacy"</code> | <code>"transformers"</code> | <code>"stanza"</code></td>
+</tr>
+<tr>
 <td><code>pii_spacy_model</code></td>
 <td><code>"en_core_web_lg"</code></td>
-<td>spaCy model name</td>
+<td>spaCy model name; tokenizer-only when <code>pii_nlp_engine="transformers"</code></td>
+</tr>
+<tr>
+<td><code>pii_transformer_model</code></td>
+<td><code>None</code></td>
+<td>HF model id, required when <code>pii_nlp_engine="transformers"</code>. See <code>RECOMMENDED_NER_MODELS</code></td>
+</tr>
+<tr>
+<td><code>pii_stanza_model</code></td>
+<td><code>"en"</code></td>
+<td>Language code, used when <code>pii_nlp_engine="stanza"</code></td>
+</tr>
+<tr>
+<td><code>pii_ner_model_configuration</code></td>
+<td><code>None</code></td>
+<td>Advanced label-mapping override for the transformers engine; <code>None</code> = built-in default</td>
 </tr>
 <tr>
 <td><code>pii_faker_seed</code></td>
@@ -2332,9 +2490,29 @@
 <td>Presidio confidence threshold</td>
 </tr>
 <tr>
+<td><code>pii_nlp_engine</code></td>
+<td><code>"spacy"</code></td>
+<td>NER backend: <code>"spacy"</code> | <code>"transformers"</code> | <code>"stanza"</code></td>
+</tr>
+<tr>
 <td><code>pii_spacy_model</code></td>
 <td><code>"en_core_web_lg"</code></td>
-<td>spaCy model name</td>
+<td>spaCy model name; tokenizer-only when <code>pii_nlp_engine="transformers"</code></td>
+</tr>
+<tr>
+<td><code>pii_transformer_model</code></td>
+<td><code>null</code></td>
+<td>HF model id, required when <code>pii_nlp_engine="transformers"</code></td>
+</tr>
+<tr>
+<td><code>pii_stanza_model</code></td>
+<td><code>"en"</code></td>
+<td>Language code, used when <code>pii_nlp_engine="stanza"</code></td>
+</tr>
+<tr>
+<td><code>pii_ner_model_configuration</code></td>
+<td><code>null</code></td>
+<td>Advanced label-mapping override for the transformers engine</td>
 </tr>
 <tr>
 <td><code>pii_faker_seed</code></td>

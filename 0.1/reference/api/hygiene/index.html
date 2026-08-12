@@ -1686,7 +1686,7 @@ and write structured notes to the provenance chain.</p>
 
 
 <a href="#curatorkit.hygiene.PIIPseudonymizer" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">PIIPseudonymizer</span><span class="p">(</span><span class="n">entity_types</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">fields</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">score_threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.7</span><span class="p">,</span> <span class="n">faker_seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">42</span><span class="p">,</span> <span class="n">language</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;en&#39;</span><span class="p">,</span> <span class="n">spacy_model</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;en_core_web_lg&#39;</span><span class="p">)</span>
+<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">PIIPseudonymizer</span><span class="p">(</span><span class="n">entity_types</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">fields</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">score_threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.7</span><span class="p">,</span> <span class="n">faker_seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">42</span><span class="p">,</span> <span class="n">language</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;en&#39;</span><span class="p">,</span> <span class="n">nlp_engine</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;spacy&#39;</span><span class="p">,</span> <span class="n">spacy_model</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;en_core_web_lg&#39;</span><span class="p">,</span> <span class="n">transformer_model</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">stanza_model</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;en&#39;</span><span class="p">,</span> <span class="n">ner_model_configuration</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
@@ -1712,9 +1712,24 @@ faker_seed : int
     Seed for Faker (reproducible replacements across runs with same seed).
 language : str
     Presidio analysis language.
+nlp_engine : str
+    NER backend: "spacy" (default), "transformers", or "stanza". See the
+    module docstring and RECOMMENDED_NER_MODELS for when to use each.
 spacy_model : str
-    spaCy model name. "en_core_web_lg" (default, ~800 MB, highest accuracy)
-    or "en_core_web_sm" (~12 MB, adequate for standard PII types).</p>
+    spaCy model name. Used directly when nlp_engine="spacy" ("en_core_web_lg"
+    default, ~800 MB, highest accuracy, or "en_core_web_sm", ~12 MB). When
+    nlp_engine="transformers", this is only the tokenizer/sentence-splitter —
+    NER itself comes from transformer_model, so "en_core_web_sm" is enough.
+transformer_model : str | None
+    HuggingFace model id for nlp_engine="transformers", e.g.
+    "StanfordAIMI/stanford-deidentifier-base". Required when
+    nlp_engine="transformers". See RECOMMENDED_NER_MODELS.
+stanza_model : str
+    Language code for nlp_engine="stanza" (default "en").
+ner_model_configuration : dict | None
+    Advanced override for the transformers engine's label mapping /
+    aggregation strategy. None = use the built-in default mapping, which
+    covers all models in RECOMMENDED_NER_MODELS["transformers"].</p>
 
 
 

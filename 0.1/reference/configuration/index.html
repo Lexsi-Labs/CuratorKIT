@@ -1841,10 +1841,34 @@ for full usage examples.</p>
 <td>Presidio confidence threshold. Detections below this score are ignored. Lower values catch more PII at the cost of higher false-positive rate.</td>
 </tr>
 <tr>
+<td><code>pii_nlp_engine</code></td>
+<td><code>str</code></td>
+<td><code>"spacy"</code></td>
+<td>NER backend: <code>"spacy"</code>, <code>"transformers"</code>, or <code>"stanza"</code>. Transformers/stanza need the <code>hygiene-transformers</code>/<code>hygiene-stanza</code> extras. See <code>curatorkit.hygiene.pii.RECOMMENDED_NER_MODELS</code> for model choices per domain.</td>
+</tr>
+<tr>
 <td><code>pii_spacy_model</code></td>
 <td><code>str</code></td>
 <td><code>"en_core_web_lg"</code></td>
-<td>spaCy model for NER. <code>"en_core_web_lg"</code> for production; <code>"en_core_web_sm"</code> for dev/CI.</td>
+<td>spaCy model for NER. <code>"en_core_web_lg"</code> for production; <code>"en_core_web_sm"</code> for dev/CI. When <code>pii_nlp_engine="transformers"</code>, this is only the tokenizer — <code>"en_core_web_sm"</code> is enough.</td>
+</tr>
+<tr>
+<td><code>pii_transformer_model</code></td>
+<td><code>str \| None</code></td>
+<td><code>None</code></td>
+<td>HuggingFace model id, required when <code>pii_nlp_engine="transformers"</code> (e.g. <code>"StanfordAIMI/stanford-deidentifier-base"</code>).</td>
+</tr>
+<tr>
+<td><code>pii_stanza_model</code></td>
+<td><code>str</code></td>
+<td><code>"en"</code></td>
+<td>Language code, used when <code>pii_nlp_engine="stanza"</code>.</td>
+</tr>
+<tr>
+<td><code>pii_ner_model_configuration</code></td>
+<td><code>dict \| None</code></td>
+<td><code>None</code></td>
+<td>Advanced label-mapping/aggregation override for the transformers engine. <code>None</code> = built-in default covering all <code>RECOMMENDED_NER_MODELS</code> entries.</td>
 </tr>
 <tr>
 <td><code>pii_faker_seed</code></td>
