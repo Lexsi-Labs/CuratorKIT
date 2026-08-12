@@ -359,7 +359,16 @@ class CuratorConfig:
     #                          Pass ENTITY_TYPES_CLINICAL for medical/legal corpora.
     # pii_fields               Fields to pseudonymize. [] = task-aware default.
     # pii_score_threshold      Presidio confidence threshold. Default 0.7.
-    # pii_spacy_model          spaCy model. Default "en_core_web_lg" (~800 MB).
+    # pii_nlp_engine           "spacy" | "transformers" | "stanza". Default "spacy".
+    #                          transformers/stanza need curatorkit[hygiene-transformers]/
+    #                          curatorkit[hygiene-stanza]. See
+    #                          curatorkit.hygiene.pii.RECOMMENDED_NER_MODELS.
+    # pii_spacy_model          spaCy model. Default "en_core_web_lg" (~800 MB). Used as
+    #                          the tokenizer only when pii_nlp_engine="transformers".
+    # pii_transformer_model    HF model id, required when pii_nlp_engine="transformers".
+    # pii_stanza_model         Language code, used when pii_nlp_engine="stanza". Default "en".
+    # pii_ner_model_configuration  Advanced label-mapping override for the transformers
+    #                          engine. None = built-in default (covers RECOMMENDED_NER_MODELS).
     # pii_faker_seed           Reproducibility seed for Faker. Default 42.
     # pii_language             Presidio analysis language. Default "en".
     # toxicity_gate            Reject samples with toxic content (Detoxify classifier).
@@ -378,7 +387,11 @@ class CuratorConfig:
     pii_entity_types: list[str] = field(default_factory=list)
     pii_fields: list[str] = field(default_factory=list)
     pii_score_threshold: float = 0.7
+    pii_nlp_engine: str = "spacy"
     pii_spacy_model: str = "en_core_web_lg"
+    pii_transformer_model: str | None = None
+    pii_stanza_model: str = "en"
+    pii_ner_model_configuration: dict | None = None
     pii_faker_seed: int = 42
     pii_language: str = "en"
     toxicity_gate: bool = False
@@ -846,7 +859,11 @@ class Curator:
                     entity_types=cfg.pii_entity_types or None,
                     fields=cfg.pii_fields or None,
                     score_threshold=cfg.pii_score_threshold,
+                    nlp_engine=cfg.pii_nlp_engine,
                     spacy_model=cfg.pii_spacy_model,
+                    transformer_model=cfg.pii_transformer_model,
+                    stanza_model=cfg.pii_stanza_model,
+                    ner_model_configuration=cfg.pii_ner_model_configuration,
                     faker_seed=cfg.pii_faker_seed,
                     language=cfg.pii_language,
                 )
@@ -1235,19 +1252,13 @@ class Curator:
                 concurrency=concurrency,
             )
         elif task == "adversarial_qa":
-            from curatorkit.generators.adversarial_qa_generator import (
-                AdversarialQAGenerationTask,
-                InjectionType,
-            )
+            from curatorkit.generators.adversarial_qa_generator import AdversarialQAGenerationTask
 
-            _inj_types = (
-                [InjectionType(t) for t in cfg.injection_types] if cfg.injection_types else None
-            )
             return AdversarialQAGenerationTask(
                 llm=llm,
                 num_questions=cfg.num_questions,
                 injection_rate=cfg.injection_rate,
-                injection_types=_inj_types,
+                injection_types=cfg.injection_types or None,
                 seed=cfg.injection_seed,
                 difficulty=cfg.difficulty,
                 high_temp=cfg.high_temp,

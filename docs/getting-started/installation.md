@@ -29,14 +29,29 @@ Install only what you need. Extras compose: `pip install "curatorkit[generation,
 | `embedding` | sentence-transformers, numpy | Diversity gate, cross-run dedup |
 | `embedding-faiss` | embedding + faiss-cpu | Fast ANN for large dedup indexes |
 | `generation-full` | generation + embedding-faiss | Generation with all gates |
-| `hygiene` | detect-secrets, presidio, detoxify, spacy, faker | Secrets, PII, and toxicity gates |
+| `hygiene` | detect-secrets, presidio, detoxify, spacy, faker | Secrets, PII, and toxicity gates (spaCy PII backbone) |
+| `hygiene-transformers` | presidio-analyzer[transformers] (torch, transformers) | Transformer-based NER backbone for `PIIPseudonymizer` — best recall for clinical/legal PII. Stack on top of `hygiene`. |
+| `hygiene-stanza` | presidio-analyzer[stanza] | Stanza NER backbone for `PIIPseudonymizer` — use for languages spaCy has no good model for. Stack on top of `hygiene`. |
 | `pdf` | mineru | Layout-aware PDF parsing |
-| `all` | connectors + tiktoken + generation-full + hygiene | The full pipeline (excludes `pdf` and `trl`) |
+| `all` | connectors + tiktoken + generation-full + hygiene | The full pipeline (excludes `pdf`, `trl`, and both `hygiene-*` NER backbones) |
 | `docs`, `dev`, `trl` | site/tooling/integration-test deps | Contributing |
 
 The `pdf` extra is excluded from `all` because it pulls a large model stack. It runs
 on CPU anywhere; for CUDA acceleration install a CUDA build of torch first. MinerU is
 licensed AGPL-3.0, so confirm that suits your use before installing.
+
+`hygiene-transformers` and `hygiene-stanza` are likewise excluded from `all` — they
+pull in the torch/transformers or stanza stack on top of `hygiene`'s spaCy default, and
+most users only need one of the three PII backbones. Install them explicitly alongside
+`hygiene`:
+
+```bash
+pip install "curatorkit[all,hygiene-transformers]"   # clinical/legal PII, best recall
+pip install "curatorkit[all,hygiene-stanza]"          # non-English PII, no good spaCy model
+```
+
+See [Data hygiene](../guides/data-hygiene.md#pii-ner-backbones) for which model to pick
+per backbone and domain.
 
 ## License
 

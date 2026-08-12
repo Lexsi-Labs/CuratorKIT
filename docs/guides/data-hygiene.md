@@ -26,13 +26,27 @@ pip install "curatorkit[hygiene]"
 
 This installs: `detoxify`, `detect-secrets`, `presidio-analyzer`, `presidio-anonymizer`, `spacy`, and `faker`.
 
-For `PIIPseudonymizer`, also download the spaCy model:
+For `PIIPseudonymizer`'s default (spaCy) backend, also download a spaCy model — it lazy-downloads
+on first use like HF datasets do, but you can pre-fetch it:
 
 ```bash
 python -m spacy download en_core_web_lg   # default (~800 MB, highest accuracy)
 # or for dev/CI:
 python -m spacy download en_core_web_sm   # ~12 MB, adequate for standard PII types
 ```
+
+For clinical or legal corpora, a transformer or Stanza NER backend gives noticeably better
+recall than spaCy — see [PII NER backbones](#pii-ner-backbones) below. Those need one more
+extra on top of `hygiene`:
+
+```bash
+pip install "curatorkit[hygiene,hygiene-transformers]"   # transformer NER backend
+pip install "curatorkit[hygiene,hygiene-stanza]"          # Stanza NER backend
+```
+
+Model weights for either backend are not downloaded by `pip install` — they lazy-download
+from the HuggingFace Hub (transformers) or on first `stanza` engine build, exactly like the
+spaCy model above.
 
 ---
 
@@ -80,6 +94,40 @@ result = Curator(CuratorConfig(
     pii_spacy_model  = "en_core_web_lg",
 )).run()
 ```
+
+#### PII NER backbones
+
+`PIIPseudonymizer` supports three NER backends via `pii_nlp_engine` — `"spacy"` (default),
+`"transformers"`, or `"stanza"`. spaCy's default is fast but has weaker recall on
+domain-specific names than a NER model fine-tuned for the domain. For clinical/legal
+corpora, switch to the `"transformers"` engine and pick a model from
+`curatorkit.hygiene.pii.RECOMMENDED_NER_MODELS`:
+
+| Engine | Model (`pii_transformer_model`) | Domain | Use for |
+|---|---|---|---|
+| `transformers` | `StanfordAIMI/stanford-deidentifier-base` | Clinical/medical | Default pick for medical text — i2b2-trained PHI de-identification |
+| `transformers` | `obi/deid_roberta_i2b2` | Clinical/medical | Second opinion / ensemble alongside the above on high-stakes medical corpora |
+| `transformers` | `dslim/bert-base-NER` | Legal/general | Contracts, filings — general NER, no clinical PHI awareness |
+| `transformers` | `Jean-Baptiste/roberta-large-ner-english` | Legal/general | Higher accuracy than `dslim/bert-base-NER`, ~3x the latency — use when it's missing entities |
+| `stanza` | `"en"` (`pii_stanza_model`, a language code) | Multilingual/general | Only when spaCy has no good model for your target language |
+
+Requires the matching extra (`hygiene-transformers` or `hygiene-stanza`, see
+[Installation](../getting-started/installation.md)). Example for a medical corpus:
+
+```python
+result = Curator(CuratorConfig(
+    dataset               = "data/clinical_notes.jsonl",
+    pii_pseudonymize      = True,
+    pii_entity_types      = ENTITY_TYPES_CLINICAL,
+    pii_nlp_engine        = "transformers",
+    pii_spacy_model       = "en_core_web_sm",   # tokenizer only — NER comes from the transformer
+    pii_transformer_model = "StanfordAIMI/stanford-deidentifier-base",
+)).run()
+```
+
+`pii_spacy_model` still applies when `pii_nlp_engine="transformers"` — it's only used as a
+lightweight tokenizer/sentence-splitter there, so `en_core_web_sm` is enough; the NER model
+choice is entirely controlled by `pii_transformer_model`.
 
 ### ToxicityGate
 
@@ -187,6 +235,22 @@ normalizers:
       - LOCATION
 ```
 
+Or switch to the transformer NER backend for better recall on clinical text (needs
+`curatorkit[hygiene,hygiene-transformers]`):
+
+```yaml
+normalizers:
+  - type: pii_pseudonymizer
+    pii_nlp_engine: transformers
+    pii_spacy_model: en_core_web_sm          # tokenizer only
+    pii_transformer_model: StanfordAIMI/stanford-deidentifier-base
+    pii_entity_types:
+      - PERSON
+      - EMAIL_ADDRESS
+      - DATE_TIME
+      - LOCATION
+```
+
 ### ToxicityGate in YAML
 
 Add a gate with `type: toxicity`. Runs before generators.
@@ -277,12 +341,25 @@ from curatorkit.hygiene.pii import PIIPseudonymizer, ENTITY_TYPES_CLINICAL
 pseudonymizer = PIIPseudonymizer(
     entity_types=None,           # None = default types
     score_threshold=0.7,
+    nlp_engine="spacy",          # "spacy" | "transformers" | "stanza"
     spacy_model="en_core_web_lg",
     faker_seed=42,
 )
 
 samples: list[DataSample] = [...]
 samples = pseudonymizer.run(samples)  # modifies in-place, returns same list
+```
+
+For the transformer backend, `spacy_model` becomes tokenizer-only and `transformer_model`
+selects the actual NER model (see `curatorkit.hygiene.pii.RECOMMENDED_NER_MODELS`):
+
+```python
+pseudonymizer = PIIPseudonymizer(
+    entity_types=ENTITY_TYPES_CLINICAL,
+    nlp_engine="transformers",
+    spacy_model="en_core_web_sm",
+    transformer_model="StanfordAIMI/stanford-deidentifier-base",
+)
 ```
 
 Cross-field consistency is guaranteed within each sample: if "John Smith" appears in both `instruction` and `output`, both get the same fake name.
@@ -418,17 +495,27 @@ Provenance on passing samples (the `phase` key records which stage decided — `
 
 ### SecretsGate false positives
 
-`code_corpus_mode=False` disables `KeywordDetector` by default. If you still see false positives in prose corpora, check which plugin is triggering using `result.rejected[i].provenance_chain[-1].notes["secret_type_counts"]`. High entropy strings that aren't secrets (base64 images, encoded payloads) can be addressed by raising the entropy thresholds:
+`code_corpus_mode=False` disables `KeywordDetector` by default. The `HexHighEntropyString`/
+`Base64HighEntropyString` plugins re-check their own Shannon entropy against the configured
+limit on every candidate before counting it as a finding — so ordinary prose (no long
+random-looking tokens) passes cleanly by default. If you still see false positives — typically
+genuinely high-entropy but non-secret content, like base64-encoded images or hashes — check
+which plugin is triggering via `result.rejected[i].provenance_chain[-1].notes["secret_type_counts"]`,
+then raise the entropy thresholds (the dict key for both entropy plugins is `"limit"`, not a
+per-type key):
 
 ```python
 SecretsGate(plugins=[
     {"name": "AWSKeyDetector"},
     {"name": "GitHubTokenDetector"},
     {"name": "PrivateKeyDetector"},
-    {"name": "Base64HighEntropyString", "base64_limit": 5.5},  # raised from 4.5
-    {"name": "HexHighEntropyString",    "hex_limit":    4.0},  # raised from 3.0
+    {"name": "Base64HighEntropyString", "limit": 5.5},  # raised from 4.5
+    {"name": "HexHighEntropyString",    "limit": 4.0},  # raised from 3.0
 ])
 ```
+
+Or use the `secrets_hex_limit` / `secrets_base64_limit` fields on `CuratorConfig` /
+`GateConfig` instead of building the plugin list by hand — they apply to the same two plugins.
 
 ### PIIPseudonymizer over-redaction
 
@@ -461,7 +548,11 @@ Use `detoxify_model="multilingual"` for non-English corpora. Use `"unbiased"` (d
 | `pii_pseudonymize` | `False` | Enable PIIPseudonymizer |
 | `pii_entity_types` | `[]` | Presidio entity types; `[]` = default set (no DATE_TIME) |
 | `pii_score_threshold` | `0.7` | Presidio detection confidence threshold |
-| `pii_spacy_model` | `"en_core_web_lg"` | spaCy model name |
+| `pii_nlp_engine` | `"spacy"` | NER backend: `"spacy"` \| `"transformers"` \| `"stanza"` |
+| `pii_spacy_model` | `"en_core_web_lg"` | spaCy model name; tokenizer-only when `pii_nlp_engine="transformers"` |
+| `pii_transformer_model` | `None` | HF model id, required when `pii_nlp_engine="transformers"`. See `RECOMMENDED_NER_MODELS` |
+| `pii_stanza_model` | `"en"` | Language code, used when `pii_nlp_engine="stanza"` |
+| `pii_ner_model_configuration` | `None` | Advanced label-mapping override for the transformers engine; `None` = built-in default |
 | `pii_faker_seed` | `42` | Faker seed for reproducible replacements |
 | `toxicity_gate` | `False` | Enable ToxicityGate |
 | `toxicity_classifier_pass_threshold` | `0.1` | Score below this → immediate pass |
@@ -487,7 +578,11 @@ Use `detoxify_model="multilingual"` for non-English corpora. Use `"unbiased"` (d
 |-------|---------|-------------|
 | `pii_entity_types` | `[]` | Presidio entity types; `[]` = default set |
 | `pii_score_threshold` | `0.7` | Presidio confidence threshold |
-| `pii_spacy_model` | `"en_core_web_lg"` | spaCy model name |
+| `pii_nlp_engine` | `"spacy"` | NER backend: `"spacy"` \| `"transformers"` \| `"stanza"` |
+| `pii_spacy_model` | `"en_core_web_lg"` | spaCy model name; tokenizer-only when `pii_nlp_engine="transformers"` |
+| `pii_transformer_model` | `null` | HF model id, required when `pii_nlp_engine="transformers"` |
+| `pii_stanza_model` | `"en"` | Language code, used when `pii_nlp_engine="stanza"` |
+| `pii_ner_model_configuration` | `null` | Advanced label-mapping override for the transformers engine |
 | `pii_faker_seed` | `42` | Faker seed |
 | `pii_language` | `"en"` | Analysis language |
 | `pii_fields` | `[]` | Fields to process; `[]` = task-aware auto-selection |

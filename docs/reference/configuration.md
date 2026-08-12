@@ -89,7 +89,11 @@ for full usage examples.
 | `pii_pseudonymize` | `bool` | `False` | Enable `PIIPseudonymizer`. Replaces detected PII entities with consistent Faker-generated values. Modifies samples in-place; does not reject. |
 | `pii_entity_types` | `list[str]` | `[]` | Presidio entity types to detect. Empty list = default set (`PERSON`, `EMAIL_ADDRESS`, `PHONE_NUMBER`, `US_SSN`, `CREDIT_CARD`, `IBAN_CODE`, `IP_ADDRESS`). Use `ENTITY_TYPES_CLINICAL` from `curatorkit.hygiene.pii` for medical/legal corpora. |
 | `pii_score_threshold` | `float` | `0.7` | Presidio confidence threshold. Detections below this score are ignored. Lower values catch more PII at the cost of higher false-positive rate. |
-| `pii_spacy_model` | `str` | `"en_core_web_lg"` | spaCy model for NER. `"en_core_web_lg"` for production; `"en_core_web_sm"` for dev/CI. |
+| `pii_nlp_engine` | `str` | `"spacy"` | NER backend: `"spacy"`, `"transformers"`, or `"stanza"`. Transformers/stanza need the `hygiene-transformers`/`hygiene-stanza` extras. See `curatorkit.hygiene.pii.RECOMMENDED_NER_MODELS` for model choices per domain. |
+| `pii_spacy_model` | `str` | `"en_core_web_lg"` | spaCy model for NER. `"en_core_web_lg"` for production; `"en_core_web_sm"` for dev/CI. When `pii_nlp_engine="transformers"`, this is only the tokenizer — `"en_core_web_sm"` is enough. |
+| `pii_transformer_model` | `str \| None` | `None` | HuggingFace model id, required when `pii_nlp_engine="transformers"` (e.g. `"StanfordAIMI/stanford-deidentifier-base"`). |
+| `pii_stanza_model` | `str` | `"en"` | Language code, used when `pii_nlp_engine="stanza"`. |
+| `pii_ner_model_configuration` | `dict \| None` | `None` | Advanced label-mapping/aggregation override for the transformers engine. `None` = built-in default covering all `RECOMMENDED_NER_MODELS` entries. |
 | `pii_faker_seed` | `int` | `42` | Seed for Faker replacements. Same seed = same fake entities across runs for reproducibility. |
 
 ### ToxicityGate

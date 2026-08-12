@@ -356,6 +356,54 @@ class TestSecretsGate:
         assert len(rejected) == 1
 
 
+class TestSecretsGateRealDetection:
+    """
+    Exercises the actual detect-secrets integration (no mocking of _scan_sample).
+
+    Regression coverage for a bug where scan_line()'s adhoc/eager search mode
+    matched any unquoted word against the Hex/Base64 entropy plugins' charset
+    regex without ever applying the configured entropy limit, causing the
+    gate to reject ~100% of ordinary prose. See _scan_text's docstring in
+    curatorkit/hygiene/secrets.py for the mechanism.
+    """
+
+    pytest.importorskip("detect_secrets")
+
+    PROSE = [
+        "The capital of France is Paris.",
+        "Photosynthesis is the process by which plants convert light energy "
+        "into chemical energy stored in glucose.",
+        "The quick brown fox jumps over the lazy dog near the riverbank "
+        "every morning before sunrise.",
+        "Please summarize the adenosine triphosphate synthesis pathway in mitochondria.",
+    ]
+
+    def test_plain_prose_passes(self):
+        from curatorkit.hygiene.secrets import SecretsGate
+
+        gate = SecretsGate()
+        samples = [make_sample(output=text) for text in self.PROSE]
+        passed, rejected = gate.run(samples)
+        assert len(rejected) == 0, [r.rejection_reason for r in rejected]
+        assert len(passed) == len(self.PROSE)
+
+    @pytest.mark.parametrize(
+        "secret_text",
+        [
+            "Set your key: API_KEY=sk-proj-8f7A9dLx2QmZ0vB4nR6tY1cW3eK5jH8gU2iP9oS7",
+            "export AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+            "AKIAIOSFODNN7EXAMPLE",
+        ],
+    )
+    def test_real_secrets_still_rejected(self, secret_text):
+        from curatorkit.hygiene.secrets import SecretsGate
+
+        gate = SecretsGate()
+        passed, rejected = gate.run([make_sample(output=secret_text)])
+        assert len(rejected) == 1
+        assert len(passed) == 0
+
+
 # ──────────────────────────────────────────────────────────────────────────────
 # PIIPseudonymizer
 # ──────────────────────────────────────────────────────────────────────────────
@@ -396,7 +444,11 @@ class TestPIIPseudonymizer:
         pseudonymizer.score_threshold = 0.7
         pseudonymizer.faker_seed = 42
         pseudonymizer.language = "en"
+        pseudonymizer.nlp_engine = "spacy"
         pseudonymizer.spacy_model = "en_core_web_lg"
+        pseudonymizer.transformer_model = None
+        pseudonymizer.stanza_model = "en"
+        pseudonymizer.ner_model_configuration = None
 
         mock_analyzer = MagicMock()
         mock_analyzer.analyze.side_effect = lambda text, entities, language, score_threshold: (
@@ -554,6 +606,50 @@ class TestPIIPseudonymizer:
         assert result[0].responses[0].split()[0] == result[0].responses[1].split()[0]
 
 
+class TestPIIPseudonymizerEngineSelection:
+    """NER engine dispatch (_build_analyzer) — no network/model downloads."""
+
+    def test_defaults_to_spacy_engine(self):
+        with patch("curatorkit.hygiene.pii._ensure_presidio", return_value=(MagicMock(), MagicMock())):
+            from curatorkit.hygiene.pii import PIIPseudonymizer
+
+            p = PIIPseudonymizer()
+            assert p.nlp_engine == "spacy"
+            assert p.transformer_model is None
+
+    def test_transformers_engine_requires_model(self):
+        from curatorkit.hygiene.pii import _build_analyzer
+
+        with pytest.raises(ValueError, match="transformer_model is required"):
+            _build_analyzer("transformers", "en_core_web_sm", None, "en", "en", None)
+
+    def test_unknown_engine_raises(self):
+        from curatorkit.hygiene.pii import _build_analyzer
+
+        with pytest.raises(ValueError, match="Unknown nlp_engine"):
+            _build_analyzer("flair", "en_core_web_sm", None, "en", "en", None)
+
+    def test_config_hash_changes_with_engine(self):
+        with patch("curatorkit.hygiene.pii._ensure_presidio", return_value=(MagicMock(), MagicMock())):
+            from curatorkit.hygiene.pii import PIIPseudonymizer
+
+            spacy_gate = PIIPseudonymizer(nlp_engine="spacy")
+            transformer_gate = PIIPseudonymizer(
+                nlp_engine="transformers", transformer_model="dslim/bert-base-NER"
+            )
+            assert spacy_gate._config_hash() != transformer_gate._config_hash()
+
+    def test_recommended_models_catalog_has_expected_shape(self):
+        from curatorkit.hygiene.pii import RECOMMENDED_NER_MODELS
+
+        for engine in ("transformers", "stanza"):
+            assert engine in RECOMMENDED_NER_MODELS
+            for model_id, (domain, note) in RECOMMENDED_NER_MODELS[engine].items():
+                assert isinstance(model_id, str) and model_id
+                assert isinstance(domain, str) and domain
+                assert isinstance(note, str) and len(note) > 10
+
+
 # ──────────────────────────────────────────────────────────────────────────────
 # Integration: pipeline position contracts
 # ──────────────────────────────────────────────────────────────────────────────
@@ -618,7 +714,11 @@ class TestHygieneContracts:
         p.score_threshold = 0.7
         p.faker_seed = 42
         p.language = "en"
+        p.nlp_engine = "spacy"
         p.spacy_model = "en_core_web_lg"
+        p.transformer_model = None
+        p.stanza_model = "en"
+        p.ner_model_configuration = None
         p._analyzer = MagicMock()
         p._analyzer.analyze.return_value = []
         p._faker = MagicMock()

@@ -499,7 +499,11 @@ def _build_steps(config: object, verbose: bool, include_exporters: bool = True) 
                     score_threshold=n.pii_score_threshold,
                     faker_seed=n.pii_faker_seed,
                     language=n.pii_language,
+                    nlp_engine=n.pii_nlp_engine,
                     spacy_model=n.pii_spacy_model,
+                    transformer_model=n.pii_transformer_model,
+                    stanza_model=n.pii_stanza_model,
+                    ner_model_configuration=n.pii_ner_model_configuration,
                 )
             )
 
@@ -618,20 +622,14 @@ def _build_steps(config: object, verbose: bool, include_exporters: bool = True) 
                 )
             )
         elif gen.type == "adversarial_qa":
-            from curatorkit.generators.adversarial_qa_generator import (
-                AdversarialQAGenerationTask,
-                InjectionType,
-            )
+            from curatorkit.generators.adversarial_qa_generator import AdversarialQAGenerationTask
 
-            _inj_types = (
-                [InjectionType(t) for t in gen.injection_types] if gen.injection_types else None
-            )
             steps.append(
                 AdversarialQAGenerationTask(
                     llm=llm,
                     num_questions=gen.num_questions,
                     injection_rate=gen.injection_rate,
-                    injection_types=_inj_types,
+                    injection_types=gen.injection_types or None,
                     seed=gen.injection_seed,
                     difficulty=gen.difficulty,
                     high_temp=gen.high_temp,

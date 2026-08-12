@@ -47,6 +47,22 @@ _PLUGINS_BASE = [
 
 _PLUGIN_KEYWORD = {"name": "KeywordDetector"}
 
+# detect-secrets' own default false-positive heuristics (sequential strings,
+# UUIDs, id-like strings, templated placeholders, etc). scan_line()'s adhoc
+# path applies none of these unless we pass them explicitly.
+_DEFAULT_FILTERS = [
+    {"path": "detect_secrets.filters.allowlist.is_line_allowlisted"},
+    {"path": "detect_secrets.filters.heuristic.is_indirect_reference"},
+    {"path": "detect_secrets.filters.heuristic.is_likely_id_string"},
+    {"path": "detect_secrets.filters.heuristic.is_lock_file"},
+    {"path": "detect_secrets.filters.heuristic.is_not_alphanumeric_string"},
+    {"path": "detect_secrets.filters.heuristic.is_potential_uuid"},
+    {"path": "detect_secrets.filters.heuristic.is_prefixed_with_dollar_sign"},
+    {"path": "detect_secrets.filters.heuristic.is_sequential_string"},
+    {"path": "detect_secrets.filters.heuristic.is_swagger_file"},
+    {"path": "detect_secrets.filters.heuristic.is_templated_secret"},
+]
+
 
 def _ensure_detect_secrets() -> None:
     try:
@@ -57,12 +73,52 @@ def _ensure_detect_secrets() -> None:
         ) from e
 
 
-def _scan_text(text: str, ds_config: dict) -> list[dict]:
+def _entropy_plugins_by_type(plugins: list[dict]) -> dict[str, object]:
+    """Build live HighEntropyStrings plugin instances, keyed by their `secret.type` label.
+
+    Used to re-check the Shannon entropy of candidates scan_line() returns for
+    unquoted text (see _scan_text docstring for why this re-check is necessary).
+    """
+    from detect_secrets.plugins.high_entropy_strings import (
+        Base64HighEntropyString,
+        HexHighEntropyString,
+    )
+
+    by_name = {"HexHighEntropyString": HexHighEntropyString, "Base64HighEntropyString": Base64HighEntropyString}
+    instances: dict[str, object] = {}
+    for p in plugins:
+        cls = by_name.get(p["name"])
+        if cls is not None:
+            inst = cls(**{"limit": p["limit"]} if "limit" in p else {})
+            instances[inst.secret_type] = inst
+    return instances
+
+
+def _scan_text(text: str, ds_config: dict, entropy_plugins: dict[str, object]) -> list[dict]:
     """
     Scan text for secrets line by line. Returns list of {type, line_number}.
 
     Uses detect_secrets.core.scan.scan_line which reads from the active
     transient_settings context — no temp files required.
+
+    scan_line() is detect-secrets' "adhoc string scan" entry point, built for
+    a user pasting one bare value at a CLI prompt. To support that, it runs
+    HexHighEntropyString/Base64HighEntropyString in "eager" mode: their normal
+    regex only matches *quoted* substrings (`"..."` / `'...'`), which almost
+    never occurs in prose or freeform LLM output, so eager mode drops the
+    quote requirement and matches any charset-matching run of characters
+    instead. Critically, detect-secrets' own entropy-limit check is skipped
+    entirely on that eager/unquoted path — the docstring on
+    HighEntropyStringsPlugin.analyze_line notes the limit is expected to be
+    applied "outside this function" via a settings filter, but no such filter
+    exists in detect-secrets' filter set. Left unpatched, this means every
+    ordinary word in a line (any run of letters/digits satisfies the Base64
+    charset) becomes a "secret", which is why the gate was rejecting ~100% of
+    incoming samples regardless of content.
+
+    We compensate by re-running the plugin's own calculate_shannon_entropy()
+    against its own configured limit on every entropy-typed candidate before
+    counting it as a finding — the check scan_line skips.
     """
     from detect_secrets.core.scan import scan_line
     from detect_secrets.settings import transient_settings
@@ -71,6 +127,11 @@ def _scan_text(text: str, ds_config: dict) -> list[dict]:
     with transient_settings(ds_config):
         for line_num, line in enumerate(text.split("\n"), start=1):
             for secret in scan_line(line):
+                plugin = entropy_plugins.get(secret.type)
+                if plugin is not None:
+                    value = secret.secret_value or ""
+                    if plugin.calculate_shannon_entropy(value) <= plugin.entropy_limit:
+                        continue
                 findings.append({"type": secret.type, "line_number": line_num})
     return findings
 
@@ -136,8 +197,9 @@ class SecretsGate(BaseGate):
 
         self._ds_config = {
             "plugins_used": self._plugins,
-            "filters_used": [],
+            "filters_used": _DEFAULT_FILTERS,
         }
+        self._entropy_plugins = _entropy_plugins_by_type(self._plugins)
 
     def _fields_for_sample(self, sample: DataSample) -> list[str]:
         """Return fields to scan, selected by task_type when no explicit override."""
@@ -169,10 +231,10 @@ class SecretsGate(BaseGate):
                 # GRPO responses — scan each completion independently
                 for i, text in enumerate(val):
                     if isinstance(text, str) and text.strip():
-                        for finding in _scan_text(text, self._ds_config):
+                        for finding in _scan_text(text, self._ds_config, self._entropy_plugins):
                             findings.append({**finding, "field": f"{field}[{i}]"})
             elif isinstance(val, str) and val.strip():
-                for finding in _scan_text(val, self._ds_config):
+                for finding in _scan_text(val, self._ds_config, self._entropy_plugins):
                     findings.append({**finding, "field": field})
         return findings, active_fields
 
