@@ -1017,7 +1017,7 @@
 <p>CuratorKIT requires Python 3.11 or newer and runs on Linux, macOS, and Windows.
 The <code>hygiene</code> and <code>pdf</code> extras pull large model stacks (torch, MinerU) with their
 own platform notes; the core package and connectors are pure Python.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">&quot;curatorkit[all]&quot;</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">"curatorkit[all]"</span>
 </code></pre></div>
 <p>The <code>all</code> extra installs connectors, LLM generation, embedding, and the data hygiene
 gates. The core package alone covers cleaning and deduplication:</p>
@@ -1113,8 +1113,8 @@ licensed AGPL-3.0, so confirm that suits your use before installing.</p>
 pull in the torch/transformers or stanza stack on top of <code>hygiene</code>'s spaCy default, and
 most users only need one of the three PII backbones. Install them explicitly alongside
 <code>hygiene</code>:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">&quot;curatorkit[all,hygiene-transformers]&quot;</span><span class="w">   </span><span class="c1"># clinical/legal PII, best recall</span>
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">&quot;curatorkit[all,hygiene-stanza]&quot;</span><span class="w">          </span><span class="c1"># non-English PII, no good spaCy model</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">"curatorkit[all,hygiene-transformers]"</span><span class="w">   </span><span class="c1"># clinical/legal PII, best recall</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">"curatorkit[all,hygiene-stanza]"</span><span class="w">          </span><span class="c1"># non-English PII, no good spaCy model</span>
 </code></pre></div>
 <p>See <a href="../../guides/data-hygiene/#pii-ner-backbones">Data hygiene</a> for which model to pick
 per backbone and domain.</p>
@@ -1124,7 +1124,7 @@ free for research, education, and non-commercial use. Commercial use requires a 
 license. See <a href="https://github.com/Lexsi-Labs/CuratorKIT/blob/main/LICENSE.md">LICENSE</a>
 or contact support@lexsi.ai.</p>
 <h2 id="from-source">From source<a class="headerlink" href="#from-source" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">&quot;curatorkit[all] @ git+https://github.com/Lexsi-Labs/CuratorKIT.git&quot;</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">"curatorkit[all] @ git+https://github.com/Lexsi-Labs/CuratorKIT.git"</span>
 </code></pre></div>
 <h2 id="verify-the-install">Verify the install<a class="headerlink" href="#verify-the-install" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>curatorkit<span class="w"> </span>--version

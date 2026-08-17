@@ -2363,7 +2363,7 @@ Normalises <code>from</code>/<code>value</code> → <code>role</code>/<code>cont
 <p>Both <code>run()</code> and <code>run_async()</code> contain identical gate blocks. When a gate has a <code>probe</code> attribute attached, the block diagnoses every rejection in one concurrent batch and merges probe-recovered samples back into the stream:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>passed, rejected = gate.run(samples)
 <a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>
-<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>probe = getattr(step, &quot;probe&quot;, None)
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>probe = getattr(step, "probe", None)
 <a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>probe_recovered = []
 <a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>if probe is not None and rejected:
 <a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>    diagnoses = probe.diagnose_batch(rejected)        # ← concurrent inline probe
@@ -2466,8 +2466,8 @@ Normalises <code>from</code>/<code>value</code> → <code>role</code>/<code>cont
 <h3 id="curator_build_steps-step-construction-order">Curator._build_steps() — step construction order<a class="headerlink" href="#curator_build_steps-step-construction-order" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>1.  Readers            (one per dataset in config.dataset)
 <a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>2.  SchemaGate
-<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>3.  ExactDeduplicator  (if dedup != &quot;none&quot;)
-<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>4.  MinHashDeduplicator (if dedup == &quot;minhash&quot;)
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>3.  ExactDeduplicator  (if dedup != "none")
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>4.  MinHashDeduplicator (if dedup == "minhash")
 <a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>5.  TextCleaner        (if clean=True)
 <a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>── Data hygiene (pre-generation) ──────────────────────────────
 <a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>6.  SecretsGate        (if secrets_gate=True)
@@ -2550,7 +2550,7 @@ Normalises <code>from</code>/<code>value</code> → <code>role</code>/<code>cont
 <a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a>  Probe 2a — strict_grounding prompt                            max 1 call
 <a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a>    passes gate     → GENERATOR_PARAMETRIC
 <a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a>  Probe 2b — domain prompt (domain_specific, or the template    max 1 call
-<a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a>             named by metadata[&quot;domain_prompt_key&quot;])
+<a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a>             named by metadata["domain_prompt_key"])
 <a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a>    passes gate     → DOMAIN_MISMATCH
 <a id="__codelineno-9-12" name="__codelineno-9-12" href="#__codelineno-9-12"></a>  Probe 2c — instruction re-generation (generate_question)     max 1 call
 <a id="__codelineno-9-13" name="__codelineno-9-13" href="#__codelineno-9-13"></a>    passes gate     → INSTRUCTION_QUALITY
@@ -2678,7 +2678,7 @@ Normalises <code>from</code>/<code>value</code> → <code>role</code>/<code>cont
 <h2 id="yaml-schema-reference">YAML schema reference<a class="headerlink" href="#yaml-schema-reference" title="Permanent link">&para;</a></h2>
 <p>Validated by <code>PipelineConfig</code> in <code>curatorkit/config.py</code> (pydantic) at CLI startup — a malformed config fails immediately with a clear error, not mid-pipeline. See <a href="../cli/">CLI and YAML</a> for the complete per-key reference.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">curatorkit_pipeline</span>
-<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="nt">version</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;0.2.0&quot;</span>
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="nt">version</span><span class="p">:</span><span class="w"> </span><span class="s">"0.2.0"</span>
 <a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>
 <a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="nt">max_samples</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span><span class="w">              </span><span class="c1"># cap on total samples, applied right after readers</span>
 <a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="nt">output_split</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span><span class="w">             </span><span class="c1"># e.g. {train: 0.8, val: 0.1, test: 0.1}; fractions sum to 1.0</span>
@@ -2695,7 +2695,7 @@ Normalises <code>from</code>/<code>value</code> → <code>role</code>/<code>cont
 <a id="__codelineno-10-16" name="__codelineno-10-16" href="#__codelineno-10-16"></a><span class="w">      </span><span class="nt">source_key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">canonical_key</span>
 <a id="__codelineno-10-17" name="__codelineno-10-17" href="#__codelineno-10-17"></a><span class="w">      </span><span class="nt">nested.source.key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">canonical_key</span>
 <a id="__codelineno-10-18" name="__codelineno-10-18" href="#__codelineno-10-18"></a>
-<a id="__codelineno-10-19" name="__codelineno-10-19" href="#__codelineno-10-19"></a><span class="w">    </span><span class="nt">preprocessing_fn</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;mymodule.my_fn&quot;</span>
+<a id="__codelineno-10-19" name="__codelineno-10-19" href="#__codelineno-10-19"></a><span class="w">    </span><span class="nt">preprocessing_fn</span><span class="p">:</span><span class="w"> </span><span class="s">"mymodule.my_fn"</span>
 <a id="__codelineno-10-20" name="__codelineno-10-20" href="#__codelineno-10-20"></a><span class="w">    </span><span class="nt">detection_sample_size</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10</span>
 <a id="__codelineno-10-21" name="__codelineno-10-21" href="#__codelineno-10-21"></a><span class="w">    </span><span class="nt">source_uri</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span><span class="w">                 </span><span class="c1"># provenance override</span>
 <a id="__codelineno-10-22" name="__codelineno-10-22" href="#__codelineno-10-22"></a>
@@ -2712,7 +2712,7 @@ Normalises <code>from</code>/<code>value</code> → <code>role</code>/<code>cont
 <a id="__codelineno-10-33" name="__codelineno-10-33" href="#__codelineno-10-33"></a><span class="w">    </span><span class="nt">hf_split</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">train</span>
 <a id="__codelineno-10-34" name="__codelineno-10-34" href="#__codelineno-10-34"></a><span class="w">    </span><span class="nt">hf_subset</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
 <a id="__codelineno-10-35" name="__codelineno-10-35" href="#__codelineno-10-35"></a><span class="w">    </span><span class="nt">hf_streaming</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
-<a id="__codelineno-10-36" name="__codelineno-10-36" href="#__codelineno-10-36"></a><span class="w">    </span><span class="nt">hf_token</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;${HF_TOKEN}&quot;</span>
+<a id="__codelineno-10-36" name="__codelineno-10-36" href="#__codelineno-10-36"></a><span class="w">    </span><span class="nt">hf_token</span><span class="p">:</span><span class="w"> </span><span class="s">"${HF_TOKEN}"</span>
 <a id="__codelineno-10-37" name="__codelineno-10-37" href="#__codelineno-10-37"></a><span class="w">    </span><span class="nt">hf_columns</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
 <a id="__codelineno-10-38" name="__codelineno-10-38" href="#__codelineno-10-38"></a>
 <a id="__codelineno-10-39" name="__codelineno-10-39" href="#__codelineno-10-39"></a><span class="w">    </span><span class="c1"># PDF-specific</span>
@@ -2817,7 +2817,7 @@ Normalises <code>from</code>/<code>value</code> → <code>role</code>/<code>cont
 <a id="__codelineno-10-138" name="__codelineno-10-138" href="#__codelineno-10-138"></a><span class="nt">diagnostic</span><span class="p">:</span><span class="w">                          </span><span class="c1"># diagnostic probe (opt-in)</span>
 <a id="__codelineno-10-139" name="__codelineno-10-139" href="#__codelineno-10-139"></a><span class="w">  </span><span class="nt">enable_probe</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
 <a id="__codelineno-10-140" name="__codelineno-10-140" href="#__codelineno-10-140"></a><span class="w">  </span><span class="nt">probe_temperatures</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">0.3</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">0.5</span><span class="p p-Indicator">]</span>
-<a id="__codelineno-10-141" name="__codelineno-10-141" href="#__codelineno-10-141"></a><span class="w">  </span><span class="nt">probe_generator_model</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span><span class="w">        </span><span class="c1"># null = gate&#39;s LLM model</span>
+<a id="__codelineno-10-141" name="__codelineno-10-141" href="#__codelineno-10-141"></a><span class="w">  </span><span class="nt">probe_generator_model</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span><span class="w">        </span><span class="c1"># null = gate's LLM model</span>
 <a id="__codelineno-10-142" name="__codelineno-10-142" href="#__codelineno-10-142"></a><span class="w">  </span><span class="nt">score_split</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.5</span>
 <a id="__codelineno-10-143" name="__codelineno-10-143" href="#__codelineno-10-143"></a><span class="w">  </span><span class="nt">extra_templates</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{}</span><span class="w">                </span><span class="c1"># override built-in probe prompt templates</span>
 <a id="__codelineno-10-144" name="__codelineno-10-144" href="#__codelineno-10-144"></a>

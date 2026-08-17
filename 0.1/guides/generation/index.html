@@ -1364,15 +1364,15 @@
 <a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>{source_text}
 <a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>---
 <a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>
-<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>Return JSON: [{&quot;question&quot;: &quot;...&quot;, &quot;answer&quot;: &quot;...&quot;}, ...]
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>Return JSON: [{"question": "...", "answer": "..."}, ...]
 </code></pre></div></p>
 <p><strong>Output fields:</strong> <code>instruction=question</code>, <code>input=source_text</code>, <code>output=answer</code></p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">CuratorConfig</span><span class="p">(</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>    <span class="n">dataset</span>          <span class="o">=</span> <span class="s2">&quot;docs/handbook.pdf&quot;</span><span class="p">,</span>
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    <span class="n">llm_model</span>        <span class="o">=</span> <span class="s2">&quot;openai/gpt-4o-mini&quot;</span><span class="p">,</span>
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>    <span class="n">generation_task</span>  <span class="o">=</span> <span class="s2">&quot;qa&quot;</span><span class="p">,</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>    <span class="n">dataset</span>          <span class="o">=</span> <span class="s2">"docs/handbook.pdf"</span><span class="p">,</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    <span class="n">llm_model</span>        <span class="o">=</span> <span class="s2">"openai/gpt-4o-mini"</span><span class="p">,</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>    <span class="n">generation_task</span>  <span class="o">=</span> <span class="s2">"qa"</span><span class="p">,</span>
 <a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>    <span class="n">num_questions</span>    <span class="o">=</span> <span class="mi">3</span><span class="p">,</span>
-<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>    <span class="n">difficulty</span>       <span class="o">=</span> <span class="s2">&quot;medium&quot;</span><span class="p">,</span>    <span class="c1"># &quot;easy&quot; | &quot;medium&quot; | &quot;hard&quot;</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>    <span class="n">difficulty</span>       <span class="o">=</span> <span class="s2">"medium"</span><span class="p">,</span>    <span class="c1"># "easy" | "medium" | "hard"</span>
 <a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="p">)</span>
 </code></pre></div>
 <hr />
@@ -1392,17 +1392,17 @@
 <a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>{source_text}
 <a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>---
 <a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a>
-<a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a>Return JSON: {&quot;question&quot;: &quot;...&quot;, &quot;chosen&quot;: &quot;...&quot;, &quot;rejected&quot;: &quot;...&quot;, &quot;degradation_pattern&quot;: &quot;...&quot;}
+<a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a>Return JSON: {"question": "...", "chosen": "...", "rejected": "...", "degradation_pattern": "..."}
 </code></pre></div></p>
 <p><strong>Output fields:</strong> <code>instruction=question</code>, <code>input=source_text</code>, <code>chosen=chosen</code>, <code>rejected=rejected</code></p>
 <p><strong>Two generation modes:</strong>
 - <code>single_call</code> (default) — one LLM call generates question + chosen + rejected together
 - <code>two_pass</code> — separate LLM calls for chosen and rejected; rejected generated at <code>temperature + 0.3</code></p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="n">CuratorConfig</span><span class="p">(</span>
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>    <span class="n">dataset</span>          <span class="o">=</span> <span class="s2">&quot;docs/handbook.pdf&quot;</span><span class="p">,</span>
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>    <span class="n">llm_model</span>        <span class="o">=</span> <span class="s2">&quot;openai/gpt-4o-mini&quot;</span><span class="p">,</span>
-<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    <span class="n">generation_task</span>  <span class="o">=</span> <span class="s2">&quot;preference&quot;</span><span class="p">,</span>
-<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>    <span class="n">preference_mode</span>  <span class="o">=</span> <span class="s2">&quot;single_call&quot;</span><span class="p">,</span>   <span class="c1"># or &quot;two_pass&quot;</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>    <span class="n">dataset</span>          <span class="o">=</span> <span class="s2">"docs/handbook.pdf"</span><span class="p">,</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>    <span class="n">llm_model</span>        <span class="o">=</span> <span class="s2">"openai/gpt-4o-mini"</span><span class="p">,</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    <span class="n">generation_task</span>  <span class="o">=</span> <span class="s2">"preference"</span><span class="p">,</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>    <span class="n">preference_mode</span>  <span class="o">=</span> <span class="s2">"single_call"</span><span class="p">,</span>   <span class="c1"># or "two_pass"</span>
 <a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="p">)</span>
 </code></pre></div>
 <p><strong>Note on RewardGate with preference pairs:</strong> The gate dual-scores — <code>chosen_score &gt;= threshold</code> AND <code>rejected_score &lt; threshold</code>. If <code>rejected_score &gt;= threshold</code> (rejected response too good), the pair fails with <code>rejected_above_threshold</code>. This is a generation contrast problem, not a gate issue. See <a href="../quality-gates/">Quality filtering</a>.</p>
@@ -1414,9 +1414,9 @@
 2. <code>grpo_temperature_spread</code> — evenly-spaced range around <code>llm_temperature</code>; default <code>0.0</code> (all same)
 3. Fallback — all rollouts at <code>llm_temperature</code></p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="n">CuratorConfig</span><span class="p">(</span>
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>    <span class="n">dataset</span>              <span class="o">=</span> <span class="s2">&quot;data/prompts.jsonl&quot;</span><span class="p">,</span>
-<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>    <span class="n">llm_model</span>            <span class="o">=</span> <span class="s2">&quot;openai/gpt-4o-mini&quot;</span><span class="p">,</span>
-<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>    <span class="n">generation_task</span>      <span class="o">=</span> <span class="s2">&quot;grpo&quot;</span><span class="p">,</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>    <span class="n">dataset</span>              <span class="o">=</span> <span class="s2">"data/prompts.jsonl"</span><span class="p">,</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>    <span class="n">llm_model</span>            <span class="o">=</span> <span class="s2">"openai/gpt-4o-mini"</span><span class="p">,</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>    <span class="n">generation_task</span>      <span class="o">=</span> <span class="s2">"grpo"</span><span class="p">,</span>
 <a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>    <span class="n">num_responses</span>        <span class="o">=</span> <span class="mi">6</span><span class="p">,</span>
 <a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>    <span class="n">grpo_temperatures</span>    <span class="o">=</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.3</span><span class="p">,</span> <span class="mf">0.6</span><span class="p">,</span> <span class="mf">0.9</span><span class="p">,</span> <span class="mf">1.2</span><span class="p">,</span> <span class="mf">1.5</span><span class="p">],</span>  <span class="c1"># one per rollout</span>
 <a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>    <span class="n">score_responses</span>      <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
@@ -1433,7 +1433,7 @@
 <a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>Source: {source_text}
 </code></pre></div></p>
 <p><em>Assistant turns:</em>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>Answer the user&#39;s question based on the source passage.
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>Answer the user's question based on the source passage.
 <a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>Source: {source_text}
 <a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>Conversation so far: {prior_turns}
 <a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>Answer the latest question (2-5 sentences, grounded in the passage).
@@ -1445,9 +1445,9 @@
 </code></pre></div></p>
 <p><strong>LLM calls:</strong> <code>2 × num_turns</code> in turn_by_turn mode (sequential within a sample, concurrent across samples). For a single-call cheaper alternative, construct <code>MultiTurnTask(mode="single_call")</code> directly (quality degrades at &gt;4 turns); this mode is not exposed through <code>CuratorConfig</code>.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="n">CuratorConfig</span><span class="p">(</span>
-<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>    <span class="n">dataset</span>          <span class="o">=</span> <span class="s2">&quot;docs/handbook.pdf&quot;</span><span class="p">,</span>
-<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>    <span class="n">llm_model</span>        <span class="o">=</span> <span class="s2">&quot;openai/gpt-4o-mini&quot;</span><span class="p">,</span>
-<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>    <span class="n">generation_task</span>  <span class="o">=</span> <span class="s2">&quot;multiturn&quot;</span><span class="p">,</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>    <span class="n">dataset</span>          <span class="o">=</span> <span class="s2">"docs/handbook.pdf"</span><span class="p">,</span>
+<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>    <span class="n">llm_model</span>        <span class="o">=</span> <span class="s2">"openai/gpt-4o-mini"</span><span class="p">,</span>
+<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>    <span class="n">generation_task</span>  <span class="o">=</span> <span class="s2">"multiturn"</span><span class="p">,</span>
 <a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>    <span class="n">num_turns</span>        <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
 <a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="p">)</span>
 </code></pre></div>
@@ -1487,15 +1487,15 @@
 </tbody>
 </table>
 <p><strong>Prompt structure:</strong>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>Evolve this instruction using the &quot;{strategy}&quot; strategy.
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>Evolve this instruction using the "{strategy}" strategy.
 <a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>Original: {instruction}
 <a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>[Source passage if corpus mode: {source_text}]
-<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>Return JSON: {&quot;evolved_instruction&quot;: &quot;...&quot;, &quot;strategy_applied&quot;: &quot;...&quot;, &quot;complexity_notes&quot;: &quot;...&quot;}
+<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>Return JSON: {"evolved_instruction": "...", "strategy_applied": "...", "complexity_notes": "..."}
 </code></pre></div></p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="n">CuratorConfig</span><span class="p">(</span>
-<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>    <span class="n">dataset</span>          <span class="o">=</span> <span class="s2">&quot;data/instructions.jsonl&quot;</span><span class="p">,</span>
-<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>    <span class="n">llm_model</span>        <span class="o">=</span> <span class="s2">&quot;openai/gpt-4o-mini&quot;</span><span class="p">,</span>
-<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>    <span class="n">generation_task</span>  <span class="o">=</span> <span class="s2">&quot;evol&quot;</span><span class="p">,</span>
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>    <span class="n">dataset</span>          <span class="o">=</span> <span class="s2">"data/instructions.jsonl"</span><span class="p">,</span>
+<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>    <span class="n">llm_model</span>        <span class="o">=</span> <span class="s2">"openai/gpt-4o-mini"</span><span class="p">,</span>
+<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>    <span class="n">generation_task</span>  <span class="o">=</span> <span class="s2">"evol"</span><span class="p">,</span>
 <a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>    <span class="n">num_evolutions</span>   <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>         <span class="c1"># 2 variants per input, cycling strategies</span>
 <a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a>    <span class="n">generate_answers</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>      <span class="c1"># second LLM call to answer the evolved instruction</span>
 <a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a><span class="p">)</span>
@@ -1515,14 +1515,14 @@
 <div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>Given this instruction and its correct answer, generate the reasoning that leads to it.
 <a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>Instruction: {instruction}
 <a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>Correct answer: {answer}
-<a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a>Return JSON: {&quot;reasoning&quot;: &quot;...&quot;, &quot;answer&quot;: &quot;...&quot;}
+<a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a>Return JSON: {"reasoning": "...", "answer": "..."}
 </code></pre></div></p>
 <p>Use <code>wrap</code> to add CoT to an existing dataset. Use <code>generate</code> for synthetic CoT from scratch.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="n">CuratorConfig</span><span class="p">(</span>
-<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>    <span class="n">dataset</span>          <span class="o">=</span> <span class="s2">&quot;data/math.jsonl&quot;</span><span class="p">,</span>
-<a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>    <span class="n">llm_model</span>        <span class="o">=</span> <span class="s2">&quot;openai/gpt-4o-mini&quot;</span><span class="p">,</span>
-<a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a>    <span class="n">generation_task</span>  <span class="o">=</span> <span class="s2">&quot;cot&quot;</span><span class="p">,</span>
-<a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a>    <span class="n">cot_mode</span>         <span class="o">=</span> <span class="s2">&quot;generate&quot;</span><span class="p">,</span>   <span class="c1"># or &quot;wrap&quot;</span>
+<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>    <span class="n">dataset</span>          <span class="o">=</span> <span class="s2">"data/math.jsonl"</span><span class="p">,</span>
+<a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>    <span class="n">llm_model</span>        <span class="o">=</span> <span class="s2">"openai/gpt-4o-mini"</span><span class="p">,</span>
+<a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a>    <span class="n">generation_task</span>  <span class="o">=</span> <span class="s2">"cot"</span><span class="p">,</span>
+<a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a>    <span class="n">cot_mode</span>         <span class="o">=</span> <span class="s2">"generate"</span><span class="p">,</span>   <span class="c1"># or "wrap"</span>
 <a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a><span class="p">)</span>
 </code></pre></div>
 <p><strong>Output fields:</strong> <code>instruction=instruction</code>, <code>input=source_text</code>, <code>output="## Reasoning\n...\n## Answer\n..."</code></p>
@@ -1557,11 +1557,11 @@
 </tbody>
 </table>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="n">CuratorConfig</span><span class="p">(</span>
-<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>    <span class="n">dataset</span>          <span class="o">=</span> <span class="s2">&quot;docs/handbook.pdf&quot;</span><span class="p">,</span>
-<a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a>    <span class="n">llm_model</span>        <span class="o">=</span> <span class="s2">&quot;openai/gpt-4o-mini&quot;</span><span class="p">,</span>
-<a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a>    <span class="n">generation_task</span>  <span class="o">=</span> <span class="s2">&quot;adversarial_preference&quot;</span><span class="p">,</span>
+<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>    <span class="n">dataset</span>          <span class="o">=</span> <span class="s2">"docs/handbook.pdf"</span><span class="p">,</span>
+<a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a>    <span class="n">llm_model</span>        <span class="o">=</span> <span class="s2">"openai/gpt-4o-mini"</span><span class="p">,</span>
+<a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a>    <span class="n">generation_task</span>  <span class="o">=</span> <span class="s2">"adversarial_preference"</span><span class="p">,</span>
 <a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a>    <span class="n">injection_rate</span>   <span class="o">=</span> <span class="mf">0.3</span><span class="p">,</span>
-<a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a>    <span class="n">injection_types</span>  <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;contradicts_source&quot;</span><span class="p">,</span> <span class="s2">&quot;parametric_drift&quot;</span><span class="p">],</span>   <span class="c1"># empty list = all types</span>
+<a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a>    <span class="n">injection_types</span>  <span class="o">=</span> <span class="p">[</span><span class="s2">"contradicts_source"</span><span class="p">,</span> <span class="s2">"parametric_drift"</span><span class="p">],</span>   <span class="c1"># empty list = all types</span>
 <a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a>    <span class="n">injection_seed</span>   <span class="o">=</span> <span class="mi">42</span><span class="p">,</span>
 <a id="__codelineno-14-8" name="__codelineno-14-8" href="#__codelineno-14-8"></a><span class="p">)</span>
 </code></pre></div>
@@ -1607,31 +1607,31 @@
 </tbody>
 </table>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="n">CuratorConfig</span><span class="p">(</span>
-<a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>    <span class="n">dataset</span>          <span class="o">=</span> <span class="s2">&quot;docs/handbook.pdf&quot;</span><span class="p">,</span>
-<a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a>    <span class="n">llm_model</span>        <span class="o">=</span> <span class="s2">&quot;openai/gpt-4o-mini&quot;</span><span class="p">,</span>
-<a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a>    <span class="n">generation_task</span>  <span class="o">=</span> <span class="s2">&quot;adversarial_qa&quot;</span><span class="p">,</span>
+<a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>    <span class="n">dataset</span>          <span class="o">=</span> <span class="s2">"docs/handbook.pdf"</span><span class="p">,</span>
+<a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a>    <span class="n">llm_model</span>        <span class="o">=</span> <span class="s2">"openai/gpt-4o-mini"</span><span class="p">,</span>
+<a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a>    <span class="n">generation_task</span>  <span class="o">=</span> <span class="s2">"adversarial_qa"</span><span class="p">,</span>
 <a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a>    <span class="n">injection_rate</span>   <span class="o">=</span> <span class="mf">0.4</span><span class="p">,</span>
 <a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a>    <span class="n">injection_types</span>  <span class="o">=</span> <span class="p">[],</span>   <span class="c1"># empty = all five types; or pick specific ones</span>
 <a id="__codelineno-15-7" name="__codelineno-15-7" href="#__codelineno-15-7"></a>    <span class="n">num_questions</span>    <span class="o">=</span> <span class="mi">3</span><span class="p">,</span>
-<a id="__codelineno-15-8" name="__codelineno-15-8" href="#__codelineno-15-8"></a>    <span class="n">difficulty</span>       <span class="o">=</span> <span class="s2">&quot;medium&quot;</span><span class="p">,</span>
+<a id="__codelineno-15-8" name="__codelineno-15-8" href="#__codelineno-15-8"></a>    <span class="n">difficulty</span>       <span class="o">=</span> <span class="s2">"medium"</span><span class="p">,</span>
 <a id="__codelineno-15-9" name="__codelineno-15-9" href="#__codelineno-15-9"></a><span class="p">)</span>
 </code></pre></div>
 <p><strong>Output fields:</strong> <code>instruction=question</code>, <code>input=source_text</code>, <code>output=answer</code>, <code>metadata['injected_failure']=True/False</code>, <code>metadata['injection_type']=str</code></p>
 <hr />
 <h2 id="llm-configuration">LLM configuration<a class="headerlink" href="#llm-configuration" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="n">CuratorConfig</span><span class="p">(</span>
-<a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>    <span class="n">llm_model</span>        <span class="o">=</span> <span class="s2">&quot;openai/gpt-4o-mini&quot;</span><span class="p">,</span>   <span class="c1"># any LiteLLM model string</span>
+<a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>    <span class="n">llm_model</span>        <span class="o">=</span> <span class="s2">"openai/gpt-4o-mini"</span><span class="p">,</span>   <span class="c1"># any LiteLLM model string</span>
 <a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a>    <span class="n">llm_temperature</span>  <span class="o">=</span> <span class="mf">0.7</span><span class="p">,</span>
 <a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a>    <span class="n">llm_max_tokens</span>   <span class="o">=</span> <span class="mi">1024</span><span class="p">,</span>
 <a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a>    <span class="n">llm_concurrency</span>  <span class="o">=</span> <span class="mi">10</span><span class="p">,</span>                     <span class="c1"># concurrent LLM calls</span>
-<a id="__codelineno-16-6" name="__codelineno-16-6" href="#__codelineno-16-6"></a>    <span class="n">llm_api_base</span>     <span class="o">=</span> <span class="s2">&quot;http://localhost:8000/v1&quot;</span><span class="p">,</span>  <span class="c1"># vLLM, Ollama, custom endpoints</span>
-<a id="__codelineno-16-7" name="__codelineno-16-7" href="#__codelineno-16-7"></a>    <span class="n">llm_api_key</span>      <span class="o">=</span> <span class="s2">&quot;sk-...&quot;</span><span class="p">,</span>               <span class="c1"># or set via env var</span>
-<a id="__codelineno-16-8" name="__codelineno-16-8" href="#__codelineno-16-8"></a>    <span class="n">llm_extra_body</span>   <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;chat_template_kwargs&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;enable_thinking&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">}},</span>
+<a id="__codelineno-16-6" name="__codelineno-16-6" href="#__codelineno-16-6"></a>    <span class="n">llm_api_base</span>     <span class="o">=</span> <span class="s2">"http://localhost:8000/v1"</span><span class="p">,</span>  <span class="c1"># vLLM, Ollama, custom endpoints</span>
+<a id="__codelineno-16-7" name="__codelineno-16-7" href="#__codelineno-16-7"></a>    <span class="n">llm_api_key</span>      <span class="o">=</span> <span class="s2">"sk-..."</span><span class="p">,</span>               <span class="c1"># or set via env var</span>
+<a id="__codelineno-16-8" name="__codelineno-16-8" href="#__codelineno-16-8"></a>    <span class="n">llm_extra_body</span>   <span class="o">=</span> <span class="p">{</span><span class="s2">"chat_template_kwargs"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"enable_thinking"</span><span class="p">:</span> <span class="kc">False</span><span class="p">}},</span>
 <a id="__codelineno-16-9" name="__codelineno-16-9" href="#__codelineno-16-9"></a><span class="p">)</span>
 </code></pre></div>
 <p>For a separate judge model (recommended for gates):
 <div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="n">CuratorConfig</span><span class="p">(</span>
-<a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a>    <span class="n">judge_llm_model</span>      <span class="o">=</span> <span class="s2">&quot;openai/gpt-4o&quot;</span><span class="p">,</span>    <span class="c1"># stronger/different model for judging</span>
+<a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a>    <span class="n">judge_llm_model</span>      <span class="o">=</span> <span class="s2">"openai/gpt-4o"</span><span class="p">,</span>    <span class="c1"># stronger/different model for judging</span>
 <a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a>    <span class="n">judge_llm_api_base</span>   <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>               <span class="c1"># separate endpoint if needed</span>
 <a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a>    <span class="n">judge_llm_temperature</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span>               <span class="c1"># low temp for deterministic judgements</span>
 <a id="__codelineno-17-5" name="__codelineno-17-5" href="#__codelineno-17-5"></a><span class="p">)</span>

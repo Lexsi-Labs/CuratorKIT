@@ -1331,7 +1331,7 @@
 <p>Verifies that each generated answer is grounded in its source text using an LLM judge (CheckEval-style). Only fires when <code>hallucination_threshold</code> is set.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="n">CuratorConfig</span><span class="p">(</span>
 <a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>    <span class="n">hallucination_threshold</span> <span class="o">=</span> <span class="mf">0.7</span><span class="p">,</span>    <span class="c1"># None = gate off</span>
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>    <span class="n">judge_llm_model</span>         <span class="o">=</span> <span class="s2">&quot;openai/gpt-4o&quot;</span><span class="p">,</span>   <span class="c1"># recommended: different from generator</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>    <span class="n">judge_llm_model</span>         <span class="o">=</span> <span class="s2">"openai/gpt-4o"</span><span class="p">,</span>   <span class="c1"># recommended: different from generator</span>
 <a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="p">)</span>
 </code></pre></div>
 <p><strong>What it checks:</strong> The judge receives <code>source_text</code> (from <code>sample.input</code>) and <code>answer</code> (from <code>sample.output</code> or <code>sample.chosen</code>) and scores grounding 0.0–1.0.</p>
@@ -1345,8 +1345,8 @@
 <p>Scores response quality across configurable dimensions using an LLM judge (UltraFeedback rubric). Only fires when <code>reward_threshold</code> is set.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="n">CuratorConfig</span><span class="p">(</span>
 <a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>    <span class="n">reward_threshold</span>   <span class="o">=</span> <span class="mf">0.7</span><span class="p">,</span>     <span class="c1"># None = gate off</span>
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>    <span class="n">reward_dimensions</span>  <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;helpfulness&quot;</span><span class="p">,</span> <span class="s2">&quot;honesty&quot;</span><span class="p">,</span> <span class="s2">&quot;instruction_following&quot;</span><span class="p">,</span> <span class="s2">&quot;depth&quot;</span><span class="p">],</span>
-<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    <span class="n">judge_llm_model</span>    <span class="o">=</span> <span class="s2">&quot;openai/gpt-4o&quot;</span><span class="p">,</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>    <span class="n">reward_dimensions</span>  <span class="o">=</span> <span class="p">[</span><span class="s2">"helpfulness"</span><span class="p">,</span> <span class="s2">"honesty"</span><span class="p">,</span> <span class="s2">"instruction_following"</span><span class="p">,</span> <span class="s2">"depth"</span><span class="p">],</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    <span class="n">judge_llm_model</span>    <span class="o">=</span> <span class="s2">"openai/gpt-4o"</span><span class="p">,</span>
 <a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="p">)</span>
 </code></pre></div>
 <p><strong>Available dimensions</strong> (all built-in, no custom strings):</p>
@@ -1427,8 +1427,8 @@
 <a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>    <span class="c1"># None = gate off. Samples with similarity ABOVE this value are rejected,</span>
 <a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>    <span class="c1"># so a lower threshold rejects more (stricter).</span>
 <a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>    <span class="n">diversity_threshold</span> <span class="o">=</span> <span class="mf">0.92</span><span class="p">,</span>
-<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>    <span class="n">embedding_model</span>     <span class="o">=</span> <span class="s2">&quot;sentence-transformers/all-MiniLM-L6-v2&quot;</span><span class="p">,</span>
-<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>    <span class="n">embedding_device</span>    <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>   <span class="c1"># &quot;cuda&quot; | &quot;cpu&quot; | None (auto-detect)</span>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>    <span class="n">embedding_model</span>     <span class="o">=</span> <span class="s2">"sentence-transformers/all-MiniLM-L6-v2"</span><span class="p">,</span>
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>    <span class="n">embedding_device</span>    <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>   <span class="c1"># "cuda" | "cpu" | None (auto-detect)</span>
 <a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="p">)</span>
 </code></pre></div>
 <p><strong>What text is embedded</strong> (automatic by <code>task_type</code>):
@@ -1443,7 +1443,7 @@
 <p>Separate from DiversityGate — this persists an embedding index across multiple runs so you can deduplicate against previously generated data.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="n">CuratorConfig</span><span class="p">(</span>
 <a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>    <span class="n">embedding_dedup</span>           <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>    <span class="n">embedding_index_dir</span>       <span class="o">=</span> <span class="s2">&quot;output/embedding_index&quot;</span><span class="p">,</span>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>    <span class="n">embedding_index_dir</span>       <span class="o">=</span> <span class="s2">"output/embedding_index"</span><span class="p">,</span>
 <a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>    <span class="n">embedding_dedup_threshold</span> <span class="o">=</span> <span class="mf">0.92</span><span class="p">,</span>
 <a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>    <span class="n">embedding_reset_index</span>     <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>   <span class="c1"># True = start fresh</span>
 <a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="p">)</span>
@@ -1451,12 +1451,12 @@
 <hr />
 <h2 id="combining-gates">Combining gates<a class="headerlink" href="#combining-gates" title="Permanent link">&para;</a></h2>
 <p>All three gates can run together. Each one's rejects are independent — a sample that fails HallucinationGate never reaches RewardGate. Read per-gate counts in <code>result.stage_counts</code>:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="n">result</span><span class="o">.</span><span class="n">stage_counts</span><span class="p">[</span><span class="s2">&quot;HallucinationGate&quot;</span><span class="p">]</span>
-<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="c1"># {&quot;input_count&quot;: 2850, &quot;output_count&quot;: 2210, &quot;probe_recovered&quot;: 0, &quot;rejected_count&quot;: 640}</span>
-<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="n">result</span><span class="o">.</span><span class="n">stage_counts</span><span class="p">[</span><span class="s2">&quot;RewardGate&quot;</span><span class="p">]</span>
-<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="c1"># {&quot;input_count&quot;: 2210, &quot;output_count&quot;: 1890, &quot;probe_recovered&quot;: 0, &quot;rejected_count&quot;: 320}</span>
-<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="n">result</span><span class="o">.</span><span class="n">stage_counts</span><span class="p">[</span><span class="s2">&quot;DiversityGate&quot;</span><span class="p">]</span>
-<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="c1"># {&quot;input_count&quot;: 1890, &quot;output_count&quot;: 1740, &quot;probe_recovered&quot;: 0, &quot;rejected_count&quot;: 150}</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="n">result</span><span class="o">.</span><span class="n">stage_counts</span><span class="p">[</span><span class="s2">"HallucinationGate"</span><span class="p">]</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="c1"># {"input_count": 2850, "output_count": 2210, "probe_recovered": 0, "rejected_count": 640}</span>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="n">result</span><span class="o">.</span><span class="n">stage_counts</span><span class="p">[</span><span class="s2">"RewardGate"</span><span class="p">]</span>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="c1"># {"input_count": 2210, "output_count": 1890, "probe_recovered": 0, "rejected_count": 320}</span>
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="n">result</span><span class="o">.</span><span class="n">stage_counts</span><span class="p">[</span><span class="s2">"DiversityGate"</span><span class="p">]</span>
+<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="c1"># {"input_count": 1890, "output_count": 1740, "probe_recovered": 0, "rejected_count": 150}</span>
 </code></pre></div>
 <p>(<code>probe_recovered</code> is non-zero when the <a href="../adaptive-recovery/">diagnostic probe</a> is enabled and recovers samples inline.)</p>
 <hr />
