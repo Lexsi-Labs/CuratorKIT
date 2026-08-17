@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Create a version bump commit, tag it, and publish a GitHub release."""
+"""Tag the version already committed to main and publish a GitHub release."""
 
 from __future__ import annotations
 
@@ -11,7 +11,6 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 INIT_FILE = ROOT / "curatorkit" / "__init__.py"
-INITIAL_VERSION = "0.1.0"
 VERSION_RE = re.compile(r'^__version__ = "([^"]+)"$', re.MULTILINE)
 SEMVER_RE = re.compile(r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$")
 
@@ -35,15 +34,6 @@ def current_version() -> str:
     return match.group(1)
 
 
-def next_patch(version: str) -> str:
-    match = SEMVER_RE.fullmatch(version)
-    if not match:
-        raise SystemExit(f"Current version is not plain SemVer: {version}")
-
-    major, minor, patch = (int(part) for part in match.groups())
-    return f"{major}.{minor}.{patch + 1}"
-
-
 def validate_version(version: str) -> str:
     version = version.removeprefix("v").strip()
     if not SEMVER_RE.fullmatch(version):
@@ -59,20 +49,20 @@ def ensure_clean_worktree() -> None:
         raise SystemExit("Working tree must be clean before creating a release")
 
 
-def semver_tags() -> list[str]:
-    output = run(["git", "tag", "--list", "*.*.*", "--sort=-v:refname"], capture=True)
-    return [tag for tag in output.splitlines() if SEMVER_RE.fullmatch(tag)]
-
-
 def release_version(requested_version: str | None) -> str:
-    if requested_version:
-        return validate_version(requested_version)
+    package_version = validate_version(current_version())
+    if not requested_version:
+        return package_version
 
-    tags = semver_tags()
-    if tags:
-        return next_patch(tags[0])
+    requested_version = validate_version(requested_version)
+    if requested_version != package_version:
+        raise SystemExit(
+            f"Requested release version {requested_version} does not match "
+            f"package version {package_version}. Bump curatorkit/__init__.py "
+            "through a pull request first."
+        )
 
-    return INITIAL_VERSION
+    return requested_version
 
 
 def ensure_tag_available(version: str) -> None:
@@ -85,28 +75,19 @@ def ensure_tag_available(version: str) -> None:
         raise SystemExit(f"Tag already exists on origin: {version}")
 
 
-def write_version(version: str) -> bool:
-    text = INIT_FILE.read_text()
-    updated = VERSION_RE.sub(f'__version__ = "{version}"', text, count=1)
-    if text == updated:
-        return False
-    INIT_FILE.write_text(updated)
-    return True
-
-
 def configure_git_identity() -> None:
     run(["git", "config", "user.name", "github-actions[bot]"])
-    run(["git", "config", "user.email", "41898282+github-actions[bot]@users.noreply.github.com"])
+    run(
+        [
+            "git",
+            "config",
+            "user.email",
+            "41898282+github-actions[bot]@users.noreply.github.com",
+        ]
+    )
 
 
 def create_release(version: str) -> None:
-    changed = write_version(version)
-
-    if changed:
-        run(["git", "add", str(INIT_FILE.relative_to(ROOT))])
-        run(["git", "commit", "-m", f"Release {version} [skip ci]"])
-        run(["git", "push", "origin", "HEAD:main"])
-
     run(["git", "tag", "-a", version, "-m", f"Release {version}"])
     run(["git", "push", "origin", version])
     run(["gh", "release", "create", version, "--generate-notes", "--latest"])
@@ -116,7 +97,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--version",
-        help="Version to release, without a leading v. Defaults to the next patch version.",
+        help="Version to release. Defaults to the version in curatorkit/__init__.py.",
     )
     return parser.parse_args()
 

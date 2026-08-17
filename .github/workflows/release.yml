@@ -4,10 +4,12 @@ on:
   push:
     branches:
       - main
+    paths:
+      - "curatorkit/__init__.py"
   workflow_dispatch:
     inputs:
       version:
-        description: "Release version, for example 0.1.1. Leave blank to bump patch."
+        description: "Release version, for example 0.1.6. Defaults to the package version."
         required: false
         type: string
 
@@ -124,4 +126,3 @@ jobs:
             }
         env:
           SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
-
