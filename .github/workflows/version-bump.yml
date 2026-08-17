@@ -1,0 +1,87 @@
+name: Propose version bump
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: version-bump
+  cancel-in-progress: false
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+
+      - name: Decide whether to create a bump
+        id: decision
+        env:
+          BEFORE_SHA: ${{ github.event.before }}
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = "push" ] && \
+             ! git diff --quiet "$BEFORE_SHA" "$GITHUB_SHA" -- curatorkit/__init__.py; then
+            echo "The merged change already updates the package version; the release workflow will handle it."
+            echo "should_bump=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "should_bump=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Ensure the current version is released
+        if: steps.decision.outputs.should_bump == 'true'
+        id: current
+        run: |
+          CURRENT_VERSION="$(python -c 'import pathlib, re; print(re.search(r"^__version__ = \"([^\"]+)\"$", pathlib.Path("curatorkit/__init__.py").read_text(), re.MULTILINE).group(1))')"
+          if ! git ls-remote --exit-code --tags origin "refs/tags/$CURRENT_VERSION" >/dev/null; then
+            echo "Version $CURRENT_VERSION has not been released yet. Complete or rerun its release before creating another bump."
+            exit 1
+          fi
+          echo "version=$CURRENT_VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Check for an existing bump pull request
+        if: steps.decision.outputs.should_bump == 'true'
+        id: existing
+        env:
+          GH_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+        run: |
+          PR_NUMBER="$(gh pr list --base main --state open --json number,headRefName --jq '[.[] | select(.headRefName | startswith("release/bump-"))][0].number // empty')"
+          if [ -n "$PR_NUMBER" ]; then
+            echo "Version-bump pull request #$PR_NUMBER is already open."
+            echo "found=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "found=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Calculate next patch version
+        if: steps.decision.outputs.should_bump == 'true' && steps.existing.outputs.found == 'false'
+        id: bump
+        run: python .github/scripts/bump_version.py
+
+      - name: Create version-bump pull request
+        if: steps.decision.outputs.should_bump == 'true' && steps.existing.outputs.found == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+          VERSION: ${{ steps.bump.outputs.version }}
+        run: |
+          BRANCH="release/bump-$VERSION-$GITHUB_RUN_ID"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$BRANCH"
+          git add curatorkit/__init__.py
+          git commit -m "chore: bump version to $VERSION"
+          git push origin "HEAD:$BRANCH"
+          gh pr create \
+            --base main \
+            --head "$BRANCH" \
+            --title "chore: bump version to $VERSION" \
+            --body "Automated patch-version bump after changes were merged to main. Merging this PR will publish version $VERSION."
