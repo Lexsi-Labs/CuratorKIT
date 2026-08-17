@@ -263,3 +263,4 @@ CuratorKIT is part of the Lexsi Labs open-source stack:
 - **[AlignTune](https://github.com/Lexsi-Labs/aligntune)** fine-tunes with the data you curate here. CuratorKIT's Alpaca, DPO, GRPO, and PPO exports are AlignTune's native input formats.
 - **[TabTune](https://github.com/Lexsi-Labs/TabTune)** is a unified library for tabular foundation models.
 - **[DLBacktrace](https://github.com/Lexsi-Labs/DLBacktrace)** and **[xai_evals](https://github.com/Lexsi-Labs/xai_evals)** cover model interpretability and explanation evaluation.
+
