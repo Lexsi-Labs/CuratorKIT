@@ -1,6 +1,6 @@
 """CuratorKIT — data curation and synthesis for LLM post-training."""
 
-__version__ = "0.1.5"
+__version__ = "0.1.6"
 
 from curatorkit.checkpoint import CheckpointManager
 from curatorkit.connectors.csv_reader import CSVReader
