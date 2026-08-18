@@ -1,0 +1,357 @@
+name: Automated patch release
+
+on:
+  pull_request_target:
+    branches: [main]
+    types: [closed]
+  workflow_dispatch:
+
+concurrency:
+  group: curatorkit-patch-release
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  pull-requests: read
+
+env:
+  PYPI_PROJECT_NAME: curatorkit
+  PACKAGE_DISPLAY_NAME: CuratorKIT
+
+jobs:
+  plan:
+    name: Inspect release state
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    outputs:
+      action: ${{ steps.plan.outputs.action }}
+      version: ${{ steps.plan.outputs.version }}
+      state: ${{ steps.plan.outputs.state }}
+      reason: ${{ steps.plan.outputs.reason }}
+      source-ref: ${{ steps.plan.outputs.source-ref }}
+      tag-exists: ${{ steps.plan.outputs.tag-exists }}
+      release-exists: ${{ steps.plan.outputs.release-exists }}
+      pypi-exists: ${{ steps.plan.outputs.pypi-exists }}
+    steps:
+      - name: Check out the trusted merged source
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.merge_commit_sha || github.ref }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Classify trigger and external release state
+        id: plan
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT_NAME: ${{ github.event_name }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_sha=$(git rev-parse HEAD)
+          trigger=dispatch
+          requested_version=
+
+          if [[ "$EVENT_NAME" == "pull_request_target" ]]; then
+            trigger=normal
+          fi
+
+          latest_response=$(mktemp)
+          latest_status=$(curl --silent --show-error --location \
+            --header "Authorization: Bearer $GH_TOKEN" \
+            --header "Accept: application/vnd.github+json" \
+            --output "$latest_response" --write-out '%{http_code}' \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/releases/latest")
+          if [[ "$latest_status" == "200" ]]; then
+            latest_version=$(python -c \
+              'import json,sys; print(json.load(open(sys.argv[1]))["tag_name"])' \
+              "$latest_response")
+            requested_version=$(python -c \
+              'import sys; from scripts.release import next_patch; print(next_patch(sys.argv[1]))' \
+              "$latest_version")
+
+            if git show-ref --verify --quiet "refs/tags/$latest_version"; then
+              latest_commit=$(git rev-list -n 1 "$latest_version")
+              latest_parent=$(git rev-parse "$latest_commit^" 2>/dev/null || true)
+              if [[ "$latest_commit" == "$source_sha" || "$latest_parent" == "$source_sha" ]]; then
+                requested_version=$latest_version
+              fi
+            fi
+          elif [[ "$latest_status" == "404" ]]; then
+            requested_version=$(python scripts/release.py current-version)
+          else
+            echo "::error::Latest GitHub release lookup failed with HTTP $latest_status."
+            exit 1
+          fi
+
+          tag_exists=false
+          tag_annotated=true
+          tag_matches_source=true
+          source_ref=$source_sha
+          if git show-ref --verify --quiet "refs/tags/$requested_version"; then
+            tag_exists=true
+            source_ref="refs/tags/$requested_version"
+            if [[ "$(git cat-file -t "$requested_version")" != "tag" ]]; then
+              tag_annotated=false
+            fi
+            tag_commit=$(git rev-list -n 1 "$requested_version")
+            tag_parent=$(git rev-parse "$tag_commit^" 2>/dev/null || true)
+            if [[ "$tag_commit" != "$source_sha" && "$tag_parent" != "$source_sha" ]]; then
+              tag_matches_source=false
+            fi
+
+            version_tree=$(mktemp -d)
+            mkdir -p "$version_tree/curatorkit" "$version_tree/scripts"
+            cp scripts/release.py "$version_tree/scripts/release.py"
+            for version_file in curatorkit/__init__.py CITATION.cff; do
+              git show "$requested_version:$version_file" > "$version_tree/$version_file"
+            done
+            if ! (cd "$version_tree" && python scripts/release.py validate-version "$requested_version"); then
+              tag_matches_source=false
+            fi
+          fi
+
+          release_response=$(mktemp)
+          release_status=$(curl --silent --show-error --location \
+            --header "Authorization: Bearer $GH_TOKEN" \
+            --header "Accept: application/vnd.github+json" \
+            --output "$release_response" --write-out '%{http_code}' \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/releases/tags/$requested_version")
+          release_exists=false
+          release_matches_tag=true
+          if [[ "$release_status" == "200" ]]; then
+            release_exists=true
+            if ! python - "$release_response" "$requested_version" <<'PY'
+          import json
+          import sys
+
+          release = json.load(open(sys.argv[1], encoding="utf-8"))
+          expected = sys.argv[2]
+          valid = (
+              release.get("tag_name") == expected
+              and release.get("name") == expected
+              and isinstance(release.get("draft"), bool)
+              and release.get("prerelease") is False
+          )
+          raise SystemExit(0 if valid else 1)
+          PY
+            then
+              release_matches_tag=false
+            fi
+          elif [[ "$release_status" != "404" ]]; then
+            echo "::error::GitHub release lookup failed with HTTP $release_status."
+            exit 1
+          fi
+
+          pypi_response=$(mktemp)
+          pypi_status=$(curl --silent --show-error --location \
+            --output "$pypi_response" --write-out '%{http_code}' \
+            "https://pypi.org/pypi/$PYPI_PROJECT_NAME/$requested_version/json")
+          pypi_exists=false
+          if [[ "$pypi_status" == "200" ]]; then
+            pypi_exists=true
+            python - "$pypi_response" "$requested_version" <<'PY'
+          import json
+          import sys
+
+          payload = json.load(open(sys.argv[1], encoding="utf-8"))
+          if payload.get("info", {}).get("version") != sys.argv[2]:
+              raise SystemExit("PyPI returned metadata for an unexpected version")
+          PY
+          elif [[ "$pypi_status" != "404" ]]; then
+            echo "::error::PyPI lookup failed with HTTP $pypi_status."
+            exit 1
+          fi
+
+          decision=$(python scripts/release.py plan \
+            --trigger "$trigger" --version "$requested_version" \
+            --tag "$tag_exists" --release "$release_exists" --pypi "$pypi_exists" \
+            --tag-annotated "$tag_annotated" \
+            --tag-matches-source "$tag_matches_source" \
+            --release-matches-tag "$release_matches_tag")
+
+          action=$(python -c 'import json,sys; print(json.loads(sys.argv[1])["action"])' "$decision")
+          version=$(python -c 'import json,sys; print(json.loads(sys.argv[1])["version"])' "$decision")
+          state=$(python -c 'import json,sys; print(json.loads(sys.argv[1])["state"])' "$decision")
+          reason=$(python -c 'import json,sys; print(json.loads(sys.argv[1])["reason"])' "$decision")
+          {
+            echo "action=$action"
+            echo "version=$version"
+            echo "state=$state"
+            echo "reason=$reason"
+            echo "source-ref=$source_ref"
+            echo "tag-exists=$tag_exists"
+            echo "release-exists=$release_exists"
+            echo "pypi-exists=$pypi_exists"
+          } >> "$GITHUB_OUTPUT"
+          echo "Release decision: action=$action version=$version state=$state reason=$reason"
+
+  release:
+    name: Build, release, and publish
+    needs: plan
+    if: needs.plan.outputs.action == 'release'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      RELEASE_TAG: ${{ needs.plan.outputs.version }}
+    steps:
+      - name: Check out exact release source
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.plan.outputs.source-ref }}
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Prepare exact release version
+        shell: bash
+        run: |
+          set -euo pipefail
+          python scripts/release.py set-version "$RELEASE_TAG"
+          actual_files=$(git diff --name-only | sort)
+          unexpected_files=$(printf '%s\n' "$actual_files" | grep -Ev \
+            '^(CITATION\.cff|curatorkit/__init__\.py)$' || true)
+          if [[ -n "$unexpected_files" ]]; then
+            echo "::error::Version helper changed files outside the authoritative version set:"
+            echo "$unexpected_files"
+            exit 1
+          fi
+          if [[ -n "$actual_files" ]]; then
+            git config user.name github-actions[bot]
+            git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+            git add CITATION.cff curatorkit/__init__.py
+            git commit -m "Release $RELEASE_TAG"
+          fi
+          python scripts/release.py validate-version "$RELEASE_TAG"
+
+      # Tests are intentionally skipped in the release workflow to avoid delaying
+      # GitHub releases and PyPI publication.
+      # - name: Install project test dependencies
+      #   continue-on-error: true
+      #   run: python -m pip install -e ".[dev]"
+
+      # - name: Run project test suite (advisory)
+      #   continue-on-error: true
+      #   run: python -m pytest
+
+      - name: Install mandatory packaging tools
+        run: python -m pip install --upgrade build twine
+
+      - name: Build and validate distributions
+        run: |
+          python -m build
+          python -m twine check dist/*
+          python scripts/release.py validate-dist "$RELEASE_TAG" --project-name "$PYPI_PROJECT_NAME" dist/*
+
+      - name: Create or verify annotated tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected_sha=$(git rev-parse HEAD)
+          git fetch --force origin "refs/tags/$RELEASE_TAG:refs/tags/$RELEASE_TAG" 2>/dev/null || true
+          if git show-ref --verify --quiet "refs/tags/$RELEASE_TAG"; then
+            if [[ "$(git cat-file -t "$RELEASE_TAG")" != "tag" ]]; then
+              echo "::error::Existing $RELEASE_TAG is not an annotated tag."
+              exit 1
+            fi
+            if [[ "$(git rev-list -n 1 "$RELEASE_TAG")" != "$expected_sha" ]]; then
+              echo "::error::Existing $RELEASE_TAG points at a different commit; it will not be moved."
+              exit 1
+            fi
+          else
+            git config user.name github-actions[bot]
+            git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+            git tag --annotate "$RELEASE_TAG" --message "CuratorKIT $RELEASE_TAG"
+            git push origin "refs/tags/$RELEASE_TAG"
+          fi
+
+      - name: Create or verify GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if gh release view "$RELEASE_TAG" \
+            --json databaseId,tagName,name,isDraft,isPrerelease > release.json 2>/dev/null; then
+            release_state=$(python - "$RELEASE_TAG" <<'PY'
+          import json
+          import sys
+
+          release = json.load(open("release.json", encoding="utf-8"))
+          expected = sys.argv[1]
+          valid = (
+              release.get("tagName") == expected
+              and release.get("name") == expected
+              and isinstance(release.get("isDraft"), bool)
+              and release.get("isPrerelease") is False
+              and isinstance(release.get("databaseId"), int)
+          )
+          if not valid:
+              raise SystemExit(f"Existing GitHub release conflicts with {expected}: {release}")
+          print("draft" if release["isDraft"] else "published")
+          PY
+            )
+            if [[ "$release_state" == "draft" ]]; then
+              release_id=$(python -c 'import json; print(json.load(open("release.json"))["databaseId"])')
+              gh api --method PATCH "repos/$GITHUB_REPOSITORY/releases/$release_id" \
+                --field draft=false --silent
+              echo "Published existing draft GitHub release $RELEASE_TAG."
+            fi
+          else
+            gh release create "$RELEASE_TAG" --verify-tag --generate-notes --title "$RELEASE_TAG"
+          fi
+
+      - name: Publish the exact distributions to PyPI
+        if: needs.plan.outputs.pypi-exists == 'false'
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          : "${TWINE_PASSWORD:?PYPI_API_TOKEN is required to publish the release}"
+          python -m twine upload --non-interactive --verbose dist/*
+
+      - name: Send release notes to Slack
+        uses: slackapi/slack-github-action@v1.24.0
+        continue-on-error: true
+        with:
+          channel-id: "lexsi-labs-curator-kit-release" #${{ vars.SLACK_CHANNEL }}
+          payload: |
+            {
+              "text": "CuratorKIT release",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Version:* ${{ env.RELEASE_TAG }}"
+                  }
+                },
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Release:* https://github.com/${{ github.repository }}/releases/tag/${{ env.RELEASE_TAG }}"
+                  }
+                },
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*PyPI:* https://pypi.org/project/curatorkit/${{ env.RELEASE_TAG }}/"
+                  }
+                }
+              ]
+            }
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
