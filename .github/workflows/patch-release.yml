@@ -322,7 +322,7 @@ jobs:
           python -m twine upload --non-interactive --verbose dist/*
 
       - name: Send release notes to Slack
-        uses: slackapi/slack-github-action@v1.24.0
+        uses: slackapi/slack-github-action@v4.0.0
         continue-on-error: true
         with:
           channel-id: "lexsi-labs-curator-kit-release" #${{ vars.SLACK_CHANNEL }}
