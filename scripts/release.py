@@ -12,12 +12,11 @@ import json
 import re
 import tarfile
 import zipfile
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from email.parser import Parser
 from enum import Enum
 from pathlib import Path
-from typing import Iterable, Sequence
-
 
 SEMVER_PATTERN = re.compile(r"(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)")
 
