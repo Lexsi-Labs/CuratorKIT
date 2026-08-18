@@ -173,6 +173,101 @@ Used by HallucinationGate and RewardGate. Defaults to the generator LLM when not
 
 ---
 
+## Per-role LLM overrides (`LLMOverride`)
+
+CuratorConfig exposes one `LLMOverride` field per LLM "role": `generator_llm`, `judge_llm`,
+`hallucination_llm`, `reward_llm`, `toxicity_llm`, `grpo_scoring_llm`, `probe_llm`, `refiner_llm`.
+Each accepts a plain dict — it's coerced into an `LLMOverride` automatically — with any of ten
+fields: `model`, `api_base`, `api_key`, `temperature`, `max_tokens`, `timeout`, `max_retries`,
+`extra_body`, `drop_params`, `concurrency`. Leave a field unset (`None`) to inherit it from the next
+tier down.
+
+```python
+config = CuratorConfig(
+    dataset="my-dataset",
+    llm_model="openai/gpt-4o-mini",
+    hallucination_llm={"model": "openai/gpt-4o-mini", "temperature": 0.0, "max_tokens": 300},
+    toxicity_llm={"model": "openai/gpt-4o-mini", "temperature": 0.0},
+    refiner_llm={"temperature": 0.5, "concurrency": 8},
+)
+```
+
+**Resolution is a 3-tier cascade** — role-specific override → mid-tier bucket → terminal default:
+
+| Role | Mid-tier bucket | Terminal default (temperature / max_tokens) |
+|------|------------------|----------------------------------------------|
+| `generator_llm` | — (top of the generation branch) | `llm_temperature` / `llm_max_tokens` |
+| `judge_llm` | — (top of the judging branch) | `judge_llm_temperature` / `judge_llm_max_tokens` |
+| `hallucination_llm` | `judge_llm` | `0.1` / `512` |
+| `reward_llm` | `judge_llm` | `0.1` / `512` |
+| `toxicity_llm` | `judge_llm` | `0.1` / `200` |
+| `grpo_scoring_llm` | `judge_llm` | `0.1` / `256` |
+| `probe_llm` | `generator_llm` | *(temperature swept per-call)* / `512` |
+| `refiner_llm` | `generator_llm` | `0.4` / `512` |
+
+`timeout`/`max_retries`/`extra_body`/`drop_params` for the six second-class roles fall back to the
+judging bucket (`hallucination_llm`/`reward_llm`/`toxicity_llm`/`grpo_scoring_llm`) or generation
+bucket (`probe_llm`/`refiner_llm`) — there's no historical mismatch there, unlike temperature/max_tokens.
+
+`concurrency` controls executor parallelism for the role's gate/task wrapper (e.g.
+`HallucinationGate`, `DiagnosticProbe`, `RewardRefiner`) — it cascades the same way, falling back to
+`judge_concurrency`/`generation_concurrency`/`llm_concurrency` (or `32` for probe/refiner, which had
+no config knob at all before this).
+
+**`enable_thinking`**: `probe_llm`/`refiner_llm` force `chat_template_kwargs.enable_thinking = False`
+by default (probe/refiner need structured text, not a reasoning preamble) — but if you explicitly set
+`enable_thinking` in the role's `extra_body`, that value is respected instead of being overwritten.
+
+This same per-role override shape is also available in the YAML/CLI pipeline config — see
+[YAML per-role LLM overrides](#yaml-per-role-llm-overrides) below.
+
+---
+
+## YAML per-role LLM overrides
+
+The YAML/CLI pipeline config (`PipelineConfig`) mirrors `CuratorConfig`'s per-role override shape.
+Two new top-level mid-tier buckets, `generator_llm:` and `judge_llm:`, sit between each role's own
+override and the global `llm:` block:
+
+```yaml
+llm:
+  model: openai/gpt-4o-mini
+judge_llm:
+  temperature: 0.1          # applies to hallucination/reward/toxicity/grpo_scoring by default
+
+gates:
+  - type: hallucination
+    hallucination_threshold: 0.7
+    hallucination_llm:                 # per-gate override — wins over judge_llm:
+      model: openai/gpt-4o-mini
+      temperature: 0.0
+      max_tokens: 300
+      concurrency: 5
+  - type: reward
+    reward_threshold: 0.7
+    enable_reward_refiner: true        # previously unavailable in YAML at all
+    refiner_llm:
+      temperature: 0.5
+      concurrency: 8
+
+generators:
+  - type: grpo
+    llm_model: openai/gpt-4o-mini
+    grpo_scoring_llm:                  # previously unavailable in YAML at all
+      model: openai/gpt-4o
+      temperature: 0.05
+```
+
+The legacy bare model-string fields (`hallucination_llm_model`, `reward_llm_model`,
+`toxicity_llm_model`, `llm_model` on a generator, `probe_generator_model`) still work unchanged —
+they're treated as `{model: "..."}` shorthand and only apply when the corresponding nested block
+(`hallucination_llm:`, etc.) is absent.
+
+Same 3-tier cascade and role-default table as the Python API (see above), including the
+`enable_thinking` behavior.
+
+---
+
 ## Generation task
 
 | Parameter | Type | Default | Description |

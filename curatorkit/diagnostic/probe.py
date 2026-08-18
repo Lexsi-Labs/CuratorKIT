@@ -70,11 +70,13 @@ class DiagnosticProbe:
         temperatures: list[float] | None = None,
         score_split: float = _DEFAULT_SCORE_SPLIT,
         extra_templates: dict[str, str] | None = None,
+        concurrency: int = 32,
     ) -> None:
         self.generator_llm = generator_llm
         self.gate = gate
         self.temperatures = temperatures or [0.3, 0.5]
         self.score_split = score_split
+        self.concurrency = concurrency
 
         # Merge user-supplied templates with the built-ins; user values take precedence.
         if extra_templates:
@@ -113,18 +115,20 @@ class DiagnosticProbe:
     def diagnose_batch(
         self,
         rejected: list[RejectedSample],
-        concurrency: int = 32,
+        concurrency: int | None = None,
     ) -> list[FailureDiagnosis]:
         """
         Diagnose all rejected samples concurrently.
 
-        Runs up to `concurrency` samples in parallel — each sample's probe
+        Runs up to `concurrency` samples in parallel (defaults to the value
+        set at construction time, `self.concurrency`) — each sample's probe
         sequence is still sequential internally (each result conditions the
         next probe), but different samples proceed independently. A single
         tqdm bar tracks the batch.
         """
         if not rejected:
             return []
+        concurrency = concurrency if concurrency is not None else self.concurrency
 
         results: list[FailureDiagnosis | None] = [None] * len(rejected)
         lock = threading.Lock()
@@ -537,7 +541,7 @@ class DiagnosticProbe:
             resp = self.generator_llm.generate(
                 messages=[{"role": "user", "content": prompt}],
                 temperature=temperature,
-                max_tokens=512,
+                max_tokens=self.generator_llm.max_tokens,
             )
         except Exception as exc:
             logger.debug("Probe re-generation failed T=%.1f: %s", temperature, exc)
@@ -578,7 +582,7 @@ class DiagnosticProbe:
             resp = self.generator_llm.generate(
                 messages=[{"role": "user", "content": prompt}],
                 temperature=self.temperatures[0],
-                max_tokens=128,
+                max_tokens=self.generator_llm.max_tokens,
             )
         except Exception as exc:
             logger.debug("Probe instruction re-generation failed: %s", exc)

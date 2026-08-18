@@ -59,6 +59,21 @@ CuratorConfig(
 
 **Same-model warning:** If `judge_llm_model` is the same model as `llm_model`, the judge scores its own outputs leniently. Use a different model for the judge whenever possible.
 
+**Per-gate sampling params:** `hallucination_llm`/`reward_llm`/`toxicity_llm` accept the same
+dict-of-fields as `judge_llm` — set a gate-specific `temperature`/`max_tokens`/`concurrency` etc.
+without touching the shared judge bucket:
+
+```python
+CuratorConfig(
+    hallucination_threshold = 0.7,
+    judge_llm_model         = "openai/gpt-4o",
+    hallucination_llm       = {"temperature": 0.0, "max_tokens": 300},  # gate-specific override
+)
+```
+
+See [Per-role LLM overrides](../reference/configuration.md#per-role-llm-overrides-llmoverride) for
+the full field list and cascade order.
+
 ---
 
 ## RewardGate

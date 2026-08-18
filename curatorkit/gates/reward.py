@@ -390,8 +390,8 @@ class RewardGate(BaseGate):
 
         resp = self.llm.generate(
             [{"role": "user", "content": prompt}],
-            temperature=0.1,
-            max_tokens=512,
+            temperature=self.llm.temperature,
+            max_tokens=self.llm.max_tokens,
         )
 
         text = resp.text.strip()
@@ -437,8 +437,8 @@ class RewardGate(BaseGate):
         prompt = self._build_reward_prompt(instruction, response)
         resp = await self.llm.agenerate(
             [{"role": "user", "content": prompt}],
-            temperature=0.1,
-            max_tokens=512,
+            temperature=self.llm.temperature,
+            max_tokens=self.llm.max_tokens,
         )
         text = resp.text.strip()
         text = re.sub(r"```(?:json)?\s*", "", text)

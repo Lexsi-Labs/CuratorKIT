@@ -107,7 +107,7 @@ def run(
                     shutil.rmtree(idx)
 
     splitting = bool(getattr(config, "output_split", None))
-    steps = _build_steps(config, verbose, include_exporters=not splitting)
+    steps, reward_refiner = _build_steps(config, verbose, include_exporters=not splitting)
     output_dir.mkdir(parents=True, exist_ok=True)
 
     from curatorkit.manifest import DatasetCardGenerator, ProvenanceManifest
@@ -135,6 +135,17 @@ def run(
         result = asyncio.run(pipeline.run_async())
     else:
         result = pipeline.run()
+
+    # Reward refiner — post-pipeline recovery, same as Curator.run()'s handling
+    # of CuratorConfig.enable_reward_refiner.
+    if reward_refiner is not None:
+        reward_rejects = [r for r in result.rejected if r.rejecting_step == "RewardGate"]
+        if reward_rejects:
+            recovered, still_rejected = reward_refiner.refine(reward_rejects)
+            result.passed.extend(recovered)
+            result.rejected = [
+                r for r in result.rejected if r.rejecting_step != "RewardGate"
+            ] + still_rejected
 
     # Write diagnostic_summary.json when diagnostics were collected
     if result.diagnostics is not None:
@@ -322,15 +333,67 @@ def _print_dry_run_plan(config: object, output_dir: Path) -> None:
 # ---------------------------------------------------------------------------
 
 
-def _build_llm(model: str | None, config: object) -> object:
-    """Build an LLM backend from the global config or a model override."""
+def _pick(*values):
+    """Return the first value that is not None — cascade-resolution helper."""
+    for v in values:
+        if v is not None:
+            return v
+    return None
+
+
+def _mid_tier(config: object, role: str) -> object:
+    """Return the generator_llm/judge_llm mid-tier bucket, or an empty override if unset."""
+    from curatorkit.config import LLMOverrideConfig
+
+    bucket = config.generator_llm if role == "generation" else config.judge_llm
+    return bucket or LLMOverrideConfig()
+
+
+def _as_override(override, config: object) -> object:
+    """Coerce a bare model-name string (legacy) or None into an LLMOverrideConfig."""
+    from curatorkit.config import LLMOverrideConfig
+
+    if isinstance(override, str):
+        return LLMOverrideConfig(model=override)
+    if override is None:
+        return LLMOverrideConfig()
+    return override
+
+
+def _build_llm(
+    override: object,
+    config: object,
+    role: str = "generation",
+    role_defaults: dict | None = None,
+) -> object:
+    """Build an LLM backend via the 3-tier cascade: override -> mid-tier bucket -> role default/global.
+
+    `override` may be a bare model-name string (legacy `*_llm_model` fields),
+    an `LLMOverrideConfig`, or None. `role` is "generation" or "judging" and
+    selects the mid-tier bucket (`config.generator_llm` / `config.judge_llm`).
+    `role_defaults` is an optional {"temperature": ..., "max_tokens": ...}
+    dict (see `curatorkit.curator._ROLE_DEFAULT_LLM_PARAMS`) used as the
+    terminal fallback for temperature/max_tokens only — every other field
+    falls back to the global `llm:` block.
+    """
     from curatorkit.config import LLMConfig, PipelineConfig
     from curatorkit.llm.litellm import LiteLLMBackend
 
     assert isinstance(config, PipelineConfig)
     llm_cfg = config.llm or LLMConfig()
+    override = _as_override(override, config)
+    mid = _mid_tier(config, role)
+    defaults = role_defaults or {}
 
-    effective_model = model or llm_cfg.model
+    effective_model = _pick(override.model, mid.model, llm_cfg.model)
+    temperature = _pick(override.temperature, mid.temperature, defaults.get("temperature"), llm_cfg.temperature)
+    max_tokens = _pick(override.max_tokens, mid.max_tokens, defaults.get("max_tokens"), llm_cfg.max_tokens)
+    timeout = _pick(override.timeout, mid.timeout, llm_cfg.timeout)
+    max_retries = _pick(override.max_retries, mid.max_retries, llm_cfg.max_retries)
+    drop_params = _pick(override.drop_params, mid.drop_params, llm_cfg.drop_params)
+    extra_body = _pick(override.extra_body, mid.extra_body, llm_cfg.extra_body)
+    api_base = _pick(override.api_base, mid.api_base, llm_cfg.api_base)
+    api_key = _pick(override.api_key, mid.api_key, llm_cfg.api_key)
 
     # Route Ollama models to the Ollama backend
     if effective_model.startswith("ollama/") or effective_model.startswith("ollama_chat/"):
@@ -338,24 +401,31 @@ def _build_llm(model: str | None, config: object) -> object:
 
         return OllamaBackend(
             model=effective_model.split("/", 1)[1],
-            base_url=llm_cfg.api_base or "http://localhost:11434",
-            temperature=llm_cfg.temperature,
-            max_tokens=llm_cfg.max_tokens,
-            timeout=llm_cfg.timeout,
-            max_retries=llm_cfg.max_retries,
+            base_url=api_base or "http://localhost:11434",
+            temperature=temperature,
+            max_tokens=max_tokens,
+            timeout=timeout,
+            max_retries=max_retries,
         )
 
     return LiteLLMBackend(
         model=effective_model,
-        temperature=llm_cfg.temperature,
-        max_tokens=llm_cfg.max_tokens,
-        api_key=llm_cfg.api_key,
-        api_base=llm_cfg.api_base,
-        timeout=llm_cfg.timeout,
-        max_retries=llm_cfg.max_retries,
-        drop_params=llm_cfg.drop_params,
-        extra_body=llm_cfg.extra_body or None,
+        temperature=temperature,
+        max_tokens=max_tokens,
+        api_key=api_key,
+        api_base=api_base,
+        timeout=timeout,
+        max_retries=max_retries,
+        drop_params=drop_params,
+        extra_body=extra_body or None,
     )
+
+
+def _resolve_concurrency(override: object, config: object, role: str = "generation", default: int = 10) -> int:
+    """Resolve a role's executor concurrency: override -> mid-tier bucket -> default."""
+    override = _as_override(override, config)
+    mid = _mid_tier(config, role)
+    return _pick(override.concurrency, mid.concurrency, default)
 
 
 # ---------------------------------------------------------------------------
@@ -363,7 +433,11 @@ def _build_llm(model: str | None, config: object) -> object:
 # ---------------------------------------------------------------------------
 
 
-def _build_steps(config: object, verbose: bool, include_exporters: bool = True) -> list:
+def _build_steps(config: object, verbose: bool, include_exporters: bool = True) -> tuple[list, object | None]:
+    """Build the pipeline step list. Returns (steps, reward_refiner) — reward_refiner is
+    a RewardRefiner instance when `enable_reward_refiner` is set on a reward gate, else
+    None. It runs post-pipeline (see the `run` command), same as Curator.run()'s handling
+    of CuratorConfig.enable_reward_refiner."""
     from curatorkit.config import PipelineConfig
     from curatorkit.connectors.csv_reader import CSVReader
     from curatorkit.connectors.huggingface import HuggingFaceReader
@@ -382,6 +456,7 @@ def _build_steps(config: object, verbose: bool, include_exporters: bool = True) 
 
     assert isinstance(config, PipelineConfig)
     steps = []
+    reward_refiner = None
 
     # ---- Readers ----
     for r in config.readers:
@@ -533,9 +608,15 @@ def _build_steps(config: object, verbose: bool, include_exporters: bool = True) 
                 )
             )
         elif g.type == "toxicity":
+            from curatorkit.curator import _ROLE_DEFAULT_LLM_PARAMS
             from curatorkit.hygiene.toxicity import ToxicityGate
 
-            tox_llm = _build_llm(g.toxicity_llm_model, config) if g.toxicity_llm_model else None
+            _tox_override = g.toxicity_llm or g.toxicity_llm_model
+            tox_llm = (
+                _build_llm(_tox_override, config, role="judging", role_defaults=_ROLE_DEFAULT_LLM_PARAMS["toxicity"])
+                if _tox_override
+                else None
+            )
             steps.append(
                 ToxicityGate(
                     classifier_pass_threshold=g.toxicity_classifier_pass_threshold,
@@ -549,8 +630,8 @@ def _build_steps(config: object, verbose: bool, include_exporters: bool = True) 
 
     # ---- Generation tasks ----
     for gen in config.generators:
-        llm = _build_llm(gen.llm_model, config)
-        concurrency = config.llm.concurrency if config.llm else 10
+        llm = _build_llm(gen.llm or gen.llm_model, config, role="generation")
+        concurrency = _resolve_concurrency(gen.llm or gen.llm_model, config, role="generation", default=config.llm.concurrency if config.llm else 10)
 
         if gen.type == "qa":
             from curatorkit.generators.qa_generator import QAGenerationTask
@@ -593,11 +674,18 @@ def _build_steps(config: object, verbose: bool, include_exporters: bool = True) 
                 )
             )
         elif gen.type == "grpo":
+            from curatorkit.curator import _ROLE_DEFAULT_LLM_PARAMS
             from curatorkit.generators.grpo_rollout import GRPORolloutTask
 
+            scoring_llm = (
+                _build_llm(gen.grpo_scoring_llm, config, role="judging", role_defaults=_ROLE_DEFAULT_LLM_PARAMS["grpo_scoring"])
+                if gen.score_responses
+                else None
+            )
             steps.append(
                 GRPORolloutTask(
                     llm=llm,
+                    scoring_llm=scoring_llm,
                     response_prompt=gen.prompt_template,
                     num_responses=gen.num_responses,
                     score_responses=gen.score_responses,
@@ -664,22 +752,29 @@ def _build_steps(config: object, verbose: bool, include_exporters: bool = True) 
     # ---- Quality gates (after generation) ----
     for g in config.gates:
         if g.type == "hallucination":
+            from curatorkit.curator import _ROLE_DEFAULT_LLM_PARAMS
             from curatorkit.gates.hallucination import HallucinationGate
 
-            llm = _build_llm(g.hallucination_llm_model, config)
+            _hall_override = g.hallucination_llm or g.hallucination_llm_model
+            llm = _build_llm(_hall_override, config, role="judging", role_defaults=_ROLE_DEFAULT_LLM_PARAMS["hallucination"])
             gate = HallucinationGate(
                 llm=llm,
                 threshold=g.hallucination_threshold,
                 prompt_template=g.hallucination_prompt_template,
                 skip_if_no_context=g.skip_if_no_context,
+                concurrency=_resolve_concurrency(_hall_override, config, role="judging", default=16),
             )
             # ── Attach diagnostic probe if configured ───────────────────
             if config.diagnostic is not None and config.diagnostic.enable_probe:
                 from curatorkit.diagnostic.probe import DiagnosticProbe
 
+                _probe_override = (
+                    config.diagnostic.probe_llm
+                    or config.diagnostic.probe_generator_model
+                    or _hall_override
+                )
                 probe_llm = _build_llm(
-                    config.diagnostic.probe_generator_model or g.hallucination_llm_model,
-                    config,
+                    _probe_override, config, role="generation", role_defaults=_ROLE_DEFAULT_LLM_PARAMS["probe"]
                 )
                 gate.probe = DiagnosticProbe(
                     generator_llm=probe_llm,
@@ -687,21 +782,37 @@ def _build_steps(config: object, verbose: bool, include_exporters: bool = True) 
                     temperatures=config.diagnostic.probe_temperatures,
                     score_split=config.diagnostic.score_split,
                     extra_templates=config.diagnostic.extra_templates or None,
+                    concurrency=_resolve_concurrency(_probe_override, config, role="generation", default=32),
                 )
             steps.append(gate)
         elif g.type == "reward":
+            from curatorkit.curator import _ROLE_DEFAULT_LLM_PARAMS
             from curatorkit.gates.reward import RewardGate
 
-            llm = _build_llm(g.reward_llm_model, config)
-            steps.append(
-                RewardGate(
-                    llm=llm,
-                    threshold=g.reward_threshold,
-                    dimensions=g.reward_dimensions,
-                    prompt_template=g.reward_prompt_template,
-                    store_score_in_label=g.store_score_in_label,
-                )
+            _reward_override = g.reward_llm or g.reward_llm_model
+            llm = _build_llm(_reward_override, config, role="judging", role_defaults=_ROLE_DEFAULT_LLM_PARAMS["reward"])
+            reward_gate = RewardGate(
+                llm=llm,
+                threshold=g.reward_threshold,
+                dimensions=g.reward_dimensions,
+                prompt_template=g.reward_prompt_template,
+                store_score_in_label=g.store_score_in_label,
+                concurrency=_resolve_concurrency(_reward_override, config, role="judging", default=16),
             )
+            if g.enable_reward_refiner:
+                from curatorkit.diagnostic.reward_refine import RewardRefiner
+
+                refiner_llm = _build_llm(
+                    g.refiner_llm, config, role="generation", role_defaults=_ROLE_DEFAULT_LLM_PARAMS["refiner"]
+                )
+                reward_refiner = RewardRefiner(
+                    generator_llm=refiner_llm,
+                    reward_gate=reward_gate,
+                    refine_prompt_template=g.reward_refine_prompt_template,
+                    instruction_refine_template=g.reward_instruction_refine_template,
+                    concurrency=_resolve_concurrency(g.refiner_llm, config, role="generation", default=32),
+                )
+            steps.append(reward_gate)
         elif g.type == "diversity":
             from curatorkit.gates.diversity import DiversityGate
 
@@ -761,7 +872,7 @@ def _build_steps(config: object, verbose: bool, include_exporters: bool = True) 
             elif e.type == "dpo":
                 steps.append(DPOExporter())
 
-    return steps
+    return steps, reward_refiner
 
 
 @app.command("setup-pdf")

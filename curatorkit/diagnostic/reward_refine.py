@@ -198,8 +198,8 @@ class RewardRefiner(BaseNormalizer):
         try:
             resp = self.generator_llm.generate(
                 [{"role": "user", "content": prompt}],
-                temperature=0.4,
-                max_tokens=512,
+                temperature=self.generator_llm.temperature,
+                max_tokens=self.generator_llm.max_tokens,
             )
         except Exception as exc:
             logger.debug("RewardRefiner answer rewrite failed: %s", exc)
@@ -220,8 +220,8 @@ class RewardRefiner(BaseNormalizer):
         try:
             resp = self.generator_llm.generate(
                 [{"role": "user", "content": prompt}],
-                temperature=0.4,
-                max_tokens=128,
+                temperature=self.generator_llm.temperature,
+                max_tokens=self.generator_llm.max_tokens,
             )
         except Exception as exc:
             logger.debug("RewardRefiner instruction rewrite failed: %s", exc)
