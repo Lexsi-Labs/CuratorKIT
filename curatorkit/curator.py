@@ -67,19 +67,46 @@ except ImportError:
 
 @dataclass
 class LLMOverride:
-    """Per-task or per-role LLM routing override.
+    """Per-task or per-role LLM routing + sampling override.
 
-    Each field cascades independently:
-      task-level → role-level (generator_llm / judge_llm) → global llm_* fields.
+    Each field cascades independently through up to three tiers:
+      task-level → role-level (generator_llm / judge_llm, or for the six
+      "second-class" roles, their own override → generator_llm / judge_llm)
+      → global llm_* / judge_llm_* fields (or a role-specific historical
+      default for temperature/max_tokens — see _ROLE_DEFAULT_LLM_PARAMS).
     Leave a field as None to inherit from the next level.
 
     Can be passed as a dict and will be coerced automatically by CuratorConfig:
-        generator_llm={"model": "openai/gpt-4o", "api_key": "sk-..."}
+        generator_llm={"model": "openai/gpt-4o", "temperature": 0.7}
+        hallucination_llm={"model": "openai/gpt-4o-mini", "temperature": 0.0, "concurrency": 5}
     """
 
     model: str | None = None
     api_base: str | None = None
     api_key: str | None = None
+    temperature: float | None = None
+    max_tokens: int | None = None
+    timeout: float | None = None
+    max_retries: int | None = None
+    extra_body: dict | None = None
+    drop_params: bool | None = None
+    concurrency: int | None = None
+
+
+# Historical per-call-site defaults for the six roles that don't have a
+# dedicated flat CuratorConfig bucket (unlike generator/judge). These preserve
+# today's behavior as the terminal fallback when neither the role's own
+# LLMOverride nor its mid-tier bucket (generator_llm/judge_llm) sets a value.
+# probe's temperature is intentionally None — it's swept per-call via
+# DiagnosticProbe.temperatures, so no single fallback constant applies.
+_ROLE_DEFAULT_LLM_PARAMS: dict[str, dict[str, float | int | None]] = {
+    "hallucination": {"temperature": 0.1, "max_tokens": 512},
+    "reward": {"temperature": 0.1, "max_tokens": 512},
+    "toxicity": {"temperature": 0.1, "max_tokens": 200},
+    "grpo_scoring": {"temperature": 0.1, "max_tokens": 256},
+    "probe": {"temperature": None, "max_tokens": 512},
+    "refiner": {"temperature": 0.4, "max_tokens": 512},
+}
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -872,7 +899,7 @@ class Curator:
         if cfg.toxicity_gate:
             from curatorkit.hygiene.toxicity import ToxicityGate
 
-            _tox_llm = self._build_judge_backend(cfg.toxicity_llm) if cfg.toxicity_llm_judge and cfg._any_judge_model() else None
+            _tox_llm = self._build_toxicity_backend(cfg.toxicity_llm) if cfg.toxicity_llm_judge and cfg._any_judge_model() else None
             steps.append(
                 ToxicityGate(
                     classifier_pass_threshold=cfg.toxicity_classifier_pass_threshold,
@@ -898,8 +925,8 @@ class Curator:
         if cfg.hallucination_threshold is not None and cfg._any_judge_model():
             from curatorkit.gates.hallucination import HallucinationGate
 
-            llm = self._build_judge_backend(cfg.hallucination_llm)
-            _jconcurrency = cfg.judge_concurrency or cfg.llm_concurrency
+            llm = self._build_hallucination_backend(cfg.hallucination_llm)
+            _jconcurrency = self._resolve_role_concurrency(cfg.hallucination_llm, cfg.judge_llm, cfg.judge_concurrency or cfg.llm_concurrency)
             gate = HallucinationGate(
                 llm=llm,
                 threshold=cfg.hallucination_threshold,
@@ -917,6 +944,7 @@ class Curator:
                     temperatures=cfg.probe_temperatures,
                     score_split=cfg.probe_score_split,
                     extra_templates=cfg.probe_extra_templates or None,
+                    concurrency=self._resolve_role_concurrency(cfg.probe_llm, cfg.generator_llm, 32),
                 )
                 if PipelineDiagnostics is not None:
                     self._diagnostics = PipelineDiagnostics()
@@ -926,14 +954,14 @@ class Curator:
         if cfg.reward_threshold is not None and cfg._any_judge_model():
             from curatorkit.gates.reward import RewardGate
 
-            llm = self._build_judge_backend(cfg.reward_llm)
+            llm = self._build_reward_backend(cfg.reward_llm)
             _reward_gate = RewardGate(
                 llm=llm,
                 threshold=cfg.reward_threshold,
                 dimensions=cfg.reward_dimensions,
                 prompt_template=cfg.reward_prompt_template,
                 store_score_in_label=cfg.reward_store_score,
-                concurrency=cfg.judge_concurrency or cfg.llm_concurrency,
+                concurrency=self._resolve_role_concurrency(cfg.reward_llm, cfg.judge_llm, cfg.judge_concurrency or cfg.llm_concurrency),
             )
             # Attach DiagnosticProbe to RewardGate when probe is enabled
             if cfg.enable_diagnostic_probe:
@@ -946,6 +974,7 @@ class Curator:
                     temperatures=cfg.probe_temperatures,
                     score_split=cfg.probe_score_split,
                     extra_templates=cfg.probe_extra_templates or None,
+                    concurrency=self._resolve_role_concurrency(cfg.probe_llm, cfg.generator_llm, 32),
                 )
 
             steps.append(_reward_gate)
@@ -960,6 +989,7 @@ class Curator:
                     reward_gate=_reward_gate,
                     refine_prompt_template=cfg.reward_refine_prompt_template,
                     instruction_refine_template=cfg.reward_instruction_refine_template,
+                    concurrency=self._resolve_role_concurrency(cfg.refiner_llm, cfg.generator_llm, 32),
                 )
 
         if cfg.diversity_threshold is not None:
@@ -1085,73 +1115,143 @@ class Curator:
             extra_body=extra_body or None,
         )
 
+    @staticmethod
+    def _pick(*values):
+        """Return the first value that is not None — cascade-resolution helper."""
+        for v in values:
+            if v is not None:
+                return v
+        return None
+
+    def _apply_forced_thinking_off(self, extra_body: dict) -> dict:
+        """Force enable_thinking=False for probe/refiner, unless the caller set it explicitly.
+
+        Probe/refiner calls must produce structured text without reasoning
+        preamble, so this is forced by default — but a role override that
+        explicitly sets chat_template_kwargs.enable_thinking is respected.
+        """
+        import copy
+
+        merged = copy.deepcopy(extra_body or {})
+        ctk = merged.setdefault("chat_template_kwargs", {})
+        if "enable_thinking" not in ctk:
+            ctk["enable_thinking"] = False
+        return merged
+
     def _build_gen_llm(self, task_llm: LLMOverride):
         """Build a generation backend — cascades task_llm → generator_llm → global."""
         cfg = self.config
         resolved = cfg._resolve(task_llm, "generation")
+        g = cfg.generator_llm
+        pick = self._pick
         return self._make_backend(
             resolved,
-            temperature=cfg.llm_temperature,
-            max_tokens=cfg.llm_max_tokens,
-            timeout=cfg.llm_timeout,
-            max_retries=cfg.llm_max_retries,
-            drop_params=cfg.llm_drop_params,
-            extra_body=cfg.llm_extra_body,
+            temperature=pick(task_llm.temperature, g.temperature, cfg.llm_temperature),
+            max_tokens=pick(task_llm.max_tokens, g.max_tokens, cfg.llm_max_tokens),
+            timeout=pick(task_llm.timeout, g.timeout, cfg.llm_timeout),
+            max_retries=pick(task_llm.max_retries, g.max_retries, cfg.llm_max_retries),
+            drop_params=pick(task_llm.drop_params, g.drop_params, cfg.llm_drop_params),
+            extra_body=pick(task_llm.extra_body, g.extra_body, cfg.llm_extra_body),
         )
 
     def _build_judge_backend(self, task_llm: LLMOverride):
         """Build a judge backend — cascades task_llm → judge_llm → global."""
         cfg = self.config
         resolved = cfg._resolve(task_llm, "judging")
+        j = cfg.judge_llm
+        pick = self._pick
         return self._make_backend(
             resolved,
-            temperature=cfg.judge_llm_temperature,
-            max_tokens=cfg.judge_llm_max_tokens,
-            timeout=cfg.judge_llm_timeout,
-            max_retries=cfg.judge_llm_max_retries,
-            drop_params=cfg.llm_drop_params,
-            extra_body=cfg.judge_llm_extra_body,
+            temperature=pick(task_llm.temperature, j.temperature, cfg.judge_llm_temperature),
+            max_tokens=pick(task_llm.max_tokens, j.max_tokens, cfg.judge_llm_max_tokens),
+            timeout=pick(task_llm.timeout, j.timeout, cfg.judge_llm_timeout),
+            max_retries=pick(task_llm.max_retries, j.max_retries, cfg.judge_llm_max_retries),
+            drop_params=pick(task_llm.drop_params, j.drop_params, cfg.llm_drop_params),
+            extra_body=pick(task_llm.extra_body, j.extra_body, cfg.judge_llm_extra_body),
         )
 
-    def _build_probe_backend(self):
-        """Build probe backend (generation role) with thinking disabled.
+    def _build_role_judge_backend(self, role_llm: LLMOverride, role: str):
+        """Build a backend for one of the judging-routed second-class roles.
 
-        Probe calls must produce structured text without reasoning preamble.
-        Thinking is disabled at the API level regardless of llm_extra_body.
+        3-tier cascade: role_llm → judge_llm → role-specific historical
+        default (temperature/max_tokens) or the judge bucket (everything else).
+        `role` must be a key of _ROLE_DEFAULT_LLM_PARAMS ("hallucination",
+        "reward", "toxicity", "grpo_scoring").
         """
         cfg = self.config
-        import copy
-
-        probe_extra = copy.deepcopy(cfg.llm_extra_body or {})
-        probe_extra.setdefault("chat_template_kwargs", {})["enable_thinking"] = False
-        resolved = cfg._resolve(cfg.probe_llm, "generation")
+        resolved = cfg._resolve(role_llm, "judging")
+        j = cfg.judge_llm
+        defaults = _ROLE_DEFAULT_LLM_PARAMS[role]
+        pick = self._pick
         return self._make_backend(
             resolved,
-            temperature=cfg.llm_temperature,
-            max_tokens=cfg.llm_max_tokens,
-            timeout=cfg.llm_timeout,
-            max_retries=cfg.llm_max_retries,
-            drop_params=cfg.llm_drop_params,
-            extra_body=probe_extra,
+            temperature=pick(role_llm.temperature, j.temperature, defaults["temperature"]),
+            max_tokens=pick(role_llm.max_tokens, j.max_tokens, defaults["max_tokens"]),
+            timeout=pick(role_llm.timeout, j.timeout, cfg.judge_llm_timeout),
+            max_retries=pick(role_llm.max_retries, j.max_retries, cfg.judge_llm_max_retries),
+            drop_params=pick(role_llm.drop_params, j.drop_params, cfg.llm_drop_params),
+            extra_body=pick(role_llm.extra_body, j.extra_body, cfg.judge_llm_extra_body),
+        )
+
+    def _build_hallucination_backend(self, task_llm: LLMOverride):
+        return self._build_role_judge_backend(task_llm, "hallucination")
+
+    def _build_reward_backend(self, task_llm: LLMOverride):
+        return self._build_role_judge_backend(task_llm, "reward")
+
+    def _build_toxicity_backend(self, task_llm: LLMOverride):
+        return self._build_role_judge_backend(task_llm, "toxicity")
+
+    def _build_grpo_scoring_backend(self, task_llm: LLMOverride):
+        return self._build_role_judge_backend(task_llm, "grpo_scoring")
+
+    def _build_probe_backend(self):
+        """Build probe backend (generation role) with thinking disabled by default.
+
+        Probe calls must produce structured text without reasoning preamble —
+        forced unless probe_llm.extra_body explicitly sets enable_thinking.
+        """
+        cfg = self.config
+        g = cfg.generator_llm
+        defaults = _ROLE_DEFAULT_LLM_PARAMS["probe"]
+        pick = self._pick
+        resolved = cfg._resolve(cfg.probe_llm, "generation")
+        extra_body = self._apply_forced_thinking_off(
+            pick(cfg.probe_llm.extra_body, g.extra_body, cfg.llm_extra_body)
+        )
+        return self._make_backend(
+            resolved,
+            temperature=pick(cfg.probe_llm.temperature, g.temperature, defaults["temperature"], cfg.llm_temperature),
+            max_tokens=pick(cfg.probe_llm.max_tokens, g.max_tokens, defaults["max_tokens"]),
+            timeout=pick(cfg.probe_llm.timeout, g.timeout, cfg.llm_timeout),
+            max_retries=pick(cfg.probe_llm.max_retries, g.max_retries, cfg.llm_max_retries),
+            drop_params=pick(cfg.probe_llm.drop_params, g.drop_params, cfg.llm_drop_params),
+            extra_body=extra_body,
         )
 
     def _build_refiner_backend(self):
-        """Build refiner backend (generation role) with thinking disabled."""
+        """Build refiner backend (generation role) with thinking disabled by default."""
         cfg = self.config
-        import copy
-
-        refiner_extra = copy.deepcopy(cfg.llm_extra_body or {})
-        refiner_extra.setdefault("chat_template_kwargs", {})["enable_thinking"] = False
+        g = cfg.generator_llm
+        defaults = _ROLE_DEFAULT_LLM_PARAMS["refiner"]
+        pick = self._pick
         resolved = cfg._resolve(cfg.refiner_llm, "generation")
+        extra_body = self._apply_forced_thinking_off(
+            pick(cfg.refiner_llm.extra_body, g.extra_body, cfg.llm_extra_body)
+        )
         return self._make_backend(
             resolved,
-            temperature=cfg.llm_temperature,
-            max_tokens=cfg.llm_max_tokens,
-            timeout=cfg.llm_timeout,
-            max_retries=cfg.llm_max_retries,
-            drop_params=cfg.llm_drop_params,
-            extra_body=refiner_extra,
+            temperature=pick(cfg.refiner_llm.temperature, g.temperature, defaults["temperature"]),
+            max_tokens=pick(cfg.refiner_llm.max_tokens, g.max_tokens, defaults["max_tokens"]),
+            timeout=pick(cfg.refiner_llm.timeout, g.timeout, cfg.llm_timeout),
+            max_retries=pick(cfg.refiner_llm.max_retries, g.max_retries, cfg.llm_max_retries),
+            drop_params=pick(cfg.refiner_llm.drop_params, g.drop_params, cfg.llm_drop_params),
+            extra_body=extra_body,
         )
+
+    def _resolve_role_concurrency(self, role_llm: LLMOverride, mid_tier_llm: LLMOverride, default: int) -> int:
+        """Resolve a role's executor concurrency: role_llm → mid-tier (judge_llm/generator_llm) → default."""
+        return self._pick(role_llm.concurrency, mid_tier_llm.concurrency, default)
 
     # ─────────────────────────────────────────────────────────────────────────
     # Generation task builder
@@ -1161,7 +1261,7 @@ class Curator:
         """Build the generation task from config, using per-task LLM overrides."""
         cfg = self.config
         task = cfg.generation_task
-        concurrency = cfg.generation_concurrency or cfg.llm_concurrency
+        concurrency = self._pick(cfg.generator_llm.concurrency, cfg.generation_concurrency, cfg.llm_concurrency)
 
         # Map each task to its task-level LLMOverride — cascades to generator_llm → global
         llm = self._build_gen_llm(LLMOverride())
@@ -1191,12 +1291,14 @@ class Curator:
         elif task == "grpo":
             from curatorkit.generators.grpo_rollout import GRPORolloutTask
 
-            # grpo_scoring_llm cascades: task override → judge_llm → global.
+            # grpo_scoring_llm cascades: task override → judge_llm → role default → global.
             # Old grpo_scoring_llm_model field used as model-only fallback.
             _score_override = cfg.grpo_scoring_llm
             if not _score_override.model and cfg.grpo_scoring_llm_model:
-                _score_override = LLMOverride(model=cfg.grpo_scoring_llm_model)
-            scoring_llm = self._build_judge_backend(_score_override) if cfg.score_responses else None
+                _score_override = LLMOverride(model=cfg.grpo_scoring_llm_model, **{
+                    k: v for k, v in vars(cfg.grpo_scoring_llm).items() if k != "model"
+                })
+            scoring_llm = self._build_grpo_scoring_backend(_score_override) if cfg.score_responses else None
             return GRPORolloutTask(
                 llm=llm,
                 scoring_llm=scoring_llm,

@@ -301,8 +301,8 @@ class HallucinationGate(BaseGate):
 
         response = self.llm.generate(
             [{"role": "user", "content": prompt}],
-            temperature=0.1,
-            max_tokens=512,
+            temperature=self.llm.temperature,
+            max_tokens=self.llm.max_tokens,
         )
 
         text = response.text.strip()
@@ -344,8 +344,8 @@ class HallucinationGate(BaseGate):
         )
         response = await self.llm.agenerate(
             [{"role": "user", "content": prompt}],
-            temperature=0.1,
-            max_tokens=512,
+            temperature=self.llm.temperature,
+            max_tokens=self.llm.max_tokens,
         )
         text = response.text.strip()
         text = re.sub(r"```(?:json)?\s*", "", text)

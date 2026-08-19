@@ -224,6 +224,18 @@ class TestToxicityGateLLMPhase:
         with pytest.raises(ValueError):
             ToxicityGate(classifier_pass_threshold=0.5, classifier_reject_threshold=0.3)
 
+    def test_llm_verdict_reads_temperature_and_max_tokens_from_backend(self):
+        """Regression: _llm_verdict used to hardcode temperature=0.1, max_tokens=200
+        directly in the .generate() call, silently ignoring the backend's own
+        configured values. It must now read self.llm.temperature/.max_tokens."""
+        gate = self._make_gate_with_llm(classifier_score=0.25, llm_score=0.2)
+        gate.llm.temperature = 0.777
+        gate.llm.max_tokens = 4242
+        gate.run([make_sample()])
+        _, kwargs = gate.llm.generate.call_args
+        assert kwargs["temperature"] == 0.777
+        assert kwargs["max_tokens"] == 4242
+
 
 # ──────────────────────────────────────────────────────────────────────────────
 # SecretsGate

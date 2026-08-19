@@ -134,6 +134,34 @@ class LLMConfig(BaseModel):
     extra_body: dict = Field(default_factory=dict)
 
 
+class LLMOverrideConfig(BaseModel):
+    """Per-role LLM override for the YAML/CLI pipeline — mirrors `curator.LLMOverride`.
+
+    Every field is optional; unset (`None`) means "inherit from the next
+    tier" (a role's own `<role>_llm:` block → the `generator_llm:`/
+    `judge_llm:` mid-tier bucket → the global `llm:` block, or a
+    role-specific historical default for temperature/max_tokens — see
+    `curatorkit.curator._ROLE_DEFAULT_LLM_PARAMS`).
+
+    Can be set directly as a nested YAML block:
+        hallucination_llm:
+          model: openai/gpt-4o-mini
+          temperature: 0.0
+          max_tokens: 300
+    """
+
+    model: str | None = None
+    api_base: str | None = None
+    api_key: str | None = None
+    temperature: float | None = None
+    max_tokens: int | None = None
+    timeout: float | None = None
+    max_retries: int | None = None
+    extra_body: dict | None = None
+    drop_params: bool | None = None
+    concurrency: int | None = None
+
+
 # =========================================================================
 # Diagnostic probe configuration
 # =========================================================================
@@ -151,8 +179,10 @@ class DiagnosticConfig(BaseModel):
     enable_probe: bool = False
     probe_temperatures: list[float] = Field(default_factory=lambda: [0.3, 0.5])
     # Override generator model for re-generation in the probe.
-    # If None, uses the gate's LLM model.
+    # If None, uses the gate's LLM model. Legacy model-only override.
     probe_generator_model: str | None = None
+    # Full sampling-param override (model, temperature, max_tokens, concurrency, ...).
+    probe_llm: LLMOverrideConfig | None = None
     # Grounding score threshold below which the probe routes to strict-grounding first.
     score_split: float = 0.5
     # Extra prompt templates merged with built-ins; keys used as template names in probe routing.
@@ -232,7 +262,11 @@ class GenerationConfig(BaseModel):
     reward_prompt_template: str | None = None
 
     # ---- LLM override (uses global LLM config if None) ----
-    llm_model: str | None = None
+    llm_model: str | None = None  # legacy model-only override; kept for backward compat
+    llm: LLMOverrideConfig | None = None  # generator role — full sampling-param override
+
+    # ---- GRPO scoring LLM override ----
+    grpo_scoring_llm: LLMOverrideConfig | None = None
 
 
 # =========================================================================
@@ -267,7 +301,8 @@ class GateConfig(BaseModel):
     # ---- Hallucination gate ----
     hallucination_threshold: float = 0.7
     skip_if_no_context: bool = True
-    hallucination_llm_model: str | None = None  # override global LLM
+    hallucination_llm_model: str | None = None  # legacy model-only override
+    hallucination_llm: LLMOverrideConfig | None = None  # full sampling-param override
     hallucination_prompt_template: str | None = None
 
     # ---- Reward gate ----
@@ -276,8 +311,15 @@ class GateConfig(BaseModel):
         default_factory=lambda: ["helpfulness", "honesty", "instruction_following"]
     )
     store_score_in_label: bool = True
-    reward_llm_model: str | None = None  # override global LLM
+    reward_llm_model: str | None = None  # legacy model-only override
+    reward_llm: LLMOverrideConfig | None = None  # full sampling-param override
     reward_prompt_template: str | None = None
+
+    # ---- Reward refiner (post-gate recovery) ----
+    enable_reward_refiner: bool = False
+    refiner_llm: LLMOverrideConfig | None = None
+    reward_refine_prompt_template: str | None = None
+    reward_instruction_refine_template: str | None = None
 
     # ---- Diversity gate ----
     embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2"
@@ -297,7 +339,8 @@ class GateConfig(BaseModel):
     toxicity_classifier_pass_threshold: float = 0.1
     toxicity_classifier_reject_threshold: float = 0.5
     toxicity_detoxify_model: str = "unbiased"
-    toxicity_llm_model: str | None = None
+    toxicity_llm_model: str | None = None  # legacy model-only override
+    toxicity_llm: LLMOverrideConfig | None = None  # full sampling-param override
     toxicity_llm_reject_threshold: float = 0.5
     toxicity_text_field: str = "auto"
 
@@ -422,6 +465,10 @@ class PipelineConfig(BaseModel):
 
     # ---- Global LLM config ----
     llm: LLMConfig | None = None
+
+    # ---- Mid-tier LLM buckets (fall back to `llm:` global) ----
+    generator_llm: LLMOverrideConfig | None = None
+    judge_llm: LLMOverrideConfig | None = None
 
     # ---- Generation tasks ----
     generators: list[GenerationConfig] = Field(default_factory=list)

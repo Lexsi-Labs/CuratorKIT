@@ -168,8 +168,8 @@ class GRPORolloutTask(BaseGenerationTask):
         try:
             resp = self.scoring_llm.generate(
                 [{"role": "user", "content": prompt}],
-                temperature=0.1,
-                max_tokens=256,
+                temperature=self.scoring_llm.temperature,
+                max_tokens=self.scoring_llm.max_tokens,
             )
             text = resp.text.strip()
             text = re.sub(r"```(?:json)?\s*", "", text)

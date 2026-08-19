@@ -196,8 +196,8 @@ class ToxicityGate(BaseGate):
         try:
             response = self.llm.generate(
                 messages=[{"role": "user", "content": prompt}],
-                temperature=0.1,
-                max_tokens=200,
+                temperature=self.llm.temperature,
+                max_tokens=self.llm.max_tokens,
             )
             m = re.search(r"\{[^{}]+\}", response.text, re.DOTALL)
             if m:
