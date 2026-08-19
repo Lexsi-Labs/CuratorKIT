@@ -1197,6 +1197,30 @@
 <h2 id="unreleased">Unreleased<a class="headerlink" href="#unreleased" title="Permanent link">&para;</a></h2>
 <h3 id="added">Added<a class="headerlink" href="#added" title="Permanent link">&para;</a></h3>
 <ul>
+<li>YAML/CLI pipeline config (<code>PipelineConfig</code>) now mirrors <code>CuratorConfig</code>'s per-role LLM override
+  shape: new <code>generator_llm:</code>/<code>judge_llm:</code> mid-tier buckets, and a nested <code>&lt;role&gt;_llm:</code> block
+  (model/temperature/max_tokens/timeout/max_retries/extra_body/drop_params/concurrency) on
+  <code>hallucination</code>/<code>reward</code>/<code>toxicity</code> gates, generators, and the diagnostic probe — previously YAML
+  only had a single global <code>llm:</code> block plus a bare model-string override per role. Legacy bare
+  <code>*_llm_model</code> fields still work unchanged. Also closes two YAML-only feature gaps: <code>grpo_scoring_llm</code>
+  (GRPO rollouts previously reused the same LLM for scoring as for generation) and
+  <code>enable_reward_refiner</code>/<code>refiner_llm</code> (RewardRefiner had no YAML/CLI wiring at all). Quality gates
+  built via YAML also now receive a resolved <code>concurrency</code> (previously <code>HallucinationGate</code>/<code>RewardGate</code>
+  silently used their class defaults regardless of config).</li>
+<li><code>LLMOverride</code> (the per-role override dict passed to <code>generator_llm</code>, <code>judge_llm</code>,
+  <code>hallucination_llm</code>, <code>reward_llm</code>, <code>toxicity_llm</code>, <code>grpo_scoring_llm</code>, <code>probe_llm</code>,
+  <code>refiner_llm</code>) now accepts <code>temperature</code>, <code>max_tokens</code>, <code>timeout</code>, <code>max_retries</code>,
+  <code>extra_body</code>, <code>drop_params</code>, and <code>concurrency</code> — previously only <code>model</code>/<code>api_base</code>/
+  <code>api_key</code> were configurable per role, and the six non-generator/judge roles silently
+  ignored any sampling-param override because their call sites hardcoded literal
+  <code>temperature</code>/<code>max_tokens</code> values. All 8 roles now resolve through a consistent 3-tier
+  cascade (role override → mid-tier <code>judge_llm</code>/<code>generator_llm</code> → role default or global
+  bucket); default behavior is unchanged for anyone not setting a new field. <code>probe_llm</code>
+  and <code>refiner_llm</code> also gain a <code>concurrency</code> override (previously hardcoded to <code>32</code> with
+  no config path at all), and their forced <code>enable_thinking=False</code> extra_body injection now
+  respects an explicit user override instead of always clobbering it. <code>toxicity_llm.concurrency</code>
+  is accepted but has no effect yet — <code>ToxicityGate</code>'s LLM-judge path runs sequentially with
+  no executor.</li>
 <li>SFT exporters (Alpaca, ShareGPT) warn when exported rows have empty
   instruction/output, catching task-type/format mismatches that previously
   produced silent empty datasets.</li>

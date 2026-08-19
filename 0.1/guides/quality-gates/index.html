@@ -1340,14 +1340,25 @@
 - The judge always sees the exact source chunk that generated the sample — not a retrieved approximation.</p>
 <p><strong>Rejection reason:</strong> <code>hallucination_contract_failed:{score:.2f}</code></p>
 <p><strong>Same-model warning:</strong> If <code>judge_llm_model</code> is the same model as <code>llm_model</code>, the judge scores its own outputs leniently. Use a different model for the judge whenever possible.</p>
+<p><strong>Per-gate sampling params:</strong> <code>hallucination_llm</code>/<code>reward_llm</code>/<code>toxicity_llm</code> accept the same
+dict-of-fields as <code>judge_llm</code> — set a gate-specific <code>temperature</code>/<code>max_tokens</code>/<code>concurrency</code> etc.
+without touching the shared judge bucket:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="n">CuratorConfig</span><span class="p">(</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>    <span class="n">hallucination_threshold</span> <span class="o">=</span> <span class="mf">0.7</span><span class="p">,</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>    <span class="n">judge_llm_model</span>         <span class="o">=</span> <span class="s2">"openai/gpt-4o"</span><span class="p">,</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    <span class="n">hallucination_llm</span>       <span class="o">=</span> <span class="p">{</span><span class="s2">"temperature"</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span> <span class="s2">"max_tokens"</span><span class="p">:</span> <span class="mi">300</span><span class="p">},</span>  <span class="c1"># gate-specific override</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="p">)</span>
+</code></pre></div>
+<p>See <a href="../../reference/configuration/#per-role-llm-overrides-llmoverride">Per-role LLM overrides</a> for
+the full field list and cascade order.</p>
 <hr />
 <h2 id="rewardgate">RewardGate<a class="headerlink" href="#rewardgate" title="Permanent link">&para;</a></h2>
 <p>Scores response quality across configurable dimensions using an LLM judge (UltraFeedback rubric). Only fires when <code>reward_threshold</code> is set.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="n">CuratorConfig</span><span class="p">(</span>
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>    <span class="n">reward_threshold</span>   <span class="o">=</span> <span class="mf">0.7</span><span class="p">,</span>     <span class="c1"># None = gate off</span>
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>    <span class="n">reward_dimensions</span>  <span class="o">=</span> <span class="p">[</span><span class="s2">"helpfulness"</span><span class="p">,</span> <span class="s2">"honesty"</span><span class="p">,</span> <span class="s2">"instruction_following"</span><span class="p">,</span> <span class="s2">"depth"</span><span class="p">],</span>
-<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    <span class="n">judge_llm_model</span>    <span class="o">=</span> <span class="s2">"openai/gpt-4o"</span><span class="p">,</span>
-<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="n">CuratorConfig</span><span class="p">(</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>    <span class="n">reward_threshold</span>   <span class="o">=</span> <span class="mf">0.7</span><span class="p">,</span>     <span class="c1"># None = gate off</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>    <span class="n">reward_dimensions</span>  <span class="o">=</span> <span class="p">[</span><span class="s2">"helpfulness"</span><span class="p">,</span> <span class="s2">"honesty"</span><span class="p">,</span> <span class="s2">"instruction_following"</span><span class="p">,</span> <span class="s2">"depth"</span><span class="p">],</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>    <span class="n">judge_llm_model</span>    <span class="o">=</span> <span class="s2">"openai/gpt-4o"</span><span class="p">,</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="p">)</span>
 </code></pre></div>
 <p><strong>Available dimensions</strong> (all built-in, no custom strings):</p>
 <table>
@@ -1393,10 +1404,10 @@
 <p><strong>Rejection reason:</strong> <code>below_reward_threshold:{score:.2f}</code></p>
 <h3 id="dual-scoring-for-dpo-preference-pairs">Dual-scoring for DPO preference pairs<a class="headerlink" href="#dual-scoring-for-dpo-preference-pairs" title="Permanent link">&para;</a></h3>
 <p>When the sample has both <code>chosen</code> and <code>rejected</code> fields, RewardGate scores both:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>chosen_score  &gt;= threshold  → chosen is good enough
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>rejected_score &lt; threshold  → rejected is noticeably worse
-<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>
-<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>Both conditions must hold to pass.
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>chosen_score  &gt;= threshold  → chosen is good enough
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>rejected_score &lt; threshold  → rejected is noticeably worse
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>Both conditions must hold to pass.
 </code></pre></div>
 <table>
 <thead>
@@ -1423,13 +1434,13 @@
 <hr />
 <h2 id="diversitygate">DiversityGate<a class="headerlink" href="#diversitygate" title="Permanent link">&para;</a></h2>
 <p>Filters samples that are too semantically similar to already-accepted samples in the batch. Uses sentence-transformer embeddings + cosine similarity. Requires <code>pip install "curatorkit[embedding]"</code>.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="n">CuratorConfig</span><span class="p">(</span>
-<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>    <span class="c1"># None = gate off. Samples with similarity ABOVE this value are rejected,</span>
-<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>    <span class="c1"># so a lower threshold rejects more (stricter).</span>
-<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>    <span class="n">diversity_threshold</span> <span class="o">=</span> <span class="mf">0.92</span><span class="p">,</span>
-<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>    <span class="n">embedding_model</span>     <span class="o">=</span> <span class="s2">"sentence-transformers/all-MiniLM-L6-v2"</span><span class="p">,</span>
-<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>    <span class="n">embedding_device</span>    <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>   <span class="c1"># "cuda" | "cpu" | None (auto-detect)</span>
-<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="n">CuratorConfig</span><span class="p">(</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>    <span class="c1"># None = gate off. Samples with similarity ABOVE this value are rejected,</span>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>    <span class="c1"># so a lower threshold rejects more (stricter).</span>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>    <span class="n">diversity_threshold</span> <span class="o">=</span> <span class="mf">0.92</span><span class="p">,</span>
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>    <span class="n">embedding_model</span>     <span class="o">=</span> <span class="s2">"sentence-transformers/all-MiniLM-L6-v2"</span><span class="p">,</span>
+<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>    <span class="n">embedding_device</span>    <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>   <span class="c1"># "cuda" | "cpu" | None (auto-detect)</span>
+<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="p">)</span>
 </code></pre></div>
 <p><strong>What text is embedded</strong> (automatic by <code>task_type</code>):
 - <code>preference</code> → <code>instruction + chosen</code>
@@ -1441,22 +1452,22 @@
 <hr />
 <h2 id="cross-run-embedding-deduplication">Cross-run embedding deduplication<a class="headerlink" href="#cross-run-embedding-deduplication" title="Permanent link">&para;</a></h2>
 <p>Separate from DiversityGate — this persists an embedding index across multiple runs so you can deduplicate against previously generated data.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="n">CuratorConfig</span><span class="p">(</span>
-<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>    <span class="n">embedding_dedup</span>           <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>    <span class="n">embedding_index_dir</span>       <span class="o">=</span> <span class="s2">"output/embedding_index"</span><span class="p">,</span>
-<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>    <span class="n">embedding_dedup_threshold</span> <span class="o">=</span> <span class="mf">0.92</span><span class="p">,</span>
-<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>    <span class="n">embedding_reset_index</span>     <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>   <span class="c1"># True = start fresh</span>
-<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="n">CuratorConfig</span><span class="p">(</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>    <span class="n">embedding_dedup</span>           <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>    <span class="n">embedding_index_dir</span>       <span class="o">=</span> <span class="s2">"output/embedding_index"</span><span class="p">,</span>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>    <span class="n">embedding_dedup_threshold</span> <span class="o">=</span> <span class="mf">0.92</span><span class="p">,</span>
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>    <span class="n">embedding_reset_index</span>     <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>   <span class="c1"># True = start fresh</span>
+<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="p">)</span>
 </code></pre></div>
 <hr />
 <h2 id="combining-gates">Combining gates<a class="headerlink" href="#combining-gates" title="Permanent link">&para;</a></h2>
 <p>All three gates can run together. Each one's rejects are independent — a sample that fails HallucinationGate never reaches RewardGate. Read per-gate counts in <code>result.stage_counts</code>:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="n">result</span><span class="o">.</span><span class="n">stage_counts</span><span class="p">[</span><span class="s2">"HallucinationGate"</span><span class="p">]</span>
-<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="c1"># {"input_count": 2850, "output_count": 2210, "probe_recovered": 0, "rejected_count": 640}</span>
-<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="n">result</span><span class="o">.</span><span class="n">stage_counts</span><span class="p">[</span><span class="s2">"RewardGate"</span><span class="p">]</span>
-<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="c1"># {"input_count": 2210, "output_count": 1890, "probe_recovered": 0, "rejected_count": 320}</span>
-<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="n">result</span><span class="o">.</span><span class="n">stage_counts</span><span class="p">[</span><span class="s2">"DiversityGate"</span><span class="p">]</span>
-<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="c1"># {"input_count": 1890, "output_count": 1740, "probe_recovered": 0, "rejected_count": 150}</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="n">result</span><span class="o">.</span><span class="n">stage_counts</span><span class="p">[</span><span class="s2">"HallucinationGate"</span><span class="p">]</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="c1"># {"input_count": 2850, "output_count": 2210, "probe_recovered": 0, "rejected_count": 640}</span>
+<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="n">result</span><span class="o">.</span><span class="n">stage_counts</span><span class="p">[</span><span class="s2">"RewardGate"</span><span class="p">]</span>
+<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="c1"># {"input_count": 2210, "output_count": 1890, "probe_recovered": 0, "rejected_count": 320}</span>
+<a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="n">result</span><span class="o">.</span><span class="n">stage_counts</span><span class="p">[</span><span class="s2">"DiversityGate"</span><span class="p">]</span>
+<a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="c1"># {"input_count": 1890, "output_count": 1740, "probe_recovered": 0, "rejected_count": 150}</span>
 </code></pre></div>
 <p>(<code>probe_recovered</code> is non-zero when the <a href="../adaptive-recovery/">diagnostic probe</a> is enabled and recovers samples inline.)</p>
 <hr />

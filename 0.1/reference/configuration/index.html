@@ -875,6 +875,28 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#per-role-llm-overrides-llmoverride" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Per-role LLM overrides (LLMOverride)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#yaml-per-role-llm-overrides" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        YAML per-role LLM overrides
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#generation-task" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1410,6 +1432,28 @@
     <span class="md-ellipsis">
       
         Judge LLM
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#per-role-llm-overrides-llmoverride" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Per-role LLM overrides (LLMOverride)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#yaml-per-role-llm-overrides" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        YAML per-role LLM overrides
       
     </span>
   </a>
@@ -2160,6 +2204,124 @@ for full usage examples.</p>
 </tr>
 </tbody>
 </table>
+<hr />
+<h2 id="per-role-llm-overrides-llmoverride">Per-role LLM overrides (<code>LLMOverride</code>)<a class="headerlink" href="#per-role-llm-overrides-llmoverride" title="Permanent link">&para;</a></h2>
+<p>CuratorConfig exposes one <code>LLMOverride</code> field per LLM "role": <code>generator_llm</code>, <code>judge_llm</code>,
+<code>hallucination_llm</code>, <code>reward_llm</code>, <code>toxicity_llm</code>, <code>grpo_scoring_llm</code>, <code>probe_llm</code>, <code>refiner_llm</code>.
+Each accepts a plain dict — it's coerced into an <code>LLMOverride</code> automatically — with any of ten
+fields: <code>model</code>, <code>api_base</code>, <code>api_key</code>, <code>temperature</code>, <code>max_tokens</code>, <code>timeout</code>, <code>max_retries</code>,
+<code>extra_body</code>, <code>drop_params</code>, <code>concurrency</code>. Leave a field unset (<code>None</code>) to inherit it from the next
+tier down.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">config</span> <span class="o">=</span> <span class="n">CuratorConfig</span><span class="p">(</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>    <span class="n">dataset</span><span class="o">=</span><span class="s2">"my-dataset"</span><span class="p">,</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    <span class="n">llm_model</span><span class="o">=</span><span class="s2">"openai/gpt-4o-mini"</span><span class="p">,</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>    <span class="n">hallucination_llm</span><span class="o">=</span><span class="p">{</span><span class="s2">"model"</span><span class="p">:</span> <span class="s2">"openai/gpt-4o-mini"</span><span class="p">,</span> <span class="s2">"temperature"</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span> <span class="s2">"max_tokens"</span><span class="p">:</span> <span class="mi">300</span><span class="p">},</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>    <span class="n">toxicity_llm</span><span class="o">=</span><span class="p">{</span><span class="s2">"model"</span><span class="p">:</span> <span class="s2">"openai/gpt-4o-mini"</span><span class="p">,</span> <span class="s2">"temperature"</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">},</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>    <span class="n">refiner_llm</span><span class="o">=</span><span class="p">{</span><span class="s2">"temperature"</span><span class="p">:</span> <span class="mf">0.5</span><span class="p">,</span> <span class="s2">"concurrency"</span><span class="p">:</span> <span class="mi">8</span><span class="p">},</span>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="p">)</span>
+</code></pre></div>
+<p><strong>Resolution is a 3-tier cascade</strong> — role-specific override → mid-tier bucket → terminal default:</p>
+<table>
+<thead>
+<tr>
+<th>Role</th>
+<th>Mid-tier bucket</th>
+<th>Terminal default (temperature / max_tokens)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>generator_llm</code></td>
+<td>— (top of the generation branch)</td>
+<td><code>llm_temperature</code> / <code>llm_max_tokens</code></td>
+</tr>
+<tr>
+<td><code>judge_llm</code></td>
+<td>— (top of the judging branch)</td>
+<td><code>judge_llm_temperature</code> / <code>judge_llm_max_tokens</code></td>
+</tr>
+<tr>
+<td><code>hallucination_llm</code></td>
+<td><code>judge_llm</code></td>
+<td><code>0.1</code> / <code>512</code></td>
+</tr>
+<tr>
+<td><code>reward_llm</code></td>
+<td><code>judge_llm</code></td>
+<td><code>0.1</code> / <code>512</code></td>
+</tr>
+<tr>
+<td><code>toxicity_llm</code></td>
+<td><code>judge_llm</code></td>
+<td><code>0.1</code> / <code>200</code></td>
+</tr>
+<tr>
+<td><code>grpo_scoring_llm</code></td>
+<td><code>judge_llm</code></td>
+<td><code>0.1</code> / <code>256</code></td>
+</tr>
+<tr>
+<td><code>probe_llm</code></td>
+<td><code>generator_llm</code></td>
+<td><em>(temperature swept per-call)</em> / <code>512</code></td>
+</tr>
+<tr>
+<td><code>refiner_llm</code></td>
+<td><code>generator_llm</code></td>
+<td><code>0.4</code> / <code>512</code></td>
+</tr>
+</tbody>
+</table>
+<p><code>timeout</code>/<code>max_retries</code>/<code>extra_body</code>/<code>drop_params</code> for the six second-class roles fall back to the
+judging bucket (<code>hallucination_llm</code>/<code>reward_llm</code>/<code>toxicity_llm</code>/<code>grpo_scoring_llm</code>) or generation
+bucket (<code>probe_llm</code>/<code>refiner_llm</code>) — there's no historical mismatch there, unlike temperature/max_tokens.</p>
+<p><code>concurrency</code> controls executor parallelism for the role's gate/task wrapper (e.g.
+<code>HallucinationGate</code>, <code>DiagnosticProbe</code>, <code>RewardRefiner</code>) — it cascades the same way, falling back to
+<code>judge_concurrency</code>/<code>generation_concurrency</code>/<code>llm_concurrency</code> (or <code>32</code> for probe/refiner, which had
+no config knob at all before this).</p>
+<p><strong><code>enable_thinking</code></strong>: <code>probe_llm</code>/<code>refiner_llm</code> force <code>chat_template_kwargs.enable_thinking = False</code>
+by default (probe/refiner need structured text, not a reasoning preamble) — but if you explicitly set
+<code>enable_thinking</code> in the role's <code>extra_body</code>, that value is respected instead of being overwritten.</p>
+<p>This same per-role override shape is also available in the YAML/CLI pipeline config — see
+<a href="#yaml-per-role-llm-overrides">YAML per-role LLM overrides</a> below.</p>
+<hr />
+<h2 id="yaml-per-role-llm-overrides">YAML per-role LLM overrides<a class="headerlink" href="#yaml-per-role-llm-overrides" title="Permanent link">&para;</a></h2>
+<p>The YAML/CLI pipeline config (<code>PipelineConfig</code>) mirrors <code>CuratorConfig</code>'s per-role override shape.
+Two new top-level mid-tier buckets, <code>generator_llm:</code> and <code>judge_llm:</code>, sit between each role's own
+override and the global <code>llm:</code> block:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nt">llm</span><span class="p">:</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">  </span><span class="nt">model</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">openai/gpt-4o-mini</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="nt">judge_llm</span><span class="p">:</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">  </span><span class="nt">temperature</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.1</span><span class="w">          </span><span class="c1"># applies to hallucination/reward/toxicity/grpo_scoring by default</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="nt">gates</span><span class="p">:</span>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">hallucination</span>
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="w">    </span><span class="nt">hallucination_threshold</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.7</span>
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="w">    </span><span class="nt">hallucination_llm</span><span class="p">:</span><span class="w">                 </span><span class="c1"># per-gate override — wins over judge_llm:</span>
+<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="w">      </span><span class="nt">model</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">openai/gpt-4o-mini</span>
+<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="w">      </span><span class="nt">temperature</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.0</span>
+<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="w">      </span><span class="nt">max_tokens</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">300</span>
+<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a><span class="w">      </span><span class="nt">concurrency</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">5</span>
+<a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">reward</span>
+<a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a><span class="w">    </span><span class="nt">reward_threshold</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.7</span>
+<a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a><span class="w">    </span><span class="nt">enable_reward_refiner</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span><span class="w">        </span><span class="c1"># previously unavailable in YAML at all</span>
+<a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a><span class="w">    </span><span class="nt">refiner_llm</span><span class="p">:</span>
+<a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a><span class="w">      </span><span class="nt">temperature</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.5</span>
+<a id="__codelineno-2-19" name="__codelineno-2-19" href="#__codelineno-2-19"></a><span class="w">      </span><span class="nt">concurrency</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">8</span>
+<a id="__codelineno-2-20" name="__codelineno-2-20" href="#__codelineno-2-20"></a>
+<a id="__codelineno-2-21" name="__codelineno-2-21" href="#__codelineno-2-21"></a><span class="nt">generators</span><span class="p">:</span>
+<a id="__codelineno-2-22" name="__codelineno-2-22" href="#__codelineno-2-22"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">grpo</span>
+<a id="__codelineno-2-23" name="__codelineno-2-23" href="#__codelineno-2-23"></a><span class="w">    </span><span class="nt">llm_model</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">openai/gpt-4o-mini</span>
+<a id="__codelineno-2-24" name="__codelineno-2-24" href="#__codelineno-2-24"></a><span class="w">    </span><span class="nt">grpo_scoring_llm</span><span class="p">:</span><span class="w">                  </span><span class="c1"># previously unavailable in YAML at all</span>
+<a id="__codelineno-2-25" name="__codelineno-2-25" href="#__codelineno-2-25"></a><span class="w">      </span><span class="nt">model</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">openai/gpt-4o</span>
+<a id="__codelineno-2-26" name="__codelineno-2-26" href="#__codelineno-2-26"></a><span class="w">      </span><span class="nt">temperature</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.05</span>
+</code></pre></div>
+<p>The legacy bare model-string fields (<code>hallucination_llm_model</code>, <code>reward_llm_model</code>,
+<code>toxicity_llm_model</code>, <code>llm_model</code> on a generator, <code>probe_generator_model</code>) still work unchanged —
+they're treated as <code>{model: "..."}</code> shorthand and only apply when the corresponding nested block
+(<code>hallucination_llm:</code>, etc.) is absent.</p>
+<p>Same 3-tier cascade and role-default table as the Python API (see above), including the
+<code>enable_thinking</code> behavior.</p>
 <hr />
 <h2 id="generation-task">Generation task<a class="headerlink" href="#generation-task" title="Permanent link">&para;</a></h2>
 <table>
