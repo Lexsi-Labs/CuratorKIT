@@ -25,7 +25,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from tqdm import tqdm
 
-from curatorkit.generators.base import BaseGenerationTask
+from curatorkit.generators.base import BaseGenerationTask, coerce_text
 from curatorkit.llm.base import BaseLLM, LLMResponse
 from curatorkit.schema import DataSample, RejectedSample
 
@@ -144,8 +144,8 @@ class MultiTurnTask(BaseGenerationTask):
     def _format_conversation(turns: list[dict]) -> str:
         lines = []
         for t in turns:
-            role = t.get("role", "").capitalize()
-            content = t.get("content", "").strip()
+            role = coerce_text(t.get("role", "")).capitalize()
+            content = coerce_text(t.get("content", "")).strip()
             lines.append(f"{role}: {content}")
         return "\n".join(lines)
 
@@ -290,8 +290,8 @@ class MultiTurnTask(BaseGenerationTask):
         first_assistant = ""
         extra_turns = []
         for i, t in enumerate(turns):
-            role = t.get("role", "").lower()
-            content = t.get("content", "").strip()
+            role = coerce_text(t.get("role", "")).lower()
+            content = coerce_text(t.get("content", "")).strip()
             if i == 0 and role == "user":
                 first_user = content
             elif i == 1 and role == "assistant":

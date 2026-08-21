@@ -27,7 +27,7 @@ import uuid
 
 from tqdm import tqdm
 
-from curatorkit.generators.base import BaseGenerationTask
+from curatorkit.generators.base import BaseGenerationTask, coerce_text
 from curatorkit.llm.base import BaseLLM, LLMResponse
 from curatorkit.schema import DataSample
 
@@ -214,9 +214,9 @@ class EvolInstructTask(BaseGenerationTask):
         try:
             parsed = json.loads(text)
             if isinstance(parsed, dict):
-                evolved_instruction = parsed.get("evolved_instruction", "")
-                strategy_used = parsed.get("strategy_applied", strategy_used)
-                complexity_notes = parsed.get("complexity_notes", "")
+                evolved_instruction = coerce_text(parsed.get("evolved_instruction", ""))
+                strategy_used = coerce_text(parsed.get("strategy_applied", strategy_used))
+                complexity_notes = coerce_text(parsed.get("complexity_notes", ""))
         except json.JSONDecodeError:
             evolved_instruction = text
 

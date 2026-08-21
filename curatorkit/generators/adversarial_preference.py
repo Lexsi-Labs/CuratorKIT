@@ -28,7 +28,7 @@ from __future__ import annotations
 import random
 import uuid
 
-from curatorkit.generators.base import BaseGenerationTask
+from curatorkit.generators.base import BaseGenerationTask, coerce_text
 from curatorkit.llm.base import BaseLLM, LLMResponse
 from curatorkit.schema import DataSample, ProvenanceRecord
 
@@ -236,8 +236,8 @@ class AdversarialPreferenceTask(BaseGenerationTask):
         results = []
 
         for pair in pairs:
-            question = pair.get("question") or pair.get("q", "")
-            answer = pair.get("answer") or pair.get("a", "")
+            question = coerce_text(pair.get("question") or pair.get("q", ""))
+            answer = coerce_text(pair.get("answer") or pair.get("a", ""))
             if not question or not answer:
                 continue
 
@@ -263,7 +263,7 @@ class AdversarialPreferenceTask(BaseGenerationTask):
                     try:
                         naive_pairs = json.loads(naive_text)
                         if isinstance(naive_pairs, list) and naive_pairs:
-                            rejected_text = naive_pairs[0].get("answer", naive_text)
+                            rejected_text = coerce_text(naive_pairs[0].get("answer", naive_text))
                         else:
                             rejected_text = naive_text
                     except json.JSONDecodeError:

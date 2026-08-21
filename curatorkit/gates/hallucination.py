@@ -19,12 +19,14 @@ import hashlib
 import json
 import re
 import threading
+import warnings
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import UTC, datetime
 
 from tqdm import tqdm
 from tqdm.asyncio import tqdm as atqdm
 
+from curatorkit.gates._score_parsing import extract_score, template_mentions_key
 from curatorkit.interfaces import BaseGate
 from curatorkit.llm.base import BaseLLM
 from curatorkit.schema import DataSample, ProvenanceRecord, RejectedSample
@@ -96,6 +98,19 @@ class HallucinationGate(BaseGate):
         self.prompt_template = prompt_template or _DEFAULT_GROUNDING_PROMPT
         self.skip_if_no_context = skip_if_no_context
         self.concurrency = concurrency
+        self._fallback_count = 0
+        self._scored_count = 0
+
+        if not template_mentions_key(prompt_template, "grounding_score"):
+            warnings.warn(
+                "hallucination_prompt_template does not mention 'grounding_score' — "
+                "HallucinationGate parses that exact key from the judge's JSON response to "
+                "decide pass/fail. Without it, scores will be recovered by extracting a number "
+                "from the raw response, which may reject far more samples than expected. Add "
+                '`"grounding_score": 0.XX` to your template\'s expected output JSON.',
+                UserWarning,
+                stacklevel=2,
+            )
 
     def _config_hash(self) -> str:
         payload = json.dumps(
@@ -287,7 +302,22 @@ class HallucinationGate(BaseGate):
             if r is not None:
                 rejected.append(r)
 
+        self._warn_if_fallback_heavy()
         return passed, rejected
+
+    def _warn_if_fallback_heavy(self) -> None:
+        """One aggregated warning if scores had to be recovered via fallback
+        parsing instead of the documented `grounding_score` key."""
+        if self._fallback_count == 0 or self._scored_count == 0:
+            return
+        warnings.warn(
+            f"HallucinationGate: {self._fallback_count}/{self._scored_count} judge responses had "
+            "no 'grounding_score' and were scored via raw-text extraction instead — check that "
+            "your hallucination_prompt_template's expected output JSON includes "
+            '`"grounding_score": 0.XX`.',
+            UserWarning,
+            stacklevel=2,
+        )
 
     def _evaluate_grounding(
         self, source_text: str, question: str, answer: str
@@ -311,24 +341,22 @@ class HallucinationGate(BaseGate):
 
         try:
             parsed = json.loads(text)
-            score = float(parsed.get("grounding_score", 0.0))
-            score = max(0.0, min(1.0, score))
-            verdict = parsed.get("verdict", "unknown")
-            details = {
-                "supported_claims": parsed.get("supported_claims", []),
-                "unsupported_claims": parsed.get("unsupported_claims", []),
-            }
-            return score, verdict, details
-        except (json.JSONDecodeError, ValueError, TypeError):
-            # Fallback: try to extract a score from the text
-            score_match = re.search(r"(\d+\.?\d*)", text)
-            if score_match:
-                score = float(score_match.group(1))
-                if score > 1.0:
-                    score = score / 10.0  # Handle 0-10 scale
-                return max(0.0, min(1.0, score)), "parse_fallback", {}
+        except json.JSONDecodeError:
+            parsed = None
 
-            return 0.5, "parse_error", {"raw_response": text[:200]}
+        score, used_fallback = extract_score(parsed, text, "grounding_score")
+        self._scored_count += 1
+        if used_fallback:
+            self._fallback_count += 1
+
+        verdict = parsed.get("verdict", "unknown") if isinstance(parsed, dict) else "parse_fallback"
+        details = {
+            "supported_claims": parsed.get("supported_claims", []) if isinstance(parsed, dict) else [],
+            "unsupported_claims": parsed.get("unsupported_claims", []) if isinstance(parsed, dict) else [],
+        }
+        if used_fallback:
+            details["parse_error"] = True
+        return score, verdict, details
 
     # ------------------------------------------------------------------
     # Async interface
@@ -352,19 +380,22 @@ class HallucinationGate(BaseGate):
         text = re.sub(r"```\s*$", "", text)
         try:
             parsed = json.loads(text)
-            score = max(0.0, min(1.0, float(parsed.get("grounding_score", 0.0))))
-            verdict = parsed.get("verdict", "unknown")
-            details = {
-                "supported_claims": parsed.get("supported_claims", []),
-                "unsupported_claims": parsed.get("unsupported_claims", []),
-            }
-            return score, verdict, details
-        except (json.JSONDecodeError, ValueError, TypeError):
-            m = re.search(r"(\d+\.?\d*)", text)
-            if m:
-                s = float(m.group(1))
-                return max(0.0, min(1.0, s / 10.0 if s > 1.0 else s)), "parse_fallback", {}
-            return 0.5, "parse_error", {"raw_response": text[:200]}
+        except json.JSONDecodeError:
+            parsed = None
+
+        score, used_fallback = extract_score(parsed, text, "grounding_score")
+        self._scored_count += 1
+        if used_fallback:
+            self._fallback_count += 1
+
+        verdict = parsed.get("verdict", "unknown") if isinstance(parsed, dict) else "parse_fallback"
+        details = {
+            "supported_claims": parsed.get("supported_claims", []) if isinstance(parsed, dict) else [],
+            "unsupported_claims": parsed.get("unsupported_claims", []) if isinstance(parsed, dict) else [],
+        }
+        if used_fallback:
+            details["parse_error"] = True
+        return score, verdict, details
 
     async def _run_one_async(
         self, sample: DataSample, cfg_hash: str, ts, semaphore: asyncio.Semaphore
@@ -477,4 +508,5 @@ class HallucinationGate(BaseGate):
 
         passed = [p for p, r in results if p is not None]
         rejected = [r for p, r in results if r is not None]
+        self._warn_if_fallback_heavy()
         return passed, rejected

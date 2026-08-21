@@ -7,35 +7,27 @@ All notable changes to CuratorKIT are documented here. The format follows
 ## Unreleased
 
 ### Added
-- YAML/CLI pipeline config (`PipelineConfig`) now mirrors `CuratorConfig`'s per-role LLM override
-  shape: new `generator_llm:`/`judge_llm:` mid-tier buckets, and a nested `<role>_llm:` block
-  (model/temperature/max_tokens/timeout/max_retries/extra_body/drop_params/concurrency) on
-  `hallucination`/`reward`/`toxicity` gates, generators, and the diagnostic probe — previously YAML
-  only had a single global `llm:` block plus a bare model-string override per role. Legacy bare
-  `*_llm_model` fields still work unchanged. Also closes two YAML-only feature gaps: `grpo_scoring_llm`
-  (GRPO rollouts previously reused the same LLM for scoring as for generation) and
-  `enable_reward_refiner`/`refiner_llm` (RewardRefiner had no YAML/CLI wiring at all). Quality gates
-  built via YAML also now receive a resolved `concurrency` (previously `HallucinationGate`/`RewardGate`
-  silently used their class defaults regardless of config).
-- `LLMOverride` (the per-role override dict passed to `generator_llm`, `judge_llm`,
-  `hallucination_llm`, `reward_llm`, `toxicity_llm`, `grpo_scoring_llm`, `probe_llm`,
-  `refiner_llm`) now accepts `temperature`, `max_tokens`, `timeout`, `max_retries`,
-  `extra_body`, `drop_params`, and `concurrency` — previously only `model`/`api_base`/
-  `api_key` were configurable per role, and the six non-generator/judge roles silently
-  ignored any sampling-param override because their call sites hardcoded literal
-  `temperature`/`max_tokens` values. All 8 roles now resolve through a consistent 3-tier
-  cascade (role override → mid-tier `judge_llm`/`generator_llm` → role default or global
-  bucket); default behavior is unchanged for anyone not setting a new field. `probe_llm`
-  and `refiner_llm` also gain a `concurrency` override (previously hardcoded to `32` with
-  no config path at all), and their forced `enable_thinking=False` extra_body injection now
-  respects an explicit user override instead of always clobbering it. `toxicity_llm.concurrency`
-  is accepted but has no effect yet — `ToxicityGate`'s LLM-judge path runs sequentially with
-  no executor.
-- SFT exporters (Alpaca, ShareGPT) warn when exported rows have empty
-  instruction/output, catching task-type/format mismatches that previously
-  produced silent empty datasets.
-- `LiteLLMBackend` raises a helpful `ImportError` at construction when the
-  `generation` extra is missing, instead of rejecting every sample mid-run.
+- YAML/CLI pipeline config now mirrors `CuratorConfig`'s per-role LLM override shape
+  (`generator_llm:`/`judge_llm:` buckets, nested `<role>_llm:` blocks), plus `grpo_scoring_llm`
+  and `enable_reward_refiner`/`refiner_llm` YAML support. Legacy fields still work unchanged.
+- `LLMOverride` now accepts `temperature`, `max_tokens`, `timeout`, `max_retries`, `extra_body`,
+  `drop_params`, and `concurrency` per role (previously only `model`/`api_base`/`api_key`).
+- SFT exporters (Alpaca, ShareGPT) warn on rows with empty instruction/output.
+- `LiteLLMBackend` raises a clear `ImportError` when the `generation` extra is missing.
+
+### Fixed
+- Generation tasks discarded valid samples when a model nested a string field in an object
+  (e.g. `{"chosen": {"poem": "..."}}`) — added a shared `coerce_text()` helper to unwrap these
+  instead of failing downstream.
+- `PreferenceGenerationTask.run_async()` ignored `preference_mode: "two_pass"`, always falling
+  back to the single-call path under async invocation — it now dispatches on `mode` like `run()`.
+- `max_retries` on any `*_max_retries` param was used as the total attempt count instead of
+  "retries after the first attempt" — `max_retries=0` skipped the call entirely and raised a
+  misleading "failed" error. Total calls is now `max_retries + 1` (0 = one attempt, no retries).
+- `reward_prompt_template`/`hallucination_prompt_template` custom overrides that didn't return the
+  expected `overall_score`/`grounding_score` key silently scored every sample 0.0. Now falls back
+  to averaging dimension scores or extracting a number from the raw response, warns immediately if
+  a custom template omits the key, and warns again after a run if the fallback was actually used.
 
 ## 1.0.0 - 2026-06-12
 

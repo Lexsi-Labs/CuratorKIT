@@ -46,6 +46,7 @@ import uuid
 from datetime import UTC, datetime
 from typing import Literal
 
+from curatorkit.generators.base import coerce_text
 from curatorkit.generators.qa_generator import _DEFAULT_QA_PROMPT, QAGenerationTask
 from curatorkit.llm.base import LLMResponse
 from curatorkit.schema import DataSample, ProvenanceRecord, RejectedSample
@@ -352,8 +353,8 @@ class AdversarialQAGenerationTask(QAGenerationTask):
         prompt_hash = hashlib.sha256(json.dumps(messages).encode()).hexdigest()[:12]
         results = []
         for qa in qa_pairs:
-            q = qa.get("question", "").strip()
-            a = qa.get("answer", "").strip()
+            q = coerce_text(qa.get("question", "")).strip()
+            a = coerce_text(qa.get("answer", "")).strip()
             if not q or not a:
                 continue
             s = DataSample(
@@ -437,8 +438,8 @@ class AdversarialQAGenerationTask(QAGenerationTask):
         results = []
 
         for qa in qa_pairs:
-            q = qa.get("question", "").strip()
-            a = qa.get("answer", "").strip()
+            q = coerce_text(qa.get("question", "")).strip()
+            a = coerce_text(qa.get("answer", "")).strip()
             if not q or not a:
                 continue
 

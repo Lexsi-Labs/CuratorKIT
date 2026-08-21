@@ -16,12 +16,14 @@ import hashlib
 import json
 import re
 import threading
+import warnings
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import UTC, datetime
 
 from tqdm import tqdm
 from tqdm.asyncio import tqdm as atqdm
 
+from curatorkit.gates._score_parsing import extract_score, template_mentions_key
 from curatorkit.interfaces import BaseGate
 from curatorkit.llm.base import BaseLLM
 from curatorkit.schema import DataSample, ProvenanceRecord, RejectedSample
@@ -112,11 +114,29 @@ class RewardGate(BaseGate):
         self.prompt_template = prompt_template
         self.store_score_in_label = store_score_in_label
         self.concurrency = concurrency
+        self._fallback_count = 0
+        self._scored_count = 0
 
         # Validate dimensions
         for dim in self.dimensions:
             if dim not in _VALID_DIMENSIONS:
                 raise ValueError(f"Unknown dimension '{dim}'. Valid: {sorted(_VALID_DIMENSIONS)}")
+
+        # Static check, before any LLM calls: does the custom template even
+        # ask for the key this gate parses out of the judge's response? If
+        # not, every sample will fail to produce a real score regardless of
+        # how good the judge's actual answers are — warn now instead of only
+        # discovering it after the whole pipeline has run.
+        if not template_mentions_key(prompt_template, "overall_score"):
+            warnings.warn(
+                "reward_prompt_template does not mention 'overall_score' — RewardGate parses "
+                "that exact key from the judge's JSON response to decide pass/fail. Without it, "
+                "scores will be recovered by averaging your requested dimensions or extracting a "
+                "number from the raw response, which may reject far more samples than expected. "
+                'Add `"overall_score": 0.XX` to your template\'s expected output JSON.',
+                UserWarning,
+                stacklevel=2,
+            )
 
     def _config_hash(self) -> str:
         payload = json.dumps(
@@ -380,7 +400,23 @@ class RewardGate(BaseGate):
             if r is not None:
                 rejected.append(r)
 
+        self._warn_if_fallback_heavy()
         return passed, rejected
+
+    def _warn_if_fallback_heavy(self) -> None:
+        """One aggregated warning if scores had to be recovered via fallback
+        parsing instead of the documented `overall_score` key — mirrors the
+        SFT exporters' empty-row warning rather than warning per-sample."""
+        if self._fallback_count == 0 or self._scored_count == 0:
+            return
+        warnings.warn(
+            f"RewardGate: {self._fallback_count}/{self._scored_count} judge responses had no "
+            "'overall_score' and were scored via dimension-averaging or raw-text extraction "
+            "instead — check that your reward_prompt_template's expected output JSON includes "
+            '`"overall_score": 0.XX`.',
+            UserWarning,
+            stacklevel=2,
+        )
 
     def _evaluate_quality(
         self, instruction: str, response: str
@@ -400,32 +436,34 @@ class RewardGate(BaseGate):
 
         try:
             parsed = json.loads(text)
-            overall = float(parsed.get("overall_score", 0.0))
-            overall = max(0.0, min(1.0, overall))
+        except json.JSONDecodeError:
+            parsed = None
 
-            dim_scores = {}
-            raw_dims = parsed.get("dimension_scores", {})
+        overall, used_fallback = extract_score(
+            parsed, text, "overall_score", dimension_keys=tuple(self.dimensions)
+        )
+        self._scored_count += 1
+        if used_fallback:
+            self._fallback_count += 1
+
+        dim_scores = {}
+        if isinstance(parsed, dict):
+            raw_dims = parsed.get("dimension_scores", parsed)
             for dim in self.dimensions:
                 if dim in raw_dims:
-                    dim_scores[dim] = max(0.0, min(1.0, float(raw_dims[dim])))
+                    try:
+                        dim_scores[dim] = max(0.0, min(1.0, float(raw_dims[dim])))
+                    except (TypeError, ValueError):
+                        continue
 
-            details = {
-                "strengths": parsed.get("strengths", ""),
-                "weaknesses": parsed.get("weaknesses", ""),
-            }
+        details = {
+            "strengths": parsed.get("strengths", "") if isinstance(parsed, dict) else "",
+            "weaknesses": parsed.get("weaknesses", "") if isinstance(parsed, dict) else "",
+        }
+        if used_fallback:
+            details["parse_error"] = True
 
-            return overall, dim_scores, details
-
-        except (json.JSONDecodeError, ValueError, TypeError):
-            # Fallback: extract a number
-            score_match = re.search(r"(\d+\.?\d*)", text)
-            if score_match:
-                score = float(score_match.group(1))
-                if score > 1.0:
-                    score = score / 10.0
-                return max(0.0, min(1.0, score)), {}, {"parse_error": True}
-
-            return 0.5, {}, {"parse_error": True, "raw_response": text[:200]}
+        return overall, dim_scores, details
 
     # ------------------------------------------------------------------
     # Async interface
@@ -445,23 +483,34 @@ class RewardGate(BaseGate):
         text = re.sub(r"```\s*$", "", text)
         try:
             parsed = json.loads(text)
-            overall = max(0.0, min(1.0, float(parsed.get("overall_score", 0.0))))
-            dim_scores = {
-                dim: max(0.0, min(1.0, float(parsed.get("dimension_scores", {}).get(dim, 0.0))))
-                for dim in self.dimensions
-                if dim in parsed.get("dimension_scores", {})
-            }
-            details = {
-                "strengths": parsed.get("strengths", ""),
-                "weaknesses": parsed.get("weaknesses", ""),
-            }
-            return overall, dim_scores, details
-        except (json.JSONDecodeError, ValueError, TypeError):
-            m = re.search(r"(\d+\.?\d*)", text)
-            if m:
-                s = float(m.group(1))
-                return max(0.0, min(1.0, s / 10.0 if s > 1.0 else s)), {}, {"parse_error": True}
-            return 0.5, {}, {"parse_error": True, "raw_response": text[:200]}
+        except json.JSONDecodeError:
+            parsed = None
+
+        overall, used_fallback = extract_score(
+            parsed, text, "overall_score", dimension_keys=tuple(self.dimensions)
+        )
+        self._scored_count += 1
+        if used_fallback:
+            self._fallback_count += 1
+
+        dim_scores = {}
+        if isinstance(parsed, dict):
+            raw_dims = parsed.get("dimension_scores", parsed)
+            for dim in self.dimensions:
+                if dim in raw_dims:
+                    try:
+                        dim_scores[dim] = max(0.0, min(1.0, float(raw_dims[dim])))
+                    except (TypeError, ValueError):
+                        continue
+
+        details = {
+            "strengths": parsed.get("strengths", "") if isinstance(parsed, dict) else "",
+            "weaknesses": parsed.get("weaknesses", "") if isinstance(parsed, dict) else "",
+        }
+        if used_fallback:
+            details["parse_error"] = True
+
+        return overall, dim_scores, details
 
     async def _run_one_async(
         self, sample: DataSample, cfg_hash: str, ts, semaphore: asyncio.Semaphore
@@ -637,4 +686,5 @@ class RewardGate(BaseGate):
 
         passed = [p for p, r in results if p is not None]
         rejected = [r for p, r in results if r is not None]
+        self._warn_if_fallback_heavy()
         return passed, rejected
