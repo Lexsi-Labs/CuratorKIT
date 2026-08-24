@@ -16,13 +16,14 @@ Either way the output DataSample always carries:
 
 from __future__ import annotations
 
+import asyncio
 import json
 import re
 import uuid
 
 from tqdm import tqdm
 
-from curatorkit.generators.base import BaseGenerationTask
+from curatorkit.generators.base import BaseGenerationTask, coerce_text
 from curatorkit.llm.base import BaseLLM, LLMResponse
 from curatorkit.schema import DataSample, RejectedSample
 
@@ -186,9 +187,9 @@ class PreferenceGenerationTask(BaseGenerationTask):
         try:
             parsed = json.loads(text)
             if isinstance(parsed, dict):
-                chosen = parsed.get("chosen", "")
-                rejected = parsed.get("rejected", "")
-                question = parsed.get("question", "")
+                chosen = coerce_text(parsed.get("chosen", ""))
+                rejected = coerce_text(parsed.get("rejected", ""))
+                question = coerce_text(parsed.get("question", ""))
         except json.JSONDecodeError:
             return self._fallback_parse(sample, text, source_context, corpus_mode)
 
@@ -294,9 +295,9 @@ class PreferenceGenerationTask(BaseGenerationTask):
                     text = re.sub(r"```\s*$", "", text)
                     try:
                         parsed = json.loads(text)
-                        instruction = parsed.get("question", "")
-                        chosen_text = parsed.get("chosen", "")
-                        rejected_text = parsed.get("rejected", "")
+                        instruction = coerce_text(parsed.get("question", ""))
+                        chosen_text = coerce_text(parsed.get("chosen", ""))
+                        rejected_text = coerce_text(parsed.get("rejected", ""))
                     except json.JSONDecodeError:
                         return idx, None, "corpus_parse_failed"
                     if not instruction or not chosen_text or not rejected_text:
@@ -366,5 +367,121 @@ class PreferenceGenerationTask(BaseGenerationTask):
                             metadata={**sample.metadata, "partial_result": str(err)},
                         )
                     )
+
+        return [results_map[i] for i in sorted(results_map)]
+
+    # ── run_async() ──────────────────────────────────────────────────────────
+
+    async def run_async(self, samples: list[DataSample]) -> list[DataSample]:
+        """
+        Async counterpart to run(). Mirrors its mode dispatch — without this
+        override, the inherited BaseGenerationTask.run_async always uses the
+        single-call _parse_response path regardless of self.mode, since
+        Pipeline picks run_async whenever hasattr(step, "run_async") is true,
+        which it always is (inherited). That silently ignored
+        `preference_mode: "two_pass"` on every async invocation.
+        """
+        if self.mode == "single_call":
+            return await super().run_async(samples)
+
+        # Two-pass mode — separate chosen / rejected calls, concurrency-bounded
+        self._rejected = []
+        semaphore = asyncio.Semaphore(self.concurrency)
+        results_map: dict[int, DataSample] = {}
+
+        async def _generate_pair(idx: int, sample: DataSample):
+            async with semaphore:
+                try:
+                    source_context = self._get_source_context(sample)
+                    ctx_section = self._context_section(source_context)
+                    corpus_mode = self._is_corpus_mode(sample)
+
+                    if corpus_mode:
+                        corpus_resp = await self.llm.agenerate(
+                            [
+                                {
+                                    "role": "user",
+                                    "content": _CORPUS_PAIR_PROMPT.format(context=source_context),
+                                }
+                            ]
+                        )
+                        text = corpus_resp.text.strip()
+                        text = re.sub(r"```(?:json)?\s*", "", text)
+                        text = re.sub(r"```\s*$", "", text)
+                        try:
+                            parsed = json.loads(text)
+                            instruction = coerce_text(parsed.get("question", ""))
+                            chosen_text = coerce_text(parsed.get("chosen", ""))
+                            rejected_text = coerce_text(parsed.get("rejected", ""))
+                        except json.JSONDecodeError:
+                            return idx, None, "corpus_parse_failed"
+                        if not instruction or not chosen_text or not rejected_text:
+                            return idx, None, "corpus_incomplete"
+                    else:
+                        instruction = sample.instruction
+                        chosen_prompt = self.chosen_prompt.format(
+                            instruction=instruction,
+                            context_section=ctx_section,
+                        )
+                        rejected_prompt = self.rejected_prompt.format(
+                            instruction=instruction,
+                            context_section=ctx_section,
+                        )
+                        chosen_resp = await self.llm.agenerate(
+                            [{"role": "user", "content": chosen_prompt}]
+                        )
+                        chosen_text = chosen_resp.text.strip()
+                        rejected_resp = await self.llm.agenerate(
+                            [{"role": "user", "content": rejected_prompt}],
+                            temperature=min(self.llm.temperature + 0.3, 1.5),
+                        )
+                        rejected_text = rejected_resp.text.strip()
+
+                    if not chosen_text or not rejected_text:
+                        return idx, None, {"chosen": chosen_text, "rejected": rejected_text}
+
+                    return (
+                        idx,
+                        DataSample(
+                            id=str(uuid.uuid4()),
+                            source_uri=sample.source_uri,
+                            instruction=instruction,
+                            input=source_context,
+                            chosen=chosen_text,
+                            rejected=rejected_text,
+                            task_type="preference",
+                            metadata={
+                                "generation_source": "preference_generator",
+                                "generation_mode": "two_pass",
+                                "corpus_mode": corpus_mode,
+                                "source_sample_id": sample.id,
+                            },
+                            provenance_chain=list(sample.provenance_chain),
+                        ),
+                        None,
+                    )
+                except Exception as e:
+                    return idx, None, str(e)
+
+        tasks = [_generate_pair(i, s) for i, s in enumerate(samples)]
+        for coro in tqdm(
+            asyncio.as_completed(tasks),
+            total=len(tasks),
+            desc="[PreferenceGen] two_pass (async)",
+            unit="sample",
+        ):
+            idx, ds, err = await coro
+            sample = samples[idx]
+            if ds is not None:
+                results_map[idx] = ds
+            else:
+                self._rejected.append(
+                    RejectedSample(
+                        **sample.model_dump(),
+                        rejection_reason=f"generation_parse_failed:{self.task_name}",
+                        rejecting_step=self.task_name,
+                        metadata={**sample.metadata, "partial_result": str(err)},
+                    )
+                )
 
         return [results_map[i] for i in sorted(results_map)]

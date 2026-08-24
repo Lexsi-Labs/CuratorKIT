@@ -71,7 +71,9 @@ class BaseLLM(ABC):
     timeout : float
         Request timeout in seconds.
     max_retries : int
-        Number of retries on transient failures.
+        Number of retries after the first attempt on transient failures.
+        Total calls made is `max_retries + 1` — `0` means one attempt, no
+        retries; the first attempt is always made regardless of this value.
     """
 
     def __init__(
@@ -145,8 +147,11 @@ class BaseLLM(ABC):
         if stop is not None:
             merged["stop"] = stop
 
+        # max_retries counts retries *after* the first attempt, so total calls
+        # is max_retries + 1 — max_retries=0 still means "call it once."
+        total_attempts = self.max_retries + 1
         last_error: Exception | None = None
-        for attempt in range(1, self.max_retries + 1):
+        for attempt in range(1, total_attempts + 1):
             try:
                 t0 = time.monotonic()
                 response = self._call(messages, **merged)
@@ -154,13 +159,13 @@ class BaseLLM(ABC):
                 return response
             except Exception as e:
                 last_error = e
-                if attempt < self.max_retries:
+                if attempt < total_attempts:
                     # Exponential backoff: 1s, 2s, 4s...
                     time.sleep(min(2 ** (attempt - 1), 30) * random.uniform(0.5, 1.5))
                 continue
 
         raise RuntimeError(
-            f"LLM call failed after {self.max_retries} retries: {last_error}"
+            f"LLM call failed after {total_attempts} attempt(s) (max_retries={self.max_retries}): {last_error}"
         ) from last_error
 
     async def agenerate(
@@ -184,8 +189,9 @@ class BaseLLM(ABC):
         if stop is not None:
             merged["stop"] = stop
 
+        total_attempts = self.max_retries + 1
         last_error: Exception | None = None
-        for attempt in range(1, self.max_retries + 1):
+        for attempt in range(1, total_attempts + 1):
             try:
                 t0 = time.monotonic()
                 response = await self._acall(messages, **merged)
@@ -193,12 +199,12 @@ class BaseLLM(ABC):
                 return response
             except Exception as e:
                 last_error = e
-                if attempt < self.max_retries:
+                if attempt < total_attempts:
                     await asyncio.sleep(min(2 ** (attempt - 1), 30) * random.uniform(0.5, 1.5))
                 continue
 
         raise RuntimeError(
-            f"Async LLM call failed after {self.max_retries} retries: {last_error}"
+            f"Async LLM call failed after {total_attempts} attempt(s) (max_retries={self.max_retries}): {last_error}"
         ) from last_error
 
     def config_hash(self) -> str:

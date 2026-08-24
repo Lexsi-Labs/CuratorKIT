@@ -22,7 +22,7 @@ import json
 import re
 import uuid
 
-from curatorkit.generators.base import BaseGenerationTask
+from curatorkit.generators.base import BaseGenerationTask, coerce_text
 from curatorkit.llm.base import BaseLLM, LLMResponse
 from curatorkit.schema import DataSample
 
@@ -160,8 +160,8 @@ class ChainOfThoughtTask(BaseGenerationTask):
         try:
             parsed = json.loads(clean)
             if isinstance(parsed, dict):
-                reasoning = parsed.get("reasoning", "")
-                answer = parsed.get("answer", sample.output)
+                reasoning = coerce_text(parsed.get("reasoning", ""))
+                answer = coerce_text(parsed.get("answer", sample.output))
         except json.JSONDecodeError:
             reasoning = text
 

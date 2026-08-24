@@ -31,6 +31,31 @@ from curatorkit.schema import DataSample, ProvenanceRecord, RejectedSample
 STEP_VERSION = "1.0.0"
 
 
+def coerce_text(value) -> str:
+    """Coerce a parsed-JSON field to a flat string.
+
+    Models sometimes nest a string field into an object (e.g. `{"chosen":
+    {"poem": "..."}}` instead of `{"chosen": "..."}`) despite a flat schema
+    being requested. A truthiness-only guard (`if not value`) lets these
+    through since a non-empty dict/list is truthy, and DataSample's str
+    fields then reject them at construction time — discarding an otherwise
+    usable sample. This unwraps the common single-key-dict case, falls back
+    to a JSON dump for anything else structured, and passes strings through
+    unchanged.
+    """
+    if isinstance(value, str):
+        return value
+    if isinstance(value, dict):
+        if len(value) == 1:
+            inner = next(iter(value.values()))
+            if isinstance(inner, str):
+                return inner
+        return json.dumps(value, ensure_ascii=False)
+    if isinstance(value, list):
+        return json.dumps(value, ensure_ascii=False)
+    return "" if value is None else str(value)
+
+
 class BaseGenerationTask(BaseNormalizer):
     """
     Abstract base for LLM generation tasks.

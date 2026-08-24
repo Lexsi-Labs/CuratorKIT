@@ -22,7 +22,7 @@ from datetime import UTC
 
 from tqdm import tqdm
 
-from curatorkit.generators.base import BaseGenerationTask
+from curatorkit.generators.base import BaseGenerationTask, coerce_text
 from curatorkit.llm.base import BaseLLM, LLMResponse
 from curatorkit.schema import DataSample
 
@@ -180,8 +180,8 @@ class QAGenerationTask(BaseGenerationTask):
         results: list[DataSample] = []
 
         for qa in qa_pairs:
-            question = qa.get("question", "").strip()
-            answer = qa.get("answer", "").strip()
+            question = coerce_text(qa.get("question", "")).strip()
+            answer = coerce_text(qa.get("answer", "")).strip()
 
             if not question or not answer:
                 continue
