@@ -1773,7 +1773,9 @@ api_key : str | None
 timeout : float
     Request timeout in seconds.
 max_retries : int
-    Number of retries on transient failures.</p>
+    Number of retries after the first attempt on transient failures.
+    Total calls made is <code>max_retries + 1</code> — <code>0</code> means one attempt, no
+    retries; the first attempt is always made regardless of this value.</p>
 
 
 

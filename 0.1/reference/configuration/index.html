@@ -2581,7 +2581,7 @@ they're treated as <code>{model: "..."}</code> shorthand and only apply when the
 <td><code>hallucination_prompt_template</code></td>
 <td><code>str \| None</code></td>
 <td><code>None</code></td>
-<td>Custom hallucination judge prompt. Required variables: <code>{source}</code>, <code>{claim}</code>.</td>
+<td>Custom hallucination judge prompt. Required variables: <code>{source_text}</code>, <code>{question}</code>, <code>{answer}</code>. Expected output JSON <strong>must include <code>"grounding_score": 0.XX</code></strong> — that exact key is what the gate parses to decide pass/fail; see the note below.</td>
 </tr>
 <tr>
 <td><code>reward_threshold</code></td>
@@ -2599,22 +2599,15 @@ they're treated as <code>{model: "..."}</code> shorthand and only apply when the
 <td><code>reward_prompt_template</code></td>
 <td><code>str \| None</code></td>
 <td><code>None</code></td>
-<td>Replace the entire reward judge prompt with a custom rubric. Required variables: <code>{instruction}</code>, <code>{response}</code>. Must return <code>{"score": 0.XX, "reasoning": "..."}</code>.</td>
-</tr>
-<tr>
-<td><code>reward_store_score</code></td>
-<td><code>bool</code></td>
-<td><code>True</code></td>
-<td>Write the overall reward score to each sample's <code>label</code> field (used by the reward refiner and downstream filtering)</td>
-</tr>
-<tr>
-<td><code>diversity_threshold</code></td>
-<td><code>float \| None</code></td>
-<td><code>None</code></td>
-<td>Enable DiversityGate. Samples with cosine similarity above this to any accepted sample are rejected. Range 0.0–1.0. <code>None</code> = gate disabled.</td>
+<td>Replace the entire reward judge prompt with a custom rubric. Required variables: <code>{instruction}</code>, <code>{response}</code>. Expected output JSON <strong>must include <code>"overall_score": 0.XX</code></strong> — that exact key is what the gate parses to decide pass/fail; see the note below.</td>
 </tr>
 </tbody>
 </table>
+<blockquote>
+<p><strong>Custom judge prompt templates and scoring</strong>: <code>reward_prompt_template</code>/<code>hallucination_prompt_template</code> replace the entire prompt text, but the gate still parses one specific top-level JSON key out of the judge's response (<code>overall_score</code> / <code>grounding_score</code>) — that key is never computed by CuratorKIT, it's whatever the LLM returns. If your custom template's expected output doesn't ask for that exact key, the gate can't find it and falls back to averaging your <code>reward_dimensions</code> (if present flat in the response) or extracting any number from the raw text, which can behave very differently from what you intended. CuratorKIT warns you twice if this happens: once immediately at gate construction (a cheap check of whether the key literally appears in your template text, before any LLM calls), and once after a run if fallback parsing was actually used. When writing a custom template, always include the required key explicitly in the JSON shape you ask the model for.
+| <code>reward_store_score</code> | <code>bool</code> | <code>True</code> | Write the overall reward score to each sample's <code>label</code> field (used by the reward refiner and downstream filtering) |
+| <code>diversity_threshold</code> | <code>float \| None</code> | <code>None</code> | Enable DiversityGate. Samples with cosine similarity above this to any accepted sample are rejected. Range 0.0–1.0. <code>None</code> = gate disabled. |</p>
+</blockquote>
 <hr />
 <h2 id="inline-recovery-adaptive-probe">Inline recovery (adaptive probe)<a class="headerlink" href="#inline-recovery-adaptive-probe" title="Permanent link">&para;</a></h2>
 <table>

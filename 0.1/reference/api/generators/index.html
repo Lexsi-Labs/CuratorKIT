@@ -1365,6 +1365,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#curatorkit.generators.PreferenceGenerationTask.run_async" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        run_async
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -2173,6 +2184,17 @@
     <span class="md-ellipsis">
       
         Parameters
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#curatorkit.generators.PreferenceGenerationTask.run_async" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        run_async
       
     </span>
   </a>
@@ -3077,6 +3099,35 @@ rejected_prompt : str | None
 
 
 
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="curatorkit.generators.PreferenceGenerationTask.run_async" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">run_async</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-async"><code>async</code></small>
+  </span>
+
+<a href="#curatorkit.generators.PreferenceGenerationTask.run_async" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">run_async</span><span class="p">(</span><span class="n">samples</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">DataSample</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">DataSample</span><span class="p">]</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Async counterpart to run(). Mirrors its mode dispatch — without this
+override, the inherited BaseGenerationTask.run_async always uses the
+single-call _parse_response path regardless of self.mode, since
+Pipeline picks run_async whenever hasattr(step, "run_async") is true,
+which it always is (inherited). That silently ignored
+<code>preference_mode: "two_pass"</code> on every async invocation.</p>
+
+
+    </div>
+
+</div>
 
 
 
