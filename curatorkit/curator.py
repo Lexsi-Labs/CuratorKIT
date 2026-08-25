@@ -60,6 +60,26 @@ except ImportError:
     PipelineDiagnostics = None  # type: ignore
 
 
+def _exporter_classes() -> dict[str, type]:
+    """Exporter registry shared by inline pipeline export, output_split
+    export, and post-recovery export, so all three stay in sync."""
+    from curatorkit.exporters.alpaca import AlpacaExporter
+    from curatorkit.exporters.corpus import CorpusExporter
+    from curatorkit.exporters.dpo import DPOExporter
+    from curatorkit.exporters.grpo import GRPOExporter
+    from curatorkit.exporters.ppo import PPOExporter
+    from curatorkit.exporters.sharegpt import ShareGPTExporter
+
+    return {
+        "alpaca": AlpacaExporter,
+        "corpus": CorpusExporter,
+        "sharegpt": ShareGPTExporter,
+        "dpo": DPOExporter,
+        "grpo": GRPOExporter,
+        "ppo": PPOExporter,
+    }
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # LLMOverride
 # ─────────────────────────────────────────────────────────────────────────────
@@ -619,6 +639,50 @@ class Curator:
         self._diagnostics = None
         self._reward_refiner = None
 
+    def _apply_reward_refiner(self, result) -> None:
+        """Run RewardRefiner recovery on RewardGate rejects, in place on `result`.
+
+        Must run before any exporting happens — see run()/run_async(), which
+        defer exporters (via _build_steps' include_exporters gate) until
+        after this call so recovered samples make it into the output files
+        instead of only into the in-memory CuratorResult.
+
+        Always records a "RewardRefiner" stage_counts entry whenever the
+        refiner is configured (even 0/0/0, if there was nothing to refine) —
+        so the manifest/dataset card show this stage ran, rather than the
+        recovery's contribution to the final `passed` count being invisible
+        next to every other reader/gate/normalizer, which all get a row.
+        `output_count` is always 0 and `rejected_count` always equals
+        `input_count`: unlike a gate, 100% of this stage's input already
+        failed elsewhere — there is no "clean pass" for a pure-recovery
+        stage, only `probe_recovered` (reused here for the same reason gates
+        use it: recovered samples that continue on are counted separately
+        from `output_count`, not folded into it).
+        """
+        if self._reward_refiner is None:
+            return
+        reward_rejects = [r for r in result.rejected if r.rejecting_step == "RewardGate"]
+        if not reward_rejects:
+            result.stage_counts["RewardRefiner"] = {
+                "input_count": 0,
+                "output_count": 0,
+                "probe_recovered": 0,
+                "rejected_count": 0,
+            }
+            return
+        recovered, still_rejected = self._reward_refiner.refine(reward_rejects)
+        result.passed.extend(recovered)
+        # Replace the original reward rejects with still-rejected ones
+        result.rejected = [
+            r for r in result.rejected if r.rejecting_step != "RewardGate"
+        ] + still_rejected
+        result.stage_counts["RewardRefiner"] = {
+            "input_count": len(reward_rejects),
+            "output_count": 0,
+            "probe_recovered": len(recovered),
+            "rejected_count": len(reward_rejects),
+        }
+
     def dry_run(self) -> list[dict[str, str]]:
         """
         Build the step list from CuratorConfig and print the plan without running.
@@ -655,18 +719,15 @@ class Curator:
         else:
             result = pipeline.run()
 
+        # Recovery must complete before anything is exported — otherwise
+        # exported files reflect the pre-recovery `passed` count while the
+        # returned CuratorResult reflects the post-recovery one.
+        self._apply_reward_refiner(result)
+
         if splitting:
             self._export_splits(result.passed, output_dir)
-
-        if self._reward_refiner is not None:
-            reward_rejects = [r for r in result.rejected if r.rejecting_step == "RewardGate"]
-            if reward_rejects:
-                recovered, still_rejected = self._reward_refiner.refine(reward_rejects)
-                result.passed.extend(recovered)
-                # Replace the original reward rejects with still-rejected ones
-                result.rejected = [
-                    r for r in result.rejected if r.rejecting_step != "RewardGate"
-                ] + still_rejected
+        elif self._reward_refiner is not None:
+            self._run_exporters(result.passed, output_dir)
 
         self._write_provenance(result, output_dir)
 
@@ -696,8 +757,16 @@ class Curator:
         pipeline = Pipeline(steps, output_dir=output_dir, diagnostics=self._diagnostics, checkpoint_mgr=ckpt)
         result = await pipeline.run_async()
 
+        # Recovery must complete before anything is exported — see run()'s
+        # comment. run_async() previously never ran the reward refiner at
+        # all, so enable_reward_refiner silently had no effect when callers
+        # used this entry point directly instead of run().
+        self._apply_reward_refiner(result)
+
         if splitting:
             self._export_splits(result.passed, output_dir)
+        elif self._reward_refiner is not None:
+            self._run_exporters(result.passed, output_dir)
 
         self._write_provenance(result, output_dir)
 
@@ -749,12 +818,6 @@ class Curator:
     # ═════════════════════════════════════════════════════════════════════════
 
     def _build_steps(self, include_exporters: bool = True) -> list:
-        from curatorkit.exporters.alpaca import AlpacaExporter
-        from curatorkit.exporters.corpus import CorpusExporter
-        from curatorkit.exporters.dpo import DPOExporter
-        from curatorkit.exporters.grpo import GRPOExporter
-        from curatorkit.exporters.ppo import PPOExporter
-        from curatorkit.exporters.sharegpt import ShareGPTExporter
         from curatorkit.gates.schema import SchemaGate
         from curatorkit.normalizers.clean import TextCleaner
         from curatorkit.normalizers.dedup import (
@@ -1048,16 +1111,16 @@ class Curator:
 
             steps.append(MaxSamplesTruncator(cfg.max_samples))
 
-        # ── Exporters (skipped when output_split is set — handled post-pipeline) ─
-        if include_exporters:
-            _exporter_map = {
-                "alpaca": AlpacaExporter,
-                "corpus": CorpusExporter,
-                "sharegpt": ShareGPTExporter,
-                "dpo": DPOExporter,
-                "grpo": GRPOExporter,
-                "ppo": PPOExporter,
-            }
+        # ── Exporters ────────────────────────────────────────────────────────
+        # Skipped inline when output_split is set (handled post-pipeline by
+        # _export_splits) or when a RewardRefiner was just built above: the
+        # refiner's recovered samples only get merged into `passed` *after*
+        # Pipeline.run()/run_async() returns, so an inline exporter step here
+        # would write files before recovery happens and miss those samples.
+        # run()/run_async() call _run_exporters() themselves once recovery
+        # (and, if configured, splitting) has finished.
+        if include_exporters and self._reward_refiner is None:
+            _exporter_map = _exporter_classes()
             for fmt in cfg.export_formats:
                 cls = _exporter_map.get(fmt.lower())
                 if cls:
@@ -1467,17 +1530,27 @@ class Curator:
     # Provenance
     # ─────────────────────────────────────────────────────────────────────────
 
+    def _run_exporters(self, samples: list, output_dir: Path) -> None:
+        """Write export_formats to disk directly, bypassing the pipeline's
+        inline exporter steps.
+
+        Used whenever exporters must run after the pipeline itself has
+        finished — currently: after RewardRefiner recovery — so the files
+        reflect samples merged into `passed` post-pipeline instead of a
+        stale pre-recovery snapshot.
+        """
+        _exporter_map = _exporter_classes()
+        for fmt in self.config.export_formats:
+            cls = _exporter_map.get(fmt.lower())
+            if cls:
+                cls().export(samples, output_dir)
+            else:
+                warnings.warn(f"Unknown export format '{fmt}' — skipped.")
+
     def _export_splits(self, samples: list, output_dir: Path) -> None:
         """Split accepted samples and export each split to suffixed files."""
         import math
         import random as _random
-
-        from curatorkit.exporters.alpaca import AlpacaExporter
-        from curatorkit.exporters.corpus import CorpusExporter
-        from curatorkit.exporters.dpo import DPOExporter
-        from curatorkit.exporters.grpo import GRPOExporter
-        from curatorkit.exporters.ppo import PPOExporter
-        from curatorkit.exporters.sharegpt import ShareGPTExporter
 
         split_def = self.config.output_split  # e.g. {"train": 0.8, "val": 0.1, "test": 0.1}
         total = sum(split_def.values())
@@ -1491,14 +1564,7 @@ class Curator:
         _random.Random(self.config.output_split_seed).shuffle(shuffled)
         n = len(shuffled)
 
-        _exporter_map = {
-            "alpaca": AlpacaExporter,
-            "corpus": CorpusExporter,
-            "sharegpt": ShareGPTExporter,
-            "dpo": DPOExporter,
-            "grpo": GRPOExporter,
-            "ppo": PPOExporter,
-        }
+        _exporter_map = _exporter_classes()
 
         start = 0
         split_items = list(split_def.items())

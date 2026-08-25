@@ -28,6 +28,12 @@ All notable changes to CuratorKIT are documented here. The format follows
   expected `overall_score`/`grounding_score` key silently scored every sample 0.0. Now falls back
   to averaging dimension scores or extracting a number from the raw response, warns immediately if
   a custom template omits the key, and warns again after a run if the fallback was actually used.
+- `enable_reward_refiner` recovery ran *after* exporters had already written files, so recovered
+  samples showed up in `CuratorResult.passed` but not in the exported `sft_alpaca.jsonl`/etc. (e.g.
+  13 initial passes + 2 recovered = 15 in memory, but 13 rows on disk). `Curator.run_async()` also
+  never invoked the refiner at all, so `enable_reward_refiner` had no effect when called directly
+  instead of through `run()`. Exporting is now deferred until after refiner recovery (and, when
+  configured, `output_split`) completes in both `run()` and `run_async()`.
 
 ## 1.0.0 - 2026-06-12
 
