@@ -9,13 +9,15 @@ from curatorkit.diagnostic.failure_modes import FailureDiagnosis, FailureMode
 from curatorkit.schema import DataSample, RejectedSample
 
 
-def _make_diagnosed(mode: FailureMode, recovered: bool = False) -> RejectedSample:
+def _make_diagnosed(
+    mode: FailureMode, recovered: bool = False, rejecting_step: str = "HallucinationGate"
+) -> RejectedSample:
     s = RejectedSample(
         source_uri="test/doc",
         instruction="What?",
         output="An answer.",
         rejection_reason="below_threshold",
-        rejecting_step="HallucinationGate",
+        rejecting_step=rejecting_step,
     )
     recovered_sample = None
     if recovered:
@@ -111,3 +113,78 @@ class TestPipelineDiagnostics:
             assert path.exists()
             loaded = json.loads(path.read_text())
             assert loaded["total_diagnosed"] == 1
+
+    def test_to_dict_includes_by_stage(self):
+        d = PipelineDiagnostics()
+        d.record(_make_diagnosed(FailureMode.GENERATOR_TEMPERATURE))
+        result = d.to_dict()
+        assert "by_stage" in result
+
+
+class TestPipelineDiagnosticsByStage:
+    """Regression coverage for the per-gate breakdown: when both
+    HallucinationGate and RewardGate have a probe attached, the pooled
+    top-level totals can't tell you which gate's probe is actually
+    recovering samples — by_stage() splits that out.
+    """
+
+    def test_splits_by_rejecting_step(self):
+        d = PipelineDiagnostics()
+        # HallucinationGate: 2 diagnosed, 1 recovered
+        d.record(
+            _make_diagnosed(
+                FailureMode.GENERATOR_TEMPERATURE, recovered=True, rejecting_step="HallucinationGate"
+            )
+        )
+        d.record(
+            _make_diagnosed(
+                FailureMode.SOURCE_AMBIGUOUS, recovered=False, rejecting_step="HallucinationGate"
+            )
+        )
+        # RewardGate: 3 diagnosed, 2 recovered
+        d.record(
+            _make_diagnosed(
+                FailureMode.RESPONSE_QUALITY, recovered=True, rejecting_step="RewardGate"
+            )
+        )
+        d.record(
+            _make_diagnosed(
+                FailureMode.RESPONSE_QUALITY, recovered=True, rejecting_step="RewardGate"
+            )
+        )
+        d.record(
+            _make_diagnosed(
+                FailureMode.INSTRUCTION_QUALITY, recovered=False, rejecting_step="RewardGate"
+            )
+        )
+
+        by_stage = d.by_stage()
+
+        assert set(by_stage) == {"HallucinationGate", "RewardGate"}
+        assert by_stage["HallucinationGate"]["total_diagnosed"] == 2
+        assert by_stage["HallucinationGate"]["probe_recovered"] == 1
+        assert by_stage["HallucinationGate"]["probe_recovery_pct"] == 0.5
+        assert by_stage["RewardGate"]["total_diagnosed"] == 3
+        assert by_stage["RewardGate"]["probe_recovered"] == 2
+        assert round(by_stage["RewardGate"]["probe_recovery_pct"], 4) == round(2 / 3, 4)
+
+        # Pooled top-level totals must still equal the sum across stages —
+        # by_stage() is a breakdown, not a replacement for the pooled figures.
+        pooled = d.to_dict()
+        assert pooled["total_diagnosed"] == 5
+        assert pooled["probe_recovered"] == 3
+
+    def test_by_stage_mode_counts_are_scoped_to_their_stage(self):
+        d = PipelineDiagnostics()
+        d.record(
+            _make_diagnosed(FailureMode.GENERATOR_TEMPERATURE, rejecting_step="HallucinationGate")
+        )
+        d.record(_make_diagnosed(FailureMode.RESPONSE_QUALITY, rejecting_step="RewardGate"))
+
+        by_stage = d.by_stage()
+        assert by_stage["HallucinationGate"]["mode_counts"] == {"generator_temperature": 1}
+        assert by_stage["RewardGate"]["mode_counts"] == {"response_quality": 1}
+
+    def test_empty_diagnostics_has_no_stages(self):
+        d = PipelineDiagnostics()
+        assert d.by_stage() == {}

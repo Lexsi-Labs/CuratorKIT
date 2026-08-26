@@ -9,7 +9,12 @@ manifest.json top-level keys:
   pipeline_config_hash    SHA-256 of the full pipeline YAML config
   run_timestamp           ISO-8601 UTC
   source_files            list of {path, sha256}
-  stage_counts            {step_name: {input_count, output_count, rejected_count}}
+  stage_counts            {step_name: {input_count, output_count, rejected_count,
+                            probe_recovered?}} — probe_recovered is present on
+                            gates with an inline DiagnosticProbe attached, and
+                            on the synthetic "RewardRefiner" stage (added when
+                            enable_reward_refiner=True) whose recovery runs
+                            after the whole pipeline, not as a pipeline step.
   rejected_breakdown      {rejection_reason: count}
   dedup_stats             extracted from MinHashDeduplicator provenance notes
   minhash_threshold       float | null
@@ -221,10 +226,13 @@ class DatasetCardGenerator:
                 total_in = counts.get("input_count", 0)
                 passed = counts.get("output_count", 0)
                 rejected = counts.get("rejected_count", 0)
+                recovered = counts.get("probe_recovered", 0)
                 rate = f"{100 * passed / total_in:.1f}%" if total_in else "N/A"
-                gate_section += (
-                    f"- **{step}**: {passed}/{total_in} passed ({rate}), {rejected} rejected\n"
-                )
+                line = f"- **{step}**: {passed}/{total_in} passed ({rate})"
+                if recovered:
+                    line += f", {recovered} recovered"
+                line += f", {rejected} rejected\n"
+                gate_section += line
 
         rejection_detail = (
             "\n".join(
@@ -266,8 +274,8 @@ class DatasetCardGenerator:
 
 ## Pipeline Stages
 
-| Step | Input | Output | Rejected |
-|------|-------|--------|----------|
+| Step | Input | Passed | Recovered | Rejected | Forward |
+|------|-------|--------|-----------|----------|---------|
 {self._stage_table(stage_counts)}
 
 ## Gate Pass Rates and Rejection Breakdown
@@ -304,10 +312,25 @@ curatorkit run pipeline.yaml --output-dir ./out/
 """
 
     def _stage_table(self, stage_counts: dict[str, object]) -> str:
+        """Render one row per pipeline stage.
+
+        `Recovered` is `probe_recovered` when a stage set it (an inline
+        DiagnosticProbe on a gate, or the post-pipeline RewardRefiner) —
+        "—" otherwise. `Forward` is `Passed + Recovered`: the count that
+        actually continues into the next stage / the final `passed` set.
+        `Passed` alone understates that whenever recovery happened, since a
+        gate's own `output_count` never includes samples its probe rescued.
+        """
         rows = []
         for step, counts in stage_counts.items():
             inp = counts.get("input_count", counts.get("output_count", "—"))
             out = counts.get("output_count", counts.get("exported_count", "—"))
+            recovered = counts.get("probe_recovered")
             rej = counts.get("rejected_count", "—")
-            rows.append(f"| {step} | {inp} | {out} | {rej} |")
-        return "\n".join(rows) if rows else "| — | — | — | — |"
+            if isinstance(out, int) and isinstance(recovered, int):
+                forward = out + recovered
+            else:
+                forward = out
+            recovered_display = recovered if recovered is not None else "—"
+            rows.append(f"| {step} | {inp} | {out} | {recovered_display} | {rej} | {forward} |")
+        return "\n".join(rows) if rows else "| — | — | — | — | — | — |"
