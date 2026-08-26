@@ -1581,7 +1581,12 @@ an optional feature.</p>
   pipeline_config_hash    SHA-256 of the full pipeline YAML config
   run_timestamp           ISO-8601 UTC
   source_files            list of {path, sha256}
-  stage_counts            {step_name: {input_count, output_count, rejected_count}}
+  stage_counts            {step_name: {input_count, output_count, rejected_count,
+                            probe_recovered?}} — probe_recovered is present on
+                            gates with an inline DiagnosticProbe attached, and
+                            on the synthetic "RewardRefiner" stage (added when
+                            enable_reward_refiner=True) whose recovery runs
+                            after the whole pipeline, not as a pipeline step.
   rejected_breakdown      {rejection_reason: count}
   dedup_stats             extracted from MinHashDeduplicator provenance notes
   minhash_threshold       float | null

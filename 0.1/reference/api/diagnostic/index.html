@@ -1260,6 +1260,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#curatorkit.diagnostic.diagnostics.PipelineDiagnostics.by_stage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        by_stage
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1633,6 +1644,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#curatorkit.diagnostic.diagnostics.PipelineDiagnostics.by_stage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        by_stage
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1857,7 +1879,10 @@ the old hypothetical recovery_rate() which counted RECOVERABLE dict flags.</p>
   <p>mode_counts() and probe_recovery_count() feed the per-mode rejection
 breakdown written to diagnostic_summary.json; total_probe_calls()
 tracks the LLM budget the probe consumed, so recovery yield can be
-cost-normalised.</p>
+cost-normalised. by_stage() breaks the same summary down per
+rejecting_step (gate name) — the top-level totals pool every
+probe-enabled gate together, which hides which gate's probe is actually
+doing the recovering whenever more than one gate has a probe attached.</p>
 </details>
 
 
@@ -1929,6 +1954,30 @@ cost-normalised.</p>
     <div class="doc doc-contents ">
 
         <p>Number of samples where the probe produced an inline passing re-generation.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="curatorkit.diagnostic.diagnostics.PipelineDiagnostics.by_stage" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">by_stage</span>
+
+
+<a href="#curatorkit.diagnostic.diagnostics.PipelineDiagnostics.by_stage" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">by_stage</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Per-rejecting_step (gate name) breakdown, each shaped like to_dict().</p>
+<p>When both HallucinationGate and RewardGate have a probe attached,
+the pooled totals can't tell you which gate's probe is actually
+recovering samples — this splits the same summary by the gate that
+rejected each sample.</p>
 
 
     </div>

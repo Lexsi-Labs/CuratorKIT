@@ -1241,6 +1241,12 @@
   expected <code>overall_score</code>/<code>grounding_score</code> key silently scored every sample 0.0. Now falls back
   to averaging dimension scores or extracting a number from the raw response, warns immediately if
   a custom template omits the key, and warns again after a run if the fallback was actually used.</li>
+<li><code>enable_reward_refiner</code> recovery ran <em>after</em> exporters had already written files, so recovered
+  samples showed up in <code>CuratorResult.passed</code> but not in the exported <code>sft_alpaca.jsonl</code>/etc. (e.g.
+  13 initial passes + 2 recovered = 15 in memory, but 13 rows on disk). <code>Curator.run_async()</code> also
+  never invoked the refiner at all, so <code>enable_reward_refiner</code> had no effect when called directly
+  instead of through <code>run()</code>. Exporting is now deferred until after refiner recovery (and, when
+  configured, <code>output_split</code>) completes in both <code>run()</code> and <code>run_async()</code>.</li>
 </ul>
 <h2 id="100-2026-06-12">1.0.0 - 2026-06-12<a class="headerlink" href="#100-2026-06-12" title="Permanent link">&para;</a></h2>
 <p>First public release.</p>
