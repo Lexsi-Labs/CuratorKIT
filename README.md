@@ -1,6 +1,6 @@
 <p align="center">
   <a href="https://github.com/Lexsi-Labs/CuratorKIT">
-    <img src="docs/assets/logo.png" alt="CuratorKIT" width="480">
+    <img src="docs/assets/logo.png" alt="CuratorKIT" width="520">
   </a>
 </p>
 
@@ -15,6 +15,7 @@
   <a href="https://www.python.org/"><img src="https://img.shields.io/badge/python-3.11%2B-blue" alt="Python 3.11+"></a>
   <a href="https://github.com/Lexsi-Labs/CuratorKIT/blob/main/LICENSE.md"><img src="https://img.shields.io/badge/license-LSAL%20v1.1-orange" alt="License: LSAL v1.1 (source-available)"></a>
   <a href="https://lexsi-labs.github.io/CuratorKIT/"><img src="https://img.shields.io/badge/docs-available-brightgreen" alt="Documentation"></a>
+  <a href="https://discord.com/invite/dtEDQ2Z3eg"><img src="https://img.shields.io/badge/Discord-join-5865F2?logo=discord&logoColor=white" alt="Discord"></a>
 </p>
 
 <p align="center">
@@ -22,6 +23,7 @@
   <a href="#quickstart">Quickstart</a> ·
   <a href="#tutorials">Tutorials</a> ·
   <a href="#ecosystem">Ecosystem</a> ·
+  <a href="https://discord.com/invite/dtEDQ2Z3eg">Discord</a> ·
   <a href="CONTRIBUTING.md">Contributing</a>
 </p>
 
@@ -253,6 +255,7 @@ LSAL v1.1; see [LICENSE](LICENSE.md). Free for research, education, and non-comm
     </picture>
   </a>
   <p><a href="https://www.lexsi.ai">https://www.lexsi.ai</a></p>
+  <p><a href="https://discord.com/invite/dtEDQ2Z3eg">Discord</a></p>
   <p>Paris 🇫🇷 · Mumbai 🇮🇳 · London 🇬🇧</p>
 </div>
 
