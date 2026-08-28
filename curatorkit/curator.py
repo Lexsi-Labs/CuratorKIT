@@ -553,6 +553,10 @@ class CuratorResult:
     output_dir: Path
     wall_clock_seconds: float
     diagnostics: Any = None
+    hub_method: str = ""
+    hub_backend: str = ""
+    hub_model: str = ""
+    hub_judge: str = ""
 
     def summary(self) -> str:
         lines = [
@@ -582,6 +586,59 @@ class CuratorResult:
                 print(f"  rejected    : {s.rejected[:120]!r}")
             if s.responses:
                 print(f"  responses   : {len(s.responses)} rollouts")
+
+    def _hub_kwargs(self, task: str = "") -> dict:
+        method = (task or self.hub_method or "") or "curation"
+        return {
+            "task": method,
+            "method": method,
+            "backend": self.hub_backend or "",
+            "model": self.hub_model or "",
+            "judge": self.hub_judge or "",
+        }
+
+    def push_to_hub(
+        self,
+        repo_id: str,
+        private: bool = False,
+        token: str | None = None,
+        task: str = "",
+    ) -> str:
+        """Push every export in `output_dir` to a Hub dataset repo. Creates it if missing."""
+        from curatorkit.utils.hf_publish import push_output_dir_to_hub
+
+        return push_output_dir_to_hub(
+            self.output_dir, repo_id, private=private, token=token, **self._hub_kwargs(task)
+        )
+
+    def push_format_to_hub(
+        self,
+        repo_id: str,
+        fmt: str,
+        private: bool = False,
+        token: str | None = None,
+        task: str = "",
+    ) -> str:
+        """Push a single export format (alpaca / sharegpt / dpo / grpo / corpus / ppo)."""
+        from curatorkit.utils.hf_publish import push_format_to_hub
+
+        return push_format_to_hub(
+            self.output_dir, repo_id, fmt, private=private, token=token, **self._hub_kwargs(task)
+        )
+
+    def push_rejected_to_hub(
+        self,
+        repo_id: str,
+        private: bool = False,
+        token: str | None = None,
+        task: str = "",
+    ) -> str:
+        """Push rejected.jsonl plus provenance sidecars (card, manifest, checksums)."""
+        from curatorkit.utils.hf_publish import push_rejected_to_hub
+
+        return push_rejected_to_hub(
+            self.output_dir, repo_id, private=private, token=token, **self._hub_kwargs(task)
+        )
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -734,14 +791,7 @@ class Curator:
         if result.diagnostics is not None:
             result.diagnostics.write_summary(output_dir / "diagnostic_summary.json")
 
-        return CuratorResult(
-            passed=result.passed,
-            rejected=result.rejected,
-            stage_counts=result.stage_counts,
-            output_dir=output_dir,
-            wall_clock_seconds=result.wall_clock_seconds,
-            diagnostics=result.diagnostics,
-        )
+        return self._curator_result(result, output_dir)
 
     async def run_async(self) -> CuratorResult:
         """Async pipeline execution — faster for generation-heavy pipelines."""
@@ -773,6 +823,16 @@ class Curator:
         if result.diagnostics is not None:
             result.diagnostics.write_summary(output_dir / "diagnostic_summary.json")
 
+        return self._curator_result(result, output_dir)
+
+    # ═════════════════════════════════════════════════════════════════════════
+    # Checkpoint helpers
+    # ═════════════════════════════════════════════════════════════════════════
+
+    def _curator_result(self, result, output_dir: Path) -> CuratorResult:
+        from curatorkit.utils.hf_publish import hub_meta_from_config
+
+        meta = hub_meta_from_config(self.config)
         return CuratorResult(
             passed=result.passed,
             rejected=result.rejected,
@@ -780,11 +840,11 @@ class Curator:
             output_dir=output_dir,
             wall_clock_seconds=result.wall_clock_seconds,
             diagnostics=result.diagnostics,
+            hub_method=meta["method"],
+            hub_backend=meta["backend"],
+            hub_model=meta["model"],
+            hub_judge=meta["judge"],
         )
-
-    # ═════════════════════════════════════════════════════════════════════════
-    # Checkpoint helpers
-    # ═════════════════════════════════════════════════════════════════════════
 
     def _create_checkpoint_mgr(self):
         """Return a CheckpointManager if enable_checkpoint=True, else None."""

@@ -207,7 +207,7 @@ where = ["."]
 include = ["curatorkit*"]
 
 [tool.setuptools.package-data]
-curatorkit = ["py.typed"]
+curatorkit = ["py.typed", "assets/*"]
 
 [tool.ruff]
 target-version = "py311"

@@ -9,6 +9,7 @@ from curatorkit.connectors.json_reader import JSONReader
 from curatorkit.connectors.jsonl import JSONLReader
 from curatorkit.connectors.parquet_reader import ParquetReader
 from curatorkit.curator import Curator, CuratorConfig, CuratorResult, LLMOverride
+from curatorkit.utils.llm_backend import resolve_backend
 from curatorkit.schema import DataSample, RejectedSample
 
 __all__ = [
@@ -16,6 +17,7 @@ __all__ = [
     "CuratorConfig",
     "CuratorResult",
     "LLMOverride",
+    "resolve_backend",
     "CheckpointManager",
     "DataSample",
     "RejectedSample",
