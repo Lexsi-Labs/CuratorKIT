@@ -11,6 +11,7 @@ import subprocess
 import sys
 import time
 import urllib.request
+from pathlib import Path
 
 
 def resolve_backend(backend: str, model: str) -> tuple[str, str | None, str | None]:
@@ -34,6 +35,36 @@ def _vllm_up() -> bool:
         return False
 
 
+def _add_nvidia_cuda_libs_to_path() -> None:
+    """Load pip nvidia-* libcudart into this process before importing vLLM.
+
+    Copied from AlignTune ``es bug fixes v3`` (8e48d09).
+    """
+    import ctypes
+
+    dirs = []
+    try:
+        import nvidia
+
+        root = Path(next(iter(nvidia.__path__)))
+        for so in root.rglob("libcudart.so*"):
+            dirs.append(so.parent)
+    except Exception:
+        return
+    for d in dict.fromkeys(dirs):
+        for name in ("libcudart.so.13", "libcudart.so.12", "libcudart.so"):
+            path = d / name
+            if not path.exists():
+                continue
+            try:
+                ctypes.CDLL(str(path), mode=ctypes.RTLD_GLOBAL)
+            except OSError:
+                continue
+        extra = str(d)
+        current = os.environ.get("LD_LIBRARY_PATH", "")
+        os.environ["LD_LIBRARY_PATH"] = extra if not current else extra + ":" + current
+
+
 def _ensure_vllm(model: str) -> None:
     if _vllm_up():
         return
@@ -42,20 +73,35 @@ def _ensure_vllm(model: str) -> None:
     ):
         uv = shutil.which("uv")
         if uv:
+            # AlignTune es.ipynb d9e4b3f: ``uv pip install vllm --torch-backend=cu128``
             subprocess.check_call([uv, "pip", "install", "vllm", "--torch-backend=cu128"])
         else:
             subprocess.check_call([sys.executable, "-m", "pip", "install", "-q", "vllm"])
+    _add_nvidia_cuda_libs_to_path()
     vllm_bin = shutil.which("vllm") or os.path.join(os.path.dirname(sys.executable), "vllm")
-    log = open("/tmp/vllm.log", "w")
-    subprocess.Popen(
+    log_path = "/tmp/vllm.log"
+    log = open(log_path, "w")
+    proc = subprocess.Popen(
         [vllm_bin, "serve", model, "--port", "8000"],
         stdout=log,
         stderr=subprocess.STDOUT,
         start_new_session=True,
+        env=os.environ.copy(),
     )
-    for _ in range(90):
+    seen = 0
+    for _ in range(300):
         if _vllm_up():
             return
-        time.sleep(4)
-    tail = open("/tmp/vllm.log").read()[-2000:] if os.path.isfile("/tmp/vllm.log") else ""
+        rc = proc.poll()
+        if rc is not None:
+            tail = open(log_path).read()[-4000:] if os.path.isfile(log_path) else ""
+            raise RuntimeError(tail or f"vLLM exited {rc}")
+        if os.path.isfile(log_path):
+            data = open(log_path).read()
+            if len(data) > seen:
+                sys.stdout.write(data[seen:])
+                sys.stdout.flush()
+                seen = len(data)
+        time.sleep(1)
+    tail = open(log_path).read()[-4000:] if os.path.isfile(log_path) else ""
     raise RuntimeError(tail or "vLLM did not start on :8000")
