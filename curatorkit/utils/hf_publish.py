@@ -433,12 +433,6 @@ def push_output_dir_to_hub(
         raise FileNotFoundError(f"Output directory not found: {output_dir}")
 
     files = _format_paths(output_dir)
-    if not files:
-        raise FileNotFoundError(
-            f"No export JSONL found in {output_dir}. "
-            f"Expected one of: {', '.join(FORMAT_FILES.values())}"
-        )
-
     token = _resolve_token(token)
     api = HfApi(token=token)
     api.create_repo(
@@ -448,7 +442,8 @@ def push_output_dir_to_hub(
         exist_ok=True,
         token=token,
     )
-    _push_jsonl_configs(api, repo_id, files, private, token)
+    if files:
+        _push_jsonl_configs(api, repo_id, files, private, token)
     _upload_sidecars(api, repo_id, output_dir, token)
     return _brand_safe(
         repo_id,
