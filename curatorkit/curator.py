@@ -573,19 +573,34 @@ class CuratorResult:
         print(self.summary())
 
     def sample(self, n: int = 3) -> None:
-        """Print the first n passed samples."""
+        """Print the first n passed samples — every field, full text, token count at the end."""
+        from curatorkit.utils.tokens import count_tokens
+
+        def _line(name: str, text: str) -> None:
+            text = text or ""
+            print(f"  {name} : {text} : {count_tokens(text)} tokens")
+
         for i, s in enumerate(self.passed[:n]):
             print(f"\n── Sample {i + 1} ({s.task_type}) ──")
-            if s.instruction:
-                print(f"  instruction : {s.instruction[:120]!r}")
-            if s.output:
-                print(f"  output      : {s.output[:120]!r}")
-            if s.chosen:
-                print(f"  chosen      : {s.chosen[:120]!r}")
-            if s.rejected:
-                print(f"  rejected    : {s.rejected[:120]!r}")
-            if s.responses:
-                print(f"  responses   : {len(s.responses)} rollouts")
+            _line("instruction", s.instruction)
+            _line("input", s.input)
+            _line("output", s.output)
+            _line("chosen", s.chosen)
+            _line("rejected", s.rejected)
+            if s.label is not None:
+                print(f"  label : {s.label}")
+            for j, resp in enumerate(s.responses or []):
+                extra = ""
+                if s.reward_scores and j < len(s.reward_scores):
+                    extra = f"  score={s.reward_scores[j]}"
+                _line(f"response[{j}]", resp)
+                if extra:
+                    print(extra)
+            meta = s.metadata or {}
+            if meta.get("system_prompt"):
+                _line("system_prompt", str(meta["system_prompt"]))
+            if meta.get("turns"):
+                _line("turns", str(meta["turns"]))
 
     def _hub_kwargs(self, task: str = "") -> dict:
         method = (task or self.hub_method or "") or "curation"
