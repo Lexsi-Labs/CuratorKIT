@@ -297,13 +297,59 @@ class PDFChunker:
         return out
 
 
-def _heal_hub_xet() -> None:
-    """Patch mixed Colab huggingface_hub installs before MinerU imports.
+_HUB_IMPORT_NAME = re.compile(r"cannot import name '(\w+)' from '([\w.]+)'")
 
-    uv / vLLM / MinerU leave a split package: leftover ``utils/_xet/``, a
-    ``_snapshot_download.py`` that imports ``CachedRepoTreeNotFoundError``,
-    and an older ``errors.py`` that does not define it.
-    """
+
+def _drop_hub_modules(*prefixes: str) -> None:
+    for name in list(sys.modules):
+        if name in prefixes or any(name.startswith(p + ".") for p in prefixes):
+            del sys.modules[name]
+
+
+def _patch_missing_hub_name(exc: BaseException) -> bool:
+    """Fill one missing huggingface_hub symbol from an ImportError."""
+    match = _HUB_IMPORT_NAME.search(str(exc))
+    if not match:
+        return False
+    attr, modname = match.group(1), match.group(2)
+    if not modname.startswith("huggingface_hub"):
+        return False
+    import importlib
+
+    try:
+        mod = importlib.import_module(modname)
+    except ImportError:
+        return False
+    if hasattr(mod, attr):
+        return False
+    if attr.endswith("Error") or attr.endswith("Exception"):
+        value: Any = type(attr, (Exception,), {"__module__": modname})
+    elif attr[:1] == "_" or (attr[:1].islower()):
+        def _noop(*_a: object, **_k: object) -> None:
+            return None
+
+        _noop.__name__ = attr
+        _noop.__qualname__ = attr
+        _noop.__module__ = modname
+        value = _noop
+    else:
+        from dataclasses import dataclass
+
+        @dataclass
+        class _Stub:
+            pass
+
+        _Stub.__name__ = attr
+        _Stub.__qualname__ = attr
+        _Stub.__module__ = modname
+        value = _Stub
+    setattr(mod, attr, value)
+    _drop_hub_modules(modname, "huggingface_hub._snapshot_download", "huggingface_hub.utils")
+    return True
+
+
+def _heal_hub_xet() -> None:
+    """Patch mixed Colab huggingface_hub leftover files, then stub each missing name."""
     try:
         import huggingface_hub
     except ImportError:
@@ -312,9 +358,7 @@ def _heal_hub_xet() -> None:
     leftover = root / "utils" / "_xet"
     if leftover.is_dir() and (root / "utils" / "_xet.py").is_file():
         shutil.rmtree(leftover)
-        for name in list(sys.modules):
-            if name == "huggingface_hub" or name.startswith("huggingface_hub."):
-                del sys.modules[name]
+        _drop_hub_modules("huggingface_hub")
     try:
         from huggingface_hub.utils._xet import is_valid_xet_hash
 
@@ -327,39 +371,21 @@ def _heal_hub_xet() -> None:
             xet_mod.is_valid_xet_hash = lambda h: bool(re.fullmatch(r"[0-9a-fA-F]{64}", h or ""))
         except Exception:
             pass
-    try:
-        import huggingface_hub.errors as hub_errors
-    except ImportError:
-        return
-    for name in (
-        "CachedRepoTreeNotFoundError",
-        "IncompleteSnapshotError",
-        "DryRunError",
+
+    import importlib
+
+    for modname in (
+        "huggingface_hub._snapshot_download",
+        "huggingface_hub.utils._xml_progress_reporting",
+        "huggingface_hub.utils._tree_cache",
     ):
-        if not hasattr(hub_errors, name):
-            setattr(
-                hub_errors,
-                name,
-                type(name, (Exception,), {"__module__": "huggingface_hub.errors"}),
-            )
-    try:
-        import huggingface_hub.file_download as hub_fd
-    except ImportError:
-        return
-    if not hasattr(hub_fd, "DryRunFileInfo"):
-        from dataclasses import dataclass
-
-        @dataclass
-        class DryRunFileInfo:
-            commit_hash: str = ""
-            file_size: int = 0
-            filename: str = ""
-            local_path: str = ""
-            is_cached: bool = False
-            will_download: bool = False
-
-        DryRunFileInfo.__module__ = "huggingface_hub.file_download"
-        hub_fd.DryRunFileInfo = DryRunFileInfo
+        for _ in range(8):
+            try:
+                importlib.import_module(modname)
+                break
+            except ImportError as exc:
+                if not _patch_missing_hub_name(exc):
+                    break
 
 
 # ---------------------------------------------------------------------------
@@ -621,8 +647,19 @@ class PDFReader(BaseReader):
 
     def _extract_blocks(self) -> list[dict[str, Any]]:
         _heal_hub_xet()
-        from mineru.backend.pipeline.pipeline_analyze import doc_analyze_streaming
-        from mineru.data.data_reader_writer import FileBasedDataWriter
+        last_exc: BaseException | None = None
+        for _ in range(16):
+            try:
+                from mineru.backend.pipeline.pipeline_analyze import doc_analyze_streaming
+                from mineru.data.data_reader_writer import FileBasedDataWriter
+
+                break
+            except ImportError as exc:
+                last_exc = exc
+                if not _patch_missing_hub_name(exc):
+                    raise
+        else:
+            raise last_exc if last_exc else ImportError("mineru import failed")
 
         pdf_bytes = self.path.read_bytes()
         local_image_dir = self.path.parent / "images"
