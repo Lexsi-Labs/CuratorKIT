@@ -298,19 +298,35 @@ class PDFChunker:
 
 
 def _heal_hub_xet() -> None:
-    """Drop leftover huggingface_hub/utils/_xet/ that shadows _xet.py."""
+    """Make huggingface_hub.utils._xet.is_valid_xet_hash importable.
+
+    Colab often has ``utils/_xet/`` (old package) and/or a ``_tree_cache.py``
+    that imports ``is_valid_xet_hash`` from that module. MinerU snapshot_download
+    dies if the name is missing. Must run before any MinerU import.
+    """
     try:
         import huggingface_hub
     except ImportError:
         return
     root = Path(huggingface_hub.__file__).resolve().parent
     leftover = root / "utils" / "_xet"
-    if not leftover.is_dir() or not (root / "utils" / "_xet.py").is_file():
+    if leftover.is_dir() and (root / "utils" / "_xet.py").is_file():
+        shutil.rmtree(leftover)
+        for name in list(sys.modules):
+            if name == "huggingface_hub" or name.startswith("huggingface_hub."):
+                del sys.modules[name]
+    try:
+        from huggingface_hub.utils._xet import is_valid_xet_hash
+
+        if callable(is_valid_xet_hash):
+            return
+    except Exception:
+        pass
+    try:
+        from huggingface_hub.utils import _xet as xet_mod
+    except Exception:
         return
-    shutil.rmtree(leftover)
-    for name in list(sys.modules):
-        if name == "huggingface_hub" or name.startswith("huggingface_hub."):
-            del sys.modules[name]
+    xet_mod.is_valid_xet_hash = lambda h: bool(re.fullmatch(r"[0-9a-fA-F]{64}", h or ""))
 
 
 # ---------------------------------------------------------------------------
@@ -571,10 +587,9 @@ class PDFReader(BaseReader):
         )
 
     def _extract_blocks(self) -> list[dict[str, Any]]:
+        _heal_hub_xet()
         from mineru.backend.pipeline.pipeline_analyze import doc_analyze_streaming
         from mineru.data.data_reader_writer import FileBasedDataWriter
-
-        _heal_hub_xet()
 
         pdf_bytes = self.path.read_bytes()
         local_image_dir = self.path.parent / "images"
