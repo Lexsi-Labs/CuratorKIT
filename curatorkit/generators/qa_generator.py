@@ -165,6 +165,12 @@ class QAGenerationTask(BaseGenerationTask):
         if self.difficulty != "medium" and "{difficulty}" not in template:
             prompt += f"\n\nDifficulty level: {self.difficulty}"
 
+        if '"question"' not in template and "JSON format" not in template:
+            prompt += (
+                "\n\nRespond in the following JSON format ONLY (no other filler text, respond like a tool):\n"
+                '[\n  {"question": "...", "answer": "..."}\n]'
+            )
+
         return [{"role": "user", "content": prompt}]
 
     def _parse_response(self, sample: DataSample, response: LLMResponse) -> list[DataSample]:
