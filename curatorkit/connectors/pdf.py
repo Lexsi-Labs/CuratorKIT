@@ -298,11 +298,11 @@ class PDFChunker:
 
 
 def _heal_hub_xet() -> None:
-    """Make huggingface_hub.utils._xet.is_valid_xet_hash importable.
+    """Patch mixed Colab huggingface_hub installs before MinerU imports.
 
-    Colab often has ``utils/_xet/`` (old package) and/or a ``_tree_cache.py``
-    that imports ``is_valid_xet_hash`` from that module. MinerU snapshot_download
-    dies if the name is missing. Must run before any MinerU import.
+    uv / vLLM / MinerU leave a split package: leftover ``utils/_xet/``, a
+    ``_snapshot_download.py`` that imports ``CachedRepoTreeNotFoundError``,
+    and an older ``errors.py`` that does not define it.
     """
     try:
         import huggingface_hub
@@ -318,15 +318,30 @@ def _heal_hub_xet() -> None:
     try:
         from huggingface_hub.utils._xet import is_valid_xet_hash
 
-        if callable(is_valid_xet_hash):
-            return
+        if not callable(is_valid_xet_hash):
+            raise AttributeError("is_valid_xet_hash")
     except Exception:
-        pass
+        try:
+            from huggingface_hub.utils import _xet as xet_mod
+
+            xet_mod.is_valid_xet_hash = lambda h: bool(re.fullmatch(r"[0-9a-fA-F]{64}", h or ""))
+        except Exception:
+            pass
     try:
-        from huggingface_hub.utils import _xet as xet_mod
-    except Exception:
+        import huggingface_hub.errors as hub_errors
+    except ImportError:
         return
-    xet_mod.is_valid_xet_hash = lambda h: bool(re.fullmatch(r"[0-9a-fA-F]{64}", h or ""))
+    for name in (
+        "CachedRepoTreeNotFoundError",
+        "IncompleteSnapshotError",
+        "DryRunError",
+    ):
+        if not hasattr(hub_errors, name):
+            setattr(
+                hub_errors,
+                name,
+                type(name, (Exception,), {"__module__": "huggingface_hub.errors"}),
+            )
 
 
 # ---------------------------------------------------------------------------

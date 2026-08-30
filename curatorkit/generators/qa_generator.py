@@ -372,17 +372,11 @@ class QAGenerationTask(BaseGenerationTask):
         return []
 
     def _fallback_extract(self, text: str) -> list[dict[str, str]]:
-        """Regex fallback for non-JSON responses."""
-        pairs = []
-        # Pattern: Q: ... A: ...
-        q_matches = re.findall(
-            r"(?:Q(?:uestion)?[:\d.)\s]*)(.*?)(?:A(?:nswer)?[:\d.)\s]*)(.*?)(?=(?:Q(?:uestion)?[:\d.)\s])|$)",
-            text,
-            re.DOTALL | re.IGNORECASE,
-        )
-        for q, a in q_matches:
-            q = q.strip()
-            a = a.strip()
-            if q and a:
-                pairs.append({"question": q, "answer": a})
-        return pairs
+        """Keep the raw generation as one pair. First line = question, rest = answer."""
+        text = (text or "").strip()
+        if not text:
+            return []
+        head, _, tail = text.partition("\n")
+        question = head.strip() or text
+        answer = tail.strip() or text
+        return [{"question": question, "answer": answer}]
