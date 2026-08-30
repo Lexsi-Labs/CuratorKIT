@@ -342,6 +342,24 @@ def _heal_hub_xet() -> None:
                 name,
                 type(name, (Exception,), {"__module__": "huggingface_hub.errors"}),
             )
+    try:
+        import huggingface_hub.file_download as hub_fd
+    except ImportError:
+        return
+    if not hasattr(hub_fd, "DryRunFileInfo"):
+        from dataclasses import dataclass
+
+        @dataclass
+        class DryRunFileInfo:
+            commit_hash: str = ""
+            file_size: int = 0
+            filename: str = ""
+            local_path: str = ""
+            is_cached: bool = False
+            will_download: bool = False
+
+        DryRunFileInfo.__module__ = "huggingface_hub.file_download"
+        hub_fd.DryRunFileInfo = DryRunFileInfo
 
 
 # ---------------------------------------------------------------------------
