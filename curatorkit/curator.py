@@ -573,34 +573,46 @@ class CuratorResult:
         print(self.summary())
 
     def sample(self, n: int = 3) -> None:
-        """Print the first n passed samples — every field, full text, token count at the end."""
+        """Print the first n passed samples.
+
+        Every populated field is printed in full. The token count sits on the
+        label line so Colab wrap does not glue ``: N tokens`` into the text.
+        Empty fields are skipped so QA / hygiene / ingest rows stay readable
+        and preference / GRPO / multiturn rows still show their extra fields.
+        """
         from curatorkit.utils.tokens import count_tokens
 
-        def _line(name: str, text: str) -> None:
-            text = text or ""
-            print(f"  {name} : {text} : {count_tokens(text)} tokens")
+        def _block(name: str, text: object) -> None:
+            if text is None:
+                return
+            if isinstance(text, (list, dict)):
+                if not text:
+                    return
+                text = str(text)
+            else:
+                text = str(text)
+            if not text:
+                return
+            print(f"  {name} : {count_tokens(text)} tokens")
+            print(text)
 
         for i, s in enumerate(self.passed[:n]):
             print(f"\n── Sample {i + 1} ({s.task_type}) ──")
-            _line("instruction", s.instruction)
-            _line("input", s.input)
-            _line("output", s.output)
-            _line("chosen", s.chosen)
-            _line("rejected", s.rejected)
+            _block("instruction", s.instruction)
+            _block("input", s.input)
+            _block("output", s.output)
+            _block("chosen", s.chosen)
+            _block("rejected", s.rejected)
             if s.label is not None:
                 print(f"  label : {s.label}")
             for j, resp in enumerate(s.responses or []):
-                extra = ""
+                label = f"response[{j}]"
                 if s.reward_scores and j < len(s.reward_scores):
-                    extra = f"  score={s.reward_scores[j]}"
-                _line(f"response[{j}]", resp)
-                if extra:
-                    print(extra)
+                    label = f"{label} score={s.reward_scores[j]}"
+                _block(label, resp)
             meta = s.metadata or {}
-            if meta.get("system_prompt"):
-                _line("system_prompt", str(meta["system_prompt"]))
-            if meta.get("turns"):
-                _line("turns", str(meta["turns"]))
+            _block("system_prompt", meta.get("system_prompt"))
+            _block("turns", meta.get("turns"))
 
     def _hub_kwargs(self, task: str = "") -> dict:
         method = (task or self.hub_method or "") or "curation"
