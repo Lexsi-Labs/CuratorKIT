@@ -22,6 +22,8 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+import shutil
+import sys
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -295,6 +297,22 @@ class PDFChunker:
         return out
 
 
+def _heal_hub_xet() -> None:
+    """Drop leftover huggingface_hub/utils/_xet/ that shadows _xet.py."""
+    try:
+        import huggingface_hub
+    except ImportError:
+        return
+    root = Path(huggingface_hub.__file__).resolve().parent
+    leftover = root / "utils" / "_xet"
+    if not leftover.is_dir() or not (root / "utils" / "_xet.py").is_file():
+        return
+    shutil.rmtree(leftover)
+    for name in list(sys.modules):
+        if name == "huggingface_hub" or name.startswith("huggingface_hub."):
+            del sys.modules[name]
+
+
 # ---------------------------------------------------------------------------
 # PDFReader — file I/O, MinerU invocation, and output_mode dispatch
 # ---------------------------------------------------------------------------
@@ -555,6 +573,8 @@ class PDFReader(BaseReader):
     def _extract_blocks(self) -> list[dict[str, Any]]:
         from mineru.backend.pipeline.pipeline_analyze import doc_analyze_streaming
         from mineru.data.data_reader_writer import FileBasedDataWriter
+
+        _heal_hub_xet()
 
         pdf_bytes = self.path.read_bytes()
         local_image_dir = self.path.parent / "images"
