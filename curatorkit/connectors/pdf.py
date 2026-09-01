@@ -297,59 +297,13 @@ class PDFChunker:
         return out
 
 
-_HUB_IMPORT_NAME = re.compile(r"cannot import name '(\w+)' from '([\w.]+)'")
-
-
-def _drop_hub_modules(*prefixes: str) -> None:
+def _drop_hub_modules() -> None:
     for name in list(sys.modules):
-        if name in prefixes or any(name.startswith(p + ".") for p in prefixes):
+        if name == "huggingface_hub" or name.startswith("huggingface_hub."):
             del sys.modules[name]
 
 
-def _patch_missing_hub_name(exc: BaseException) -> bool:
-    """Fill one missing huggingface_hub symbol from an ImportError."""
-    match = _HUB_IMPORT_NAME.search(str(exc))
-    if not match:
-        return False
-    attr, modname = match.group(1), match.group(2)
-    if not modname.startswith("huggingface_hub"):
-        return False
-    import importlib
-
-    try:
-        mod = importlib.import_module(modname)
-    except ImportError:
-        return False
-    if hasattr(mod, attr):
-        return False
-    if attr.endswith("Error") or attr.endswith("Exception"):
-        value: Any = type(attr, (Exception,), {"__module__": modname})
-    elif attr[:1] == "_" or (attr[:1].islower()):
-        def _noop(*_a: object, **_k: object) -> None:
-            return None
-
-        _noop.__name__ = attr
-        _noop.__qualname__ = attr
-        _noop.__module__ = modname
-        value = _noop
-    else:
-        from dataclasses import dataclass
-
-        @dataclass
-        class _Stub:
-            pass
-
-        _Stub.__name__ = attr
-        _Stub.__qualname__ = attr
-        _Stub.__module__ = modname
-        value = _Stub
-    setattr(mod, attr, value)
-    _drop_hub_modules(modname, "huggingface_hub._snapshot_download", "huggingface_hub.utils")
-    return True
-
-
-def _heal_hub_xet() -> None:
-    """Patch mixed Colab huggingface_hub leftover files, then stub each missing name."""
+def _remove_leftover_xet_dir() -> None:
     try:
         import huggingface_hub
     except ImportError:
@@ -358,34 +312,50 @@ def _heal_hub_xet() -> None:
     leftover = root / "utils" / "_xet"
     if leftover.is_dir() and (root / "utils" / "_xet.py").is_file():
         shutil.rmtree(leftover)
-        _drop_hub_modules("huggingface_hub")
-    try:
-        from huggingface_hub.utils._xet import is_valid_xet_hash
+        _drop_hub_modules()
 
-        if not callable(is_valid_xet_hash):
-            raise AttributeError("is_valid_xet_hash")
-    except Exception:
-        try:
-            from huggingface_hub.utils import _xet as xet_mod
 
-            xet_mod.is_valid_xet_hash = lambda h: bool(re.fullmatch(r"[0-9a-fA-F]{64}", h or ""))
-        except Exception:
-            pass
-
+def _hub_import_ok() -> bool:
+    """True only if the installed huggingface_hub is one consistent package."""
     import importlib
 
-    for modname in (
-        "huggingface_hub._snapshot_download",
-        "huggingface_hub.utils._xml_progress_reporting",
-        "huggingface_hub.utils._tree_cache",
-    ):
-        for _ in range(8):
-            try:
-                importlib.import_module(modname)
-                break
-            except ImportError as exc:
-                if not _patch_missing_hub_name(exc):
-                    break
+    try:
+        importlib.import_module("huggingface_hub._snapshot_download")
+        tqdm_mod = importlib.import_module("huggingface_hub.utils.tqdm")
+        if not callable(getattr(tqdm_mod, "_create_progress_bar", None)):
+            return False
+        importlib.import_module("huggingface_hub.file_download")
+        return True
+    except Exception:
+        return False
+
+
+def _reinstall_huggingface_hub() -> None:
+    """Replace the mixed Colab install with one huggingface_hub wheel."""
+    import subprocess
+
+    subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "pip",
+            "install",
+            "--upgrade",
+            "--force-reinstall",
+            "huggingface_hub",
+        ],
+        check=False,
+    )
+    _drop_hub_modules()
+    _remove_leftover_xet_dir()
+
+
+def _heal_hub_xet() -> None:
+    """Repair a split huggingface_hub install. No stubs — reinstall the package."""
+    _remove_leftover_xet_dir()
+    if _hub_import_ok():
+        return
+    _reinstall_huggingface_hub()
 
 
 # ---------------------------------------------------------------------------
@@ -647,19 +617,8 @@ class PDFReader(BaseReader):
 
     def _extract_blocks(self) -> list[dict[str, Any]]:
         _heal_hub_xet()
-        last_exc: BaseException | None = None
-        for _ in range(16):
-            try:
-                from mineru.backend.pipeline.pipeline_analyze import doc_analyze_streaming
-                from mineru.data.data_reader_writer import FileBasedDataWriter
-
-                break
-            except ImportError as exc:
-                last_exc = exc
-                if not _patch_missing_hub_name(exc):
-                    raise
-        else:
-            raise last_exc if last_exc else ImportError("mineru import failed")
+        from mineru.backend.pipeline.pipeline_analyze import doc_analyze_streaming
+        from mineru.data.data_reader_writer import FileBasedDataWriter
 
         pdf_bytes = self.path.read_bytes()
         local_image_dir = self.path.parent / "images"
