@@ -358,6 +358,29 @@ def _heal_hub_xet() -> None:
     _reinstall_huggingface_hub()
 
 
+def _ensure_mineru_transformers() -> None:
+    """MinerU pipeline needs transformers 4.57.x, not 5.x."""
+    need_pin = True
+    try:
+        import transformers
+
+        major = int(transformers.__version__.split(".", 1)[0])
+        need_pin = major >= 5
+    except Exception:
+        pass
+    if not need_pin:
+        return
+    import subprocess
+
+    subprocess.run(
+        [sys.executable, "-m", "pip", "install", "transformers>=4.57.3,<5"],
+        check=False,
+    )
+    for name in list(sys.modules):
+        if name == "transformers" or name.startswith("transformers."):
+            del sys.modules[name]
+
+
 # ---------------------------------------------------------------------------
 # PDFReader — file I/O, MinerU invocation, and output_mode dispatch
 # ---------------------------------------------------------------------------
@@ -617,6 +640,7 @@ class PDFReader(BaseReader):
 
     def _extract_blocks(self) -> list[dict[str, Any]]:
         _heal_hub_xet()
+        _ensure_mineru_transformers()
         from mineru.backend.pipeline.pipeline_analyze import doc_analyze_streaming
         from mineru.data.data_reader_writer import FileBasedDataWriter
 

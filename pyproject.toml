@@ -71,6 +71,7 @@ tiktoken = ["tiktoken>=0.7"]
 #   pip install "curatorkit[pdf]"
 pdf = [
     "mineru[pipeline]>=3.0",
+    "transformers>=4.57.3,<5",
 ]
 
 # Apache Parquet reading
