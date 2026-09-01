@@ -123,8 +123,12 @@ def _ensure_vllm(model: str) -> None:
     if not _port_busy():
         vllm_bin = shutil.which("vllm") or os.path.join(os.path.dirname(sys.executable), "vllm")
         log = open(log_path, "w")
+        cmd = [vllm_bin, "serve", model, "--port", "8000"]
+        util = os.environ.get("VLLM_GPU_MEMORY_UTILIZATION")
+        if util:
+            cmd.extend(["--gpu-memory-utilization", util])
         proc = subprocess.Popen(
-            [vllm_bin, "serve", model, "--port", "8000"],
+            cmd,
             stdout=log,
             stderr=subprocess.STDOUT,
             start_new_session=True,
