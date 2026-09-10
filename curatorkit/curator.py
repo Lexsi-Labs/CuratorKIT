@@ -236,7 +236,16 @@ class CuratorConfig:
 
     # ── Export ──────────────────────────────────────────────────────────────
     output_dir: str | Path = "output"
-    export_formats: list[str] = field(default_factory=lambda: ["alpaca", "sharegpt", "dpo"])
+    # None = auto-align to whichever task_type generation_task produces, or
+    # (with no generation_task) to whatever task_type the readers/connectors
+    # actually emit — see curatorkit.exporters.compatibility. Set explicitly
+    # to override; an explicit list combined with generation_task that looks
+    # misaligned (e.g. ["dpo"] with generation_task="qa") gets a warning, not
+    # a silent correction — the config choice is still honored, but every
+    # exporter also gates on task_type per-sample, so a genuinely misaligned
+    # choice ends up producing an empty file (with its own warning) rather
+    # than silently writing something unexpected.
+    export_formats: list[str] | None = None
     # output_split: if set, the accepted samples are split before export.
     # Fractions must sum to 1.0. None = single unsplit output (default).
     # Example: {"train": 0.8, "val": 0.1, "test": 0.1}
@@ -683,6 +692,79 @@ class Curator:
             "rejected_count": len(reward_rejects),
         }
 
+    # ─────────────────────────────────────────────────────────────────────────
+    # export_formats resolution — see curatorkit.exporters.compatibility
+    # ─────────────────────────────────────────────────────────────────────────
+
+    def _export_formats_need_data(self) -> bool:
+        """True when the export_formats list can't be resolved until after
+        the pipeline has read its input — i.e. left as None (auto) with no
+        generation_task to resolve it from ahead of time. In that case the
+        task_type must be "identified" from what the readers/connectors
+        actually produced, so exporting has to wait for CuratorResult.passed.
+        """
+        return self.config.export_formats is None and self.config.generation_task is None
+
+    def _resolve_export_formats(self, observed_task_types: set[str] | None = None) -> list[str]:
+        """The export_formats list to actually use. Explicit config value
+        always wins; otherwise resolves via generation_task (known before
+        the pipeline runs) or observed_task_types (known only after)."""
+        from curatorkit.exporters.compatibility import resolve_export_formats
+
+        cfg = self.config
+        if cfg.export_formats is not None:
+            return cfg.export_formats
+        return resolve_export_formats(cfg.generation_task, observed_task_types)
+
+    def _warn_if_export_formats_misaligned(self) -> None:
+        """Explicit export_formats + a known generation_task: warn upfront,
+        before any LLM calls, if a requested format isn't designed for what
+        that task produces. Doesn't filter the config — cfg.export_formats
+        is still passed through as given — but every exporter also gates on
+        task_type per-sample (see curatorkit.exporters.compatibility), so a
+        genuinely misaligned choice still ends up producing an empty file;
+        this just surfaces that earlier, before spending any generation
+        budget on it."""
+        cfg = self.config
+        if cfg.export_formats is None or cfg.generation_task is None:
+            return
+        from curatorkit.exporters.compatibility import (
+            GENERATION_TASK_OUTPUT_TYPE,
+            compatible_formats_for,
+            misaligned_formats,
+        )
+
+        bad = misaligned_formats(cfg.generation_task, cfg.export_formats)
+        if not bad:
+            return
+        task_type = GENERATION_TASK_OUTPUT_TYPE.get(cfg.generation_task)
+        designed = compatible_formats_for(task_type) if task_type else []
+        warnings.warn(
+            f"export_formats {bad} {'is' if len(bad) == 1 else 'are'} not designed for "
+            f"generation_task={cfg.generation_task!r} (produces task_type={task_type!r}; "
+            f"designed export formats: {designed or 'none'}). If this is a deliberate "
+            "partial/lossy export, ignore this warning.",
+            UserWarning,
+            stacklevel=2,
+        )
+
+    def _export_after_pipeline(self, result, output_dir: Path, splitting: bool) -> None:
+        """Export step deferred out of the pipeline itself — see _build_steps'
+        exporter-skipping conditions. Called from run()/run_async() after
+        _apply_reward_refiner(), so `result.passed` already reflects recovery.
+
+        Resolves export_formats from the samples actually produced whenever
+        it couldn't be resolved ahead of time (auto mode with no
+        generation_task); harmless to compute even when it wasn't needed,
+        since an explicit config value or a generation_task always takes
+        priority in _resolve_export_formats() regardless.
+        """
+        formats = self._resolve_export_formats({s.task_type for s in result.passed})
+        if splitting:
+            self._export_splits(result.passed, output_dir, formats=formats)
+        elif self._reward_refiner is not None or self._export_formats_need_data():
+            self._run_exporters(result.passed, output_dir, formats=formats)
+
     def dry_run(self) -> list[dict[str, str]]:
         """
         Build the step list from CuratorConfig and print the plan without running.
@@ -695,7 +777,15 @@ class Curator:
         steps = self._build_steps()
         output_dir = Path(self.config.output_dir)
         pipeline = Pipeline(steps, output_dir=output_dir, diagnostics=self._diagnostics)
-        return pipeline.dry_run()
+        plan = pipeline.dry_run()
+        if self._export_formats_need_data():
+            print(
+                "export_formats: auto — no generation_task set, so the actual "
+                "formats will be resolved from the task_type(s) the readers "
+                "produce and won't appear in this plan; see "
+                "curatorkit.exporters.compatibility.\n"
+            )
+        return plan
 
     def run(self) -> CuratorResult:
         """Synchronous pipeline execution.
@@ -723,11 +813,7 @@ class Curator:
         # exported files reflect the pre-recovery `passed` count while the
         # returned CuratorResult reflects the post-recovery one.
         self._apply_reward_refiner(result)
-
-        if splitting:
-            self._export_splits(result.passed, output_dir)
-        elif self._reward_refiner is not None:
-            self._run_exporters(result.passed, output_dir)
+        self._export_after_pipeline(result, output_dir, splitting)
 
         self._write_provenance(result, output_dir)
 
@@ -762,11 +848,7 @@ class Curator:
         # all, so enable_reward_refiner silently had no effect when callers
         # used this entry point directly instead of run().
         self._apply_reward_refiner(result)
-
-        if splitting:
-            self._export_splits(result.passed, output_dir)
-        elif self._reward_refiner is not None:
-            self._run_exporters(result.passed, output_dir)
+        self._export_after_pipeline(result, output_dir, splitting)
 
         self._write_provenance(result, output_dir)
 
@@ -1112,16 +1194,21 @@ class Curator:
             steps.append(MaxSamplesTruncator(cfg.max_samples))
 
         # ── Exporters ────────────────────────────────────────────────────────
-        # Skipped inline when output_split is set (handled post-pipeline by
-        # _export_splits) or when a RewardRefiner was just built above: the
-        # refiner's recovered samples only get merged into `passed` *after*
-        # Pipeline.run()/run_async() returns, so an inline exporter step here
-        # would write files before recovery happens and miss those samples.
-        # run()/run_async() call _run_exporters() themselves once recovery
-        # (and, if configured, splitting) has finished.
-        if include_exporters and self._reward_refiner is None:
+        # Skipped inline (deferred to run()/run_async() calling
+        # _run_exporters()/_export_splits() themselves once everything below
+        # is known) when:
+        #   - output_split is set — handled post-pipeline by _export_splits.
+        #   - a RewardRefiner was just built above — its recovered samples
+        #     only get merged into `passed` *after* Pipeline.run()/run_async()
+        #     returns, so an inline exporter step here would write files
+        #     before recovery happens and miss those samples.
+        #   - export_formats is left auto (None) with no generation_task —
+        #     the task_type must be "identified" from the actual samples,
+        #     which aren't known until the readers have run.
+        self._warn_if_export_formats_misaligned()
+        if include_exporters and self._reward_refiner is None and not self._export_formats_need_data():
             _exporter_map = _exporter_classes()
-            for fmt in cfg.export_formats:
+            for fmt in self._resolve_export_formats():
                 cls = _exporter_map.get(fmt.lower())
                 if cls:
                     steps.append(cls())
@@ -1530,27 +1617,40 @@ class Curator:
     # Provenance
     # ─────────────────────────────────────────────────────────────────────────
 
-    def _run_exporters(self, samples: list, output_dir: Path) -> None:
+    def _run_exporters(self, samples: list, output_dir: Path, formats: list[str] | None = None) -> None:
         """Write export_formats to disk directly, bypassing the pipeline's
         inline exporter steps.
 
         Used whenever exporters must run after the pipeline itself has
-        finished — currently: after RewardRefiner recovery — so the files
-        reflect samples merged into `passed` post-pipeline instead of a
-        stale pre-recovery snapshot.
+        finished — after RewardRefiner recovery, and/or once export_formats
+        has been auto-resolved from the samples actually produced — so the
+        files reflect samples merged into `passed` post-pipeline instead of
+        a stale pre-recovery snapshot, and use the right formats for data
+        whose task_type wasn't known until the readers ran.
+
+        `formats` defaults to self._resolve_export_formats() with no
+        observed-task-type info (i.e. config-explicit or generation_task-
+        resolved only) for callers that already know it doesn't need data.
         """
+        if formats is None:
+            formats = self._resolve_export_formats()
         _exporter_map = _exporter_classes()
-        for fmt in self.config.export_formats:
+        for fmt in formats:
             cls = _exporter_map.get(fmt.lower())
             if cls:
                 cls().export(samples, output_dir)
             else:
                 warnings.warn(f"Unknown export format '{fmt}' — skipped.")
 
-    def _export_splits(self, samples: list, output_dir: Path) -> None:
+    def _export_splits(
+        self, samples: list, output_dir: Path, formats: list[str] | None = None
+    ) -> None:
         """Split accepted samples and export each split to suffixed files."""
         import math
         import random as _random
+
+        if formats is None:
+            formats = self._resolve_export_formats()
 
         split_def = self.config.output_split  # e.g. {"train": 0.8, "val": 0.1, "test": 0.1}
         total = sum(split_def.values())
@@ -1579,7 +1679,7 @@ class Curator:
             split_dir = output_dir / split_name
             split_dir.mkdir(parents=True, exist_ok=True)
 
-            for fmt in self.config.export_formats:
+            for fmt in formats:
                 cls = _exporter_map.get(fmt.lower())
                 if cls:
                     cls().export(split_samples, split_dir)

@@ -15,6 +15,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
+
 from curatorkit.connectors.csv_reader import CSVReader
 from curatorkit.connectors.json_reader import JSONReader
 from curatorkit.connectors.jsonl import JSONLReader
@@ -558,6 +560,37 @@ class TestDPOExporter:
         output = tmp_path / "dpo.jsonl"
         lines = output.read_text().strip().splitlines()
         assert len(lines) == 0
+
+    def test_warns_when_samples_skipped(self, tmp_path):
+        """skipped/exported were computed but never surfaced -- silently
+        writing an all-empty dpo.jsonl for a non-preference run."""
+        from curatorkit.exporters.dpo import DPOExporter
+
+        samples = [
+            DataSample(
+                source_uri="test://",
+                instruction="Hi",
+                output="Hello",
+                task_type="instruction_following",
+            ),
+        ]
+        with pytest.warns(UserWarning, match="DPOExporter skipped 1/1"):
+            DPOExporter().export(samples, tmp_path)
+
+    def test_no_warning_when_all_samples_exported(self, tmp_path, recwarn):
+        from curatorkit.exporters.dpo import DPOExporter
+
+        samples = [
+            DataSample(
+                source_uri="test://",
+                instruction="2+2?",
+                chosen="4",
+                rejected="5",
+                task_type="preference",
+            ),
+        ]
+        DPOExporter().export(samples, tmp_path)
+        assert len(recwarn) == 0
 
     def test_exports_conversational_preference(self, tmp_path):
         import json as _json

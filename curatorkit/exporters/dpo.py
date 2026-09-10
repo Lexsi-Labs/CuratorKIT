@@ -9,19 +9,21 @@ For conversational chosen/rejected (stored as JSON-encoded turn lists),
 the values are written as lists of role/content dicts — exactly what
 TRL's DPOTrainer expects when processing conversational preference data.
 
-Samples with task_type not in {"preference", "implicit_preference"} are
-skipped and logged in provenance.
+Only task_types curatorkit.exporters.compatibility lists as dpo-compatible
+(preference, implicit_preference) are written.
 """
 
 from __future__ import annotations
 
 import json
+import warnings
 from pathlib import Path
 
+from curatorkit.exporters.compatibility import is_compatible, task_types_for
 from curatorkit.interfaces import BaseExporter
 from curatorkit.schema import DataSample
 
-_PREFERENCE_TASK_TYPES = {"preference", "implicit_preference"}
+_FORMAT = "dpo"
 
 
 def _try_parse_turns(value: str) -> list | str:
@@ -55,7 +57,7 @@ class DPOExporter(BaseExporter):
 
         with open(output_path, "w", encoding="utf-8") as f:
             for sample in samples:
-                if sample.task_type not in _PREFERENCE_TASK_TYPES:
+                if not is_compatible(sample.task_type, _FORMAT):
                     skipped += 1
                     continue
 
@@ -81,3 +83,14 @@ class DPOExporter(BaseExporter):
                 }
                 f.write(json.dumps(record, ensure_ascii=False) + "\n")
                 exported += 1
+
+        if skipped:
+            task_types = {s.task_type for s in samples}
+            warnings.warn(
+                f"DPOExporter skipped {skipped}/{len(samples)} samples (wrote {exported}) — "
+                f"not task_type {task_types_for(_FORMAT)}, or missing chosen/rejected "
+                f"(sample task_type(s) seen: {sorted(task_types)}). If this run wasn't meant to "
+                'produce preference data, drop "dpo" from export_formats.',
+                UserWarning,
+                stacklevel=2,
+            )

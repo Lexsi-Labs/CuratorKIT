@@ -28,21 +28,28 @@ All exporters **overwrite** files of the same name in `output_dir` on every run 
 
 ## Compatibility matrix
 
-Not all exporters handle all task types. Incompatible samples are silently skipped (e.g. DPOExporter skips samples without `chosen`/`rejected`).
+Every exporter enforces this table as a hard per-sample gate: a sample whose task_type isn't listed as compatible with that format is **skipped and counted in a warning**, even if its fields happen to be non-empty (e.g. `instruction_following` data is not silently accepted by GRPO/PPO/Corpus just because `instruction`/`output` are populated — only their own designed task_type is). Nothing crashes and no file is ever refused to be written — an incompatible combination just produces an empty (or emptier) file plus a warning explaining why, rather than silently writing lossy or meaningless rows.
 
-| Task | alpaca | sharegpt | dpo | grpo | ppo | corpus |
+- **DPO / GRPO / PPO / Corpus** skip a sample when its task_type isn't in the accepted set below, *or* when a field it still needs is empty even for an accepted task_type (`chosen`/`rejected`; `instruction`; `instruction`; `output`-or-`input`, respectively) — one summary warning with the count and the task_type(s) seen.
+- **GRPO** additionally never warns on empty `responses`/`rewards` alone within task_type `"grpo"` — that's the documented, intentional case of exporting seed prompts before `GRPORolloutTask` has run.
+- **Alpaca / ShareGPT** also gate on task_type now (so, notably, a `conversational` sample is no longer silently truncated to its first turn by Alpaca — it's skipped, with a warning pointing at `"sharegpt"` instead). Within an accepted task_type, a genuinely empty `instruction`/`output` still gets written (it's a real, if broken, sample) but warns separately.
+
+| task_type | alpaca | sharegpt | dpo | grpo | ppo | corpus |
 |------|:------:|:--------:|:---:|:----:|:---:|:------:|
-| `qa` | ✓ | ✓ | — | — | — | — |
-| `preference` | ✓ (chosen) | — | ✓ | — | — | — |
-| `grpo` | — | — | — | ✓ | ✓ | — |
-| `multiturn` | ✓ (1st turn) | ✓ | — | — | — | — |
-| `evol` | ✓ | ✓ | — | — | — | — |
-| `cot` | ✓ | ✓ | — | — | — | — |
-| `adversarial_preference` | — | — | ✓ | — | — | — |
-| `adversarial_qa` | ✓ | ✓ | — | — | — | — |
-| Source chunks only | — | — | — | — | — | ✓ |
+| `instruction_following` (qa, evol, cot, adversarial_qa) | ✓ | ✓ | — | — | — | — |
+| `conversational` (multiturn) | — | ✓ | — | — | — | — |
+| `preference`, `implicit_preference` (preference, adversarial_preference) | — | — | ✓ | — | — | — |
+| `unpaired_preference` (connector) | ✓ | ✓ | — | — | — | — |
+| `grpo` (grpo task) | — | — | — | ✓ | — | — |
+| `prompt_only` (connector) | — | — | — | — | ✓ | — |
+| `language_modeling` / `source_chunk` (PDF chunks, pretrain text) | — | — | — | — | — | ✓ |
 
-It is safe to include `dpo` in `export_formats` for mixed-task pipelines — it simply won't write rows for non-preference samples.
+This table is `curatorkit.exporters.compatibility.TASK_TYPE_EXPORT_FORMATS` — the same table `export_formats=None` (the default) uses to pick formats automatically:
+
+- With `generation_task` set, the task_type it produces is known ahead of time, so the matching format(s) above are selected before the pipeline even runs.
+- With no `generation_task` (plain curation/connector ingestion), the task_type is instead identified from what the readers actually emit, so the matching format(s) are picked after reading.
+
+Set `export_formats` explicitly to override — e.g. to add a deliberately partial/lossy export (`ppo` alongside `grpo`'s rollouts, or `corpus` to dump any task's `output` as plain text). Combining an explicit `export_formats` with a `generation_task` it doesn't match (e.g. `["dpo"]` with `generation_task="qa"`) emits a warning rather than being silently corrected or blocked — it's still respected as given.
 
 ---
 

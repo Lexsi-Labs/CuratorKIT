@@ -12,8 +12,26 @@ All notable changes to CuratorKIT are documented here. The format follows
   and `enable_reward_refiner`/`refiner_llm` YAML support. Legacy fields still work unchanged.
 - `LLMOverride` now accepts `temperature`, `max_tokens`, `timeout`, `max_retries`, `extra_body`,
   `drop_params`, and `concurrency` per role (previously only `model`/`api_base`/`api_key`).
-- SFT exporters (Alpaca, ShareGPT) warn on rows with empty instruction/output.
 - `LiteLLMBackend` raises a clear `ImportError` when the `generation` extra is missing.
+- `CuratorConfig.export_formats` now defaults to `None` ("auto") instead of a fixed
+  `["alpaca", "sharegpt", "dpo"]`: it resolves to whichever export format(s) are actually
+  designed for the task_type `generation_task` produces (e.g. `grpo`→`["grpo"]`,
+  `preference`→`["dpo"]`), or — with no `generation_task` — to the task_type(s) the readers
+  actually emit, resolved once they've run. See `curatorkit.exporters.compatibility`. An
+  explicit `export_formats` is always honored as given; combining it with a `generation_task`
+  it doesn't suit (e.g. `["dpo"]` with `generation_task="qa"`) now warns instead of silently
+  writing a near-empty file.
+- Every exporter now enforces `curatorkit.exporters.compatibility.TASK_TYPE_EXPORT_FORMATS` as
+  a hard per-sample gate: a sample whose task_type isn't designed for that format is skipped and
+  counted in a summary warning (one warning per run, not per row). Previously only `DPOExporter`
+  did this — `AlpacaExporter`/`ShareGPTExporter` wrote every sample regardless of task_type
+  (silently keeping only the first turn of `conversational` data and dropping the rest, or
+  writing an empty `output` for `preference`/`grpo`/`prompt_only`/pretrain data), and
+  `GRPOExporter`/`PPOExporter`/`CorpusExporter` accepted *any* task_type with a non-empty
+  `instruction`/`output` (e.g. `instruction_following` data silently "passed" for GRPO/PPO/Corpus
+  even though none of those are what it's for). `GRPOExporter` still never warns on empty
+  `responses`/`rewards` alone within task_type `"grpo"` — that's the documented, intentional case
+  of exporting seed prompts before `GRPORolloutTask` has run.
 
 ### Fixed
 - Generation tasks discarded valid samples when a model nested a string field in an object
