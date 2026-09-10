@@ -1224,8 +1224,26 @@
   and <code>enable_reward_refiner</code>/<code>refiner_llm</code> YAML support. Legacy fields still work unchanged.</li>
 <li><code>LLMOverride</code> now accepts <code>temperature</code>, <code>max_tokens</code>, <code>timeout</code>, <code>max_retries</code>, <code>extra_body</code>,
   <code>drop_params</code>, and <code>concurrency</code> per role (previously only <code>model</code>/<code>api_base</code>/<code>api_key</code>).</li>
-<li>SFT exporters (Alpaca, ShareGPT) warn on rows with empty instruction/output.</li>
 <li><code>LiteLLMBackend</code> raises a clear <code>ImportError</code> when the <code>generation</code> extra is missing.</li>
+<li><code>CuratorConfig.export_formats</code> now defaults to <code>None</code> ("auto") instead of a fixed
+  <code>["alpaca", "sharegpt", "dpo"]</code>: it resolves to whichever export format(s) are actually
+  designed for the task_type <code>generation_task</code> produces (e.g. <code>grpo</code>→<code>["grpo"]</code>,
+  <code>preference</code>→<code>["dpo"]</code>), or — with no <code>generation_task</code> — to the task_type(s) the readers
+  actually emit, resolved once they've run. See <code>curatorkit.exporters.compatibility</code>. An
+  explicit <code>export_formats</code> is always honored as given; combining it with a <code>generation_task</code>
+  it doesn't suit (e.g. <code>["dpo"]</code> with <code>generation_task="qa"</code>) now warns instead of silently
+  writing a near-empty file.</li>
+<li>Every exporter now enforces <code>curatorkit.exporters.compatibility.TASK_TYPE_EXPORT_FORMATS</code> as
+  a hard per-sample gate: a sample whose task_type isn't designed for that format is skipped and
+  counted in a summary warning (one warning per run, not per row). Previously only <code>DPOExporter</code>
+  did this — <code>AlpacaExporter</code>/<code>ShareGPTExporter</code> wrote every sample regardless of task_type
+  (silently keeping only the first turn of <code>conversational</code> data and dropping the rest, or
+  writing an empty <code>output</code> for <code>preference</code>/<code>grpo</code>/<code>prompt_only</code>/pretrain data), and
+  <code>GRPOExporter</code>/<code>PPOExporter</code>/<code>CorpusExporter</code> accepted <em>any</em> task_type with a non-empty
+  <code>instruction</code>/<code>output</code> (e.g. <code>instruction_following</code> data silently "passed" for GRPO/PPO/Corpus
+  even though none of those are what it's for). <code>GRPOExporter</code> still never warns on empty
+  <code>responses</code>/<code>rewards</code> alone within task_type <code>"grpo"</code> — that's the documented, intentional case
+  of exporting seed prompts before <code>GRPORolloutTask</code> has run.</li>
 </ul>
 <h3 id="fixed">Fixed<a class="headerlink" href="#fixed" title="Permanent link">&para;</a></h3>
 <ul>

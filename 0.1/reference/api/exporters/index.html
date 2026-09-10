@@ -1689,6 +1689,10 @@
 
 
         <p>Export corpus chunks to corpus.jsonl with full chunk metadata.</p>
+<p>Only task_type "language_modeling" or "source_chunk" is written —
+everything else is skipped, even with non-empty output/input (e.g. any
+SFT/preference/GRPO task_type also has <em>some</em> text in one of those
+fields; that doesn't make it a corpus chunk).</p>
 
 
 
@@ -1789,7 +1793,7 @@ intentional when exporting a multi-task pipeline subset).</p>
 
         <p>Export to GRPO group rollout format.</p>
 <p>Uses DataSample.responses and DataSample.reward_scores if populated.
-Falls back to empty arrays when no rollouts have been generated.</p>
+Falls back to empty arrays when no rollouts have been generated yet.</p>
 
 
 

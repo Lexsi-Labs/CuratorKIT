@@ -1991,9 +1991,9 @@ for full usage examples.</p>
 </tr>
 <tr>
 <td><code>export_formats</code></td>
-<td><code>list[str]</code></td>
-<td><code>["alpaca", "sharegpt", "dpo"]</code></td>
-<td>Which exporters to run. Options: <code>"alpaca"</code>, <code>"sharegpt"</code>, <code>"dpo"</code>, <code>"grpo"</code>, <code>"ppo"</code>, <code>"corpus"</code></td>
+<td><code>list[str] \| None</code></td>
+<td><code>None</code> (auto)</td>
+<td>Which exporters to run. Options: <code>"alpaca"</code>, <code>"sharegpt"</code>, <code>"dpo"</code>, <code>"grpo"</code>, <code>"ppo"</code>, <code>"corpus"</code>. <code>None</code> auto-aligns to whichever task_type <code>generation_task</code> produces, or (with no <code>generation_task</code>) to whatever task_type the readers actually emit — see <a href="../../guides/exporters/#compatibility-matrix">Exporters → Compatibility</a>. Set explicitly to override.</td>
 </tr>
 <tr>
 <td><code>output_split</code></td>

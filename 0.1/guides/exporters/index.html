@@ -1394,11 +1394,16 @@
 <p>All exporters <strong>overwrite</strong> files of the same name in <code>output_dir</code> on every run — they do not append. To keep the results of a previous run, point each run at a fresh <code>output_dir</code> (or move the files elsewhere before re-running).</p>
 <hr />
 <h2 id="compatibility-matrix">Compatibility matrix<a class="headerlink" href="#compatibility-matrix" title="Permanent link">&para;</a></h2>
-<p>Not all exporters handle all task types. Incompatible samples are silently skipped (e.g. DPOExporter skips samples without <code>chosen</code>/<code>rejected</code>).</p>
+<p>Every exporter enforces this table as a hard per-sample gate: a sample whose task_type isn't listed as compatible with that format is <strong>skipped and counted in a warning</strong>, even if its fields happen to be non-empty (e.g. <code>instruction_following</code> data is not silently accepted by GRPO/PPO/Corpus just because <code>instruction</code>/<code>output</code> are populated — only their own designed task_type is). Nothing crashes and no file is ever refused to be written — an incompatible combination just produces an empty (or emptier) file plus a warning explaining why, rather than silently writing lossy or meaningless rows.</p>
+<ul>
+<li><strong>DPO / GRPO / PPO / Corpus</strong> skip a sample when its task_type isn't in the accepted set below, <em>or</em> when a field it still needs is empty even for an accepted task_type (<code>chosen</code>/<code>rejected</code>; <code>instruction</code>; <code>instruction</code>; <code>output</code>-or-<code>input</code>, respectively) — one summary warning with the count and the task_type(s) seen.</li>
+<li><strong>GRPO</strong> additionally never warns on empty <code>responses</code>/<code>rewards</code> alone within task_type <code>"grpo"</code> — that's the documented, intentional case of exporting seed prompts before <code>GRPORolloutTask</code> has run.</li>
+<li><strong>Alpaca / ShareGPT</strong> also gate on task_type now (so, notably, a <code>conversational</code> sample is no longer silently truncated to its first turn by Alpaca — it's skipped, with a warning pointing at <code>"sharegpt"</code> instead). Within an accepted task_type, a genuinely empty <code>instruction</code>/<code>output</code> still gets written (it's a real, if broken, sample) but warns separately.</li>
+</ul>
 <table>
 <thead>
 <tr>
-<th>Task</th>
+<th>task_type</th>
 <th style="text-align: center;">alpaca</th>
 <th style="text-align: center;">sharegpt</th>
 <th style="text-align: center;">dpo</th>
@@ -1409,7 +1414,7 @@
 </thead>
 <tbody>
 <tr>
-<td><code>qa</code></td>
+<td><code>instruction_following</code> (qa, evol, cot, adversarial_qa)</td>
 <td style="text-align: center;">✓</td>
 <td style="text-align: center;">✓</td>
 <td style="text-align: center;">—</td>
@@ -1418,26 +1423,8 @@
 <td style="text-align: center;">—</td>
 </tr>
 <tr>
-<td><code>preference</code></td>
-<td style="text-align: center;">✓ (chosen)</td>
+<td><code>conversational</code> (multiturn)</td>
 <td style="text-align: center;">—</td>
-<td style="text-align: center;">✓</td>
-<td style="text-align: center;">—</td>
-<td style="text-align: center;">—</td>
-<td style="text-align: center;">—</td>
-</tr>
-<tr>
-<td><code>grpo</code></td>
-<td style="text-align: center;">—</td>
-<td style="text-align: center;">—</td>
-<td style="text-align: center;">—</td>
-<td style="text-align: center;">✓</td>
-<td style="text-align: center;">✓</td>
-<td style="text-align: center;">—</td>
-</tr>
-<tr>
-<td><code>multiturn</code></td>
-<td style="text-align: center;">✓ (1st turn)</td>
 <td style="text-align: center;">✓</td>
 <td style="text-align: center;">—</td>
 <td style="text-align: center;">—</td>
@@ -1445,25 +1432,7 @@
 <td style="text-align: center;">—</td>
 </tr>
 <tr>
-<td><code>evol</code></td>
-<td style="text-align: center;">✓</td>
-<td style="text-align: center;">✓</td>
-<td style="text-align: center;">—</td>
-<td style="text-align: center;">—</td>
-<td style="text-align: center;">—</td>
-<td style="text-align: center;">—</td>
-</tr>
-<tr>
-<td><code>cot</code></td>
-<td style="text-align: center;">✓</td>
-<td style="text-align: center;">✓</td>
-<td style="text-align: center;">—</td>
-<td style="text-align: center;">—</td>
-<td style="text-align: center;">—</td>
-<td style="text-align: center;">—</td>
-</tr>
-<tr>
-<td><code>adversarial_preference</code></td>
+<td><code>preference</code>, <code>implicit_preference</code> (preference, adversarial_preference)</td>
 <td style="text-align: center;">—</td>
 <td style="text-align: center;">—</td>
 <td style="text-align: center;">✓</td>
@@ -1472,7 +1441,7 @@
 <td style="text-align: center;">—</td>
 </tr>
 <tr>
-<td><code>adversarial_qa</code></td>
+<td><code>unpaired_preference</code> (connector)</td>
 <td style="text-align: center;">✓</td>
 <td style="text-align: center;">✓</td>
 <td style="text-align: center;">—</td>
@@ -1481,7 +1450,25 @@
 <td style="text-align: center;">—</td>
 </tr>
 <tr>
-<td>Source chunks only</td>
+<td><code>grpo</code> (grpo task)</td>
+<td style="text-align: center;">—</td>
+<td style="text-align: center;">—</td>
+<td style="text-align: center;">—</td>
+<td style="text-align: center;">✓</td>
+<td style="text-align: center;">—</td>
+<td style="text-align: center;">—</td>
+</tr>
+<tr>
+<td><code>prompt_only</code> (connector)</td>
+<td style="text-align: center;">—</td>
+<td style="text-align: center;">—</td>
+<td style="text-align: center;">—</td>
+<td style="text-align: center;">—</td>
+<td style="text-align: center;">✓</td>
+<td style="text-align: center;">—</td>
+</tr>
+<tr>
+<td><code>language_modeling</code> / <code>source_chunk</code> (PDF chunks, pretrain text)</td>
 <td style="text-align: center;">—</td>
 <td style="text-align: center;">—</td>
 <td style="text-align: center;">—</td>
@@ -1491,7 +1478,12 @@
 </tr>
 </tbody>
 </table>
-<p>It is safe to include <code>dpo</code> in <code>export_formats</code> for mixed-task pipelines — it simply won't write rows for non-preference samples.</p>
+<p>This table is <code>curatorkit.exporters.compatibility.TASK_TYPE_EXPORT_FORMATS</code> — the same table <code>export_formats=None</code> (the default) uses to pick formats automatically:</p>
+<ul>
+<li>With <code>generation_task</code> set, the task_type it produces is known ahead of time, so the matching format(s) above are selected before the pipeline even runs.</li>
+<li>With no <code>generation_task</code> (plain curation/connector ingestion), the task_type is instead identified from what the readers actually emit, so the matching format(s) are picked after reading.</li>
+</ul>
+<p>Set <code>export_formats</code> explicitly to override — e.g. to add a deliberately partial/lossy export (<code>ppo</code> alongside <code>grpo</code>'s rollouts, or <code>corpus</code> to dump any task's <code>output</code> as plain text). Combining an explicit <code>export_formats</code> with a <code>generation_task</code> it doesn't match (e.g. <code>["dpo"]</code> with <code>generation_task="qa"</code>) emits a warning rather than being silently corrected or blocked — it's still respected as given.</p>
 <hr />
 <h2 id="format-details">Format details<a class="headerlink" href="#format-details" title="Permanent link">&para;</a></h2>
 <h3 id="alpaca-sft_alpacajsonl">Alpaca (<code>sft_alpaca.jsonl</code>)<a class="headerlink" href="#alpaca-sft_alpacajsonl" title="Permanent link">&para;</a></h3>
