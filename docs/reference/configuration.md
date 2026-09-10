@@ -114,7 +114,7 @@ for full usage examples.
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
 | `output_dir` | `str \| Path` | `"output"` | Directory for all output files |
-| `export_formats` | `list[str]` | `["alpaca", "sharegpt", "dpo"]` | Which exporters to run. Options: `"alpaca"`, `"sharegpt"`, `"dpo"`, `"grpo"`, `"ppo"`, `"corpus"` |
+| `export_formats` | `list[str] \| None` | `None` (auto) | Which exporters to run. Options: `"alpaca"`, `"sharegpt"`, `"dpo"`, `"grpo"`, `"ppo"`, `"corpus"`. `None` auto-aligns to whichever task_type `generation_task` produces, or (with no `generation_task`) to whatever task_type the readers actually emit — see [Exporters → Compatibility](../guides/exporters.md#compatibility-matrix). Set explicitly to override. |
 | `output_split` | `dict[str, float] \| None` | `None` | Split accepted samples into subdirectories. E.g. `{"train": 0.8, "val": 0.1, "test": 0.1}`. Must sum to 1.0. |
 | `output_split_seed` | `int` | `42` | Seed for the pre-split shuffle. Set the same value across runs to get identical train/val/test assignments. |
 
