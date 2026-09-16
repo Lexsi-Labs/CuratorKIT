@@ -1247,6 +1247,27 @@
 </ul>
 <h3 id="fixed">Fixed<a class="headerlink" href="#fixed" title="Permanent link">&para;</a></h3>
 <ul>
+<li><code>GRPORolloutTask</code>, <code>EvolInstructTask</code>, <code>MultiTurnTask</code>, and <code>AdversarialQAGenerationTask</code> each
+  override the synchronous <code>run()</code> with real per-task logic (multi-rollout generation,
+  strategy-cycling expansion, turn-by-turn conversation, adversarial injection planning) but
+  never overrode <code>run_async()</code> — since <code>Curator.run()</code> always executes asynchronously whenever
+  any <code>generation_task</code> is configured, and <code>Pipeline.run_async()</code> dispatches to <code>run_async()</code>
+  whenever <code>hasattr(step, "run_async")</code> is true (which it always was, via inheritance from
+  <code>BaseGenerationTask</code>), every one of these tasks silently used the wrong, generic
+  single-response async path on every real invocation through <code>Curator</code> — this bug has been
+  present since the library's first public release. For <code>GRPORolloutTask</code> this was total and
+  loud: its <code>_parse_response()</code> is an intentional no-op (<code>run()</code> handles multi-response
+  generation directly), so <strong>100% of samples were rejected with <code>generation_parse_failed</code> and
+  zero rollouts were ever produced</strong> — <code>generation_task="grpo"</code> was completely non-functional
+  through the standard API. For the other three it was silent and partial: <code>EvolInstructTask</code>
+  silently skipped <code>num_evolutions</code> expansion and the <code>generate_answers</code> pass; <code>MultiTurnTask</code>
+  always behaved like <code>single_call</code> regardless of <code>multiturn_mode</code>/its <code>turn_by_turn</code> default;
+  <code>AdversarialQAGenerationTask</code> silently produced zero adversarial samples regardless of
+  <code>injection_rate</code>, since its injection plan is only built inside <code>run()</code>. All four now have a
+  proper <code>run_async()</code> mirroring their sync counterpart's logic with <code>agenerate</code>/<code>asyncio</code>
+  concurrency. (<code>PreferenceGenerationTask</code> already had this fixed in a previous release —
+  see its own <code>run_async()</code> — but the fix wasn't recognized as one instance of a general
+  pattern at the time, so it wasn't applied to these four sibling classes.)</li>
 <li>Generation tasks discarded valid samples when a model nested a string field in an object
   (e.g. <code>{"chosen": {"poem": "..."}}</code>) — added a shared <code>coerce_text()</code> helper to unwrap these
   instead of failing downstream.</li>

@@ -1070,6 +1070,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#curatorkit.generators.AdversarialQAGenerationTask.run_async" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        run_async
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1220,6 +1231,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#curatorkit.generators.EvolInstructTask.run_async" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        run_async
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1253,6 +1275,17 @@
     <span class="md-ellipsis">
       
         run
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#curatorkit.generators.GRPORolloutTask.run_async" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        run_async
       
     </span>
   </a>
@@ -1331,6 +1364,17 @@
     <span class="md-ellipsis">
       
         Parameters
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#curatorkit.generators.MultiTurnTask.run_async" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        run_async
       
     </span>
   </a>
@@ -1895,6 +1939,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#curatorkit.generators.AdversarialQAGenerationTask.run_async" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        run_async
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -2045,6 +2100,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#curatorkit.generators.EvolInstructTask.run_async" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        run_async
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -2078,6 +2144,17 @@
     <span class="md-ellipsis">
       
         run
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#curatorkit.generators.GRPORolloutTask.run_async" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        run_async
       
     </span>
   </a>
@@ -2156,6 +2233,17 @@
     <span class="md-ellipsis">
       
         Parameters
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#curatorkit.generators.MultiTurnTask.run_async" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        run_async
       
     </span>
   </a>
@@ -2460,6 +2548,36 @@ high_temp : float
 
 
 
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="curatorkit.generators.AdversarialQAGenerationTask.run_async" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">run_async</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-async"><code>async</code></small>
+  </span>
+
+<a href="#curatorkit.generators.AdversarialQAGenerationTask.run_async" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">run_async</span><span class="p">(</span><span class="n">seeds</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">DataSample</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">DataSample</span><span class="p">]</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Async counterpart to run(). Without this override, the inherited
+BaseGenerationTask.run_async never builds self._injection_plan at
+all (that setup lives only in run()) — every seed would fall
+through with inj_type=None, so injection_rate/injection_types would
+be silently ignored entirely: a "successful" run producing a normal
+QA dataset with zero adversarial samples, regardless of what was
+configured.</p>
+
+
+    </div>
+
+</div>
 
 
 
@@ -2792,6 +2910,37 @@ If generate_answers is True, a second LLM pass generates answers.</p>
 
 </div>
 
+<div class="doc doc-object doc-function">
+
+
+<h4 id="curatorkit.generators.EvolInstructTask.run_async" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">run_async</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-async"><code>async</code></small>
+  </span>
+
+<a href="#curatorkit.generators.EvolInstructTask.run_async" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">run_async</span><span class="p">(</span><span class="n">samples</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">DataSample</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">DataSample</span><span class="p">]</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Async counterpart to run(). Mirrors its two-stage pipeline (strategy-
+cycling expansion, then evolution, then an optional answer pass) —
+without this override, the inherited BaseGenerationTask.run_async
+skips both the expansion and the answer pass entirely (it only
+knows how to call _build_messages/_parse_response once per input
+sample), silently producing one un-evolved-variant-count, answerless
+sample per input instead of num_evolutions variants with (optionally)
+generated answers.</p>
+
+
+    </div>
+
+</div>
+
 
 
   </div>
@@ -2879,6 +3028,35 @@ scoring_prompt : str | None
         <p>Generate N responses per prompt with optional scoring.</p>
 <p>Each input sample produces exactly one output sample with
 populated responses[] and reward_scores[] lists.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="curatorkit.generators.GRPORolloutTask.run_async" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">run_async</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-async"><code>async</code></small>
+  </span>
+
+<a href="#curatorkit.generators.GRPORolloutTask.run_async" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">run_async</span><span class="p">(</span><span class="n">samples</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">DataSample</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">DataSample</span><span class="p">]</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Async counterpart to run(). Mirrors its per-sample multi-rollout
+logic — without this override, the inherited BaseGenerationTask.
+run_async always calls _parse_response(), which is an intentional
+no-op for this class (multi-rollout generation doesn't fit that
+per-sample single-response shape) — every sample would be rejected
+with generation_parse_failed, and no rollouts would ever be produced.</p>
 
 
     </div>
@@ -3049,6 +3227,35 @@ include_context : bool
 
 
 
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="curatorkit.generators.MultiTurnTask.run_async" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">run_async</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-async"><code>async</code></small>
+  </span>
+
+<a href="#curatorkit.generators.MultiTurnTask.run_async" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">run_async</span><span class="p">(</span><span class="n">samples</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">DataSample</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">DataSample</span><span class="p">]</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Async counterpart to run(). Mirrors its mode dispatch — without this
+override, the inherited BaseGenerationTask.run_async always uses the
+single-call _build_messages/_parse_response path regardless of
+self.mode, since Pipeline picks run_async whenever hasattr(step,
+"run_async") is true, which it always is (inherited). That silently
+ignored mode="turn_by_turn" (the default) on every async invocation.</p>
+
+
+    </div>
+
+</div>
 
 
 
