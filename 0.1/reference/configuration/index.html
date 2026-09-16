@@ -2401,6 +2401,12 @@ they're treated as <code>{model: "..."}</code> shorthand and only apply when the
 <td>Preference pair generation: <code>"single_call"</code> (one call for both chosen/rejected) or <code>"two_pass"</code> (separate calls)</td>
 </tr>
 <tr>
+<td><code>multiturn_mode</code></td>
+<td><code>str</code></td>
+<td><code>"turn_by_turn"</code></td>
+<td>Multi-turn generation: <code>"turn_by_turn"</code> (each turn is its own LLM call, conditioned on prior real turns) or <code>"single_call"</code> (one call generates the whole conversation — required for <code>multiturn_prompt_template</code> to have any effect)</td>
+</tr>
+<tr>
 <td><code>generation_concurrency</code></td>
 <td><code>int \| None</code></td>
 <td><code>None</code></td>
@@ -2495,32 +2501,32 @@ they're treated as <code>{model: "..."}</code> shorthand and only apply when the
 </tr>
 <tr>
 <td><code>grpo_prompt_template</code></td>
-<td><code>{instruction}</code></td>
-<td><code>grpo</code></td>
+<td><code>{instruction}</code>, <code>{context_section}</code></td>
+<td><code>grpo</code> — <code>{context_section}</code> is the source passage when the sample has one, else <code>""</code>; always used either way (never swapped for a different built-in prompt just because context is present)</td>
 </tr>
 <tr>
 <td><code>multiturn_prompt_template</code></td>
 <td><code>{num_turns}</code>, <code>{context_section}</code>, <code>{initial_question}</code></td>
-<td><code>multiturn</code> (only used in <code>single_call</code> mode — not active via <code>CuratorConfig</code>, which always uses <code>turn_by_turn</code>; see the <a href="../../guides/customisation/">customisation guide</a>)</td>
+<td><code>multiturn</code> — only used when <code>multiturn_mode="single_call"</code>; ignored (no effect) in the default <code>"turn_by_turn"</code> mode</td>
 </tr>
 <tr>
 <td><code>cot_prompt_template</code></td>
-<td><code>{instruction}</code> (generate mode); <code>{instruction}</code>, <code>{answer}</code> (wrap mode)</td>
-<td><code>cot</code></td>
+<td><code>{instruction}</code>, <code>{context_section}</code> (generate mode); <code>{instruction}</code>, <code>{answer}</code> (wrap mode)</td>
+<td><code>cot</code> — same <code>{context_section}</code> contract as <code>grpo_prompt_template</code> in generate mode</td>
 </tr>
 <tr>
 <td><code>adversarial_prompt_template</code></td>
-<td><code>{context}</code>, <code>{question}</code>, <code>{injection_type}</code></td>
+<td><code>{context}</code>, <code>{question}</code></td>
 <td><code>adversarial_preference</code> (template for the adversarially-corrupted rejected response)</td>
 </tr>
 <tr>
 <td><code>llm_prompt_template</code></td>
-<td>task-dependent</td>
-<td>fallback for unlisted tasks</td>
+<td>n/a — not part of <code>CuratorConfig</code>'s normal generation path</td>
+<td>Read only by <code>AdaptivePass2Runner</code> (offline patch-sweep tool), via <code>CuratorConfig.apply_patch({"prompt_template": ...})</code>. Not a per-task override.</td>
 </tr>
 </tbody>
 </table>
-<p>All default to <code>None</code> (built-in template used).</p>
+<p>All default to <code>None</code> (built-in template used). <code>multiturn_mode</code> defaults to <code>"turn_by_turn"</code> — set it to <code>"single_call"</code> for <code>multiturn_prompt_template</code> to take effect.</p>
 <hr />
 <h2 id="adversarial-generation">Adversarial generation<a class="headerlink" href="#adversarial-generation" title="Permanent link">&para;</a></h2>
 <table>
@@ -2648,7 +2654,7 @@ they're treated as <code>{model: "..."}</code> shorthand and only apply when the
 <td><code>probe_extra_templates</code></td>
 <td><code>dict[str, str]</code></td>
 <td><code>{}</code></td>
-<td>Override built-in probe templates (<code>"default"</code>, <code>"strict_grounding"</code>, <code>"domain_specific"</code>) or add new keys, selected per sample via <code>metadata["domain_prompt_key"]</code>. See <a href="../../guides/customisation/#custom-probe-templates">Customisation</a> for routing details.</td>
+<td>Override built-in probe templates (<code>"default"</code>, <code>"strict_grounding"</code>, <code>"domain_specific"</code>) or add new keys, selected per sample via <code>metadata["domain_prompt_key"]</code>. Each template requires <code>{source}</code> and <code>{question}</code>. See <a href="../../guides/customisation/#custom-probe-templates">Customisation</a> for routing details.</td>
 </tr>
 <tr>
 <td><code>enable_reward_refiner</code></td>
@@ -2660,13 +2666,13 @@ they're treated as <code>{model: "..."}</code> shorthand and only apply when the
 <td><code>reward_refine_prompt_template</code></td>
 <td><code>str \| None</code></td>
 <td><code>None</code></td>
-<td>Custom refiner prompt. <code>None</code> = built-in template.</td>
+<td>Custom refiner prompt. Required variables: <code>{axis}</code>, <code>{weakness}</code>, <code>{instruction}</code>, <code>{source}</code>, <code>{answer}</code>. <code>None</code> = built-in template.</td>
 </tr>
 <tr>
 <td><code>reward_instruction_refine_template</code></td>
 <td><code>str \| None</code></td>
 <td><code>None</code></td>
-<td>Custom template for instruction rewrites (used when <code>instruction_quality</code> failure mode is detected). <code>None</code> = built-in.</td>
+<td>Custom template for instruction rewrites (used when <code>instruction_quality</code> failure mode is detected). Required variables: <code>{weakness}</code>, <code>{source}</code>, <code>{question}</code>. <code>None</code> = built-in.</td>
 </tr>
 </tbody>
 </table>

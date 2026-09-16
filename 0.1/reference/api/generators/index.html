@@ -2368,7 +2368,8 @@ seed : int | None
     RNG seed for reproducible injection assignment.
 faithful_prompt_template : str | None
     Custom prompt for faithful answer generation. Must include
-    {context}, {num_questions}, {difficulty} placeholders.
+    {context} and {num_questions}; {difficulty} is optional (same
+    contract as QAGenerationTask.prompt_template).
 adversarial_prompt_template : str | None
     Custom prompt for adversarial rejected generation. Must include
     {context}, {question} placeholders.
@@ -2676,7 +2677,13 @@ mode : str
     "generate": Generate both CoT and answer from instruction only.
     "wrap": Given instruction + existing answer, generate CoT reasoning.
 prompt_template : str | None
-    Custom prompt template.
+    Custom prompt template. In "generate" mode, must contain
+    {instruction} and {context_section} — the latter is populated with
+    the source passage when the sample carries one, and is an empty
+    string otherwise, so the same custom template is used either way
+    instead of being swapped out for a different, non-customizable
+    prompt whenever context happens to be available. In "wrap" mode,
+    must contain {instruction} and {answer} instead.
 cot_marker : str
     String used to separate reasoning from the final answer in the output.</p>
 
@@ -2826,7 +2833,12 @@ temperature_spread : float
     Temperature variation across responses. Responses are generated
     at temperatures from (base - spread/2) to (base + spread/2).
 response_prompt : str | None
-    Custom template for response generation.
+    Custom template for response generation. Must contain {instruction}
+    and {context_section} — the latter is populated with the source
+    passage when the sample carries one, and is an empty string
+    otherwise, so the same custom template is used either way instead
+    of being swapped out for a different, non-customizable prompt
+    whenever context happens to be available.
 scoring_prompt : str | None
     Custom template for response scoring.</p>
 

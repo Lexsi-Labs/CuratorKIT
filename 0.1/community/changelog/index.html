@@ -1265,6 +1265,40 @@
   never invoked the refiner at all, so <code>enable_reward_refiner</code> had no effect when called directly
   instead of through <code>run()</code>. Exporting is now deferred until after refiner recovery (and, when
   configured, <code>output_split</code>) completes in both <code>run()</code> and <code>run_async()</code>.</li>
+<li><code>EvolInstructTask</code> required a custom <code>evol_prompt_template</code> to contain <code>{context}</code> (it's used in
+  the with-context branch), but the no-context branch called <code>.format(instruction=, strategy=)</code>
+  without passing <code>context=</code> at all — any template that passed validation still raised
+  <code>KeyError('context')</code> the moment a sample had no source text (e.g. plain instruction-only data).
+  Fixed by always passing <code>context=""</code> in that branch.</li>
+<li>Added the missing upfront placeholder validation (construction-time <code>ValueError</code> instead of a
+  silently-broken prompt at generation time) to <code>QAGenerationTask.prompt_template</code>/
+  <code>table_prompt_template</code>, <code>AdversarialPreferenceTask.faithful_prompt_template</code>/
+  <code>adversarial_prompt_template</code>, <code>HallucinationGate.prompt_template</code>, <code>RewardGate.prompt_template</code>,
+  <code>RewardRefiner.refine_prompt_template</code>/<code>instruction_refine_template</code>, and
+  <code>DiagnosticProbe.extra_templates</code> — previously only <code>cot_prompt_template</code>, <code>evol_prompt_template</code>,
+  <code>preference_prompt_template</code>, and <code>grpo_prompt_template</code>/<code>scoring_prompt</code> validated their
+  placeholders; the rest silently dropped the real data from the prompt on a typo instead of
+  raising. Extracted the shared check into <code>curatorkit.utils.prompt_validation</code> so gates and the
+  recovery modules (not <code>BaseGenerationTask</code> subclasses) can use it too.</li>
+<li><code>multiturn_prompt_template</code> had no effect at all: <code>MultiTurnTask</code> only reads it in
+  <code>mode="single_call"</code>, but <code>Curator</code> never passed a <code>mode</code>, so it always used the constructor's
+  <code>"turn_by_turn"</code> default. Added <code>CuratorConfig.multiturn_mode</code> (mirroring the existing
+  <code>preference_mode</code>/<code>cot_mode</code> pattern) so <code>multiturn_prompt_template</code> can actually take effect.</li>
+<li><code>CuratorConfig.apply_patch({"prompt_template": ...})</code> (used by <code>AdaptivePass2Runner</code> for offline
+  patch-sweep analysis) set <code>llm_prompt_template</code> on the patched config, but nothing ever read that
+  field back — the patch had zero effect on the actual regeneration call, only <code>llm_temperature</code>
+  did. <code>_regenerate_sample</code> now swaps the generator's <code>prompt_template</code> for the duration of the
+  call too, restoring it afterward.</li>
+<li><code>grpo_prompt_template</code> and <code>cot_prompt_template</code> (<code>cot_mode="generate"</code>) were silently dropped
+  the moment a sample carried source context — even with an instruction present — in favor of a
+  different, non-customizable built-in prompt, so a custom template had no effect at all on any
+  PDF/corpus-derived pipeline. Both now always use the custom template, with context threaded in
+  through a new required <code>{context_section}</code> placeholder (empty string when there's no context) —
+  the same pattern <code>preference_prompt_template</code>/<code>evol_prompt_template</code> already used. Added
+  <code>BaseGenerationTask._context_section()</code> as the shared implementation (previously duplicated only
+  in <code>PreferenceGenerationTask</code>). <code>qa_prompt_template</code>, <code>preference_prompt_template</code>,
+  <code>evol_prompt_template</code>, <code>multiturn_prompt_template</code> (<code>single_call</code>), and the adversarial
+  templates were already always honored regardless of context and needed no change.</li>
 </ul>
 <h2 id="100-2026-06-12">1.0.0 - 2026-06-12<a class="headerlink" href="#100-2026-06-12" title="Permanent link">&para;</a></h2>
 <p>First public release.</p>
