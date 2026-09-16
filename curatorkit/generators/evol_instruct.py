@@ -197,8 +197,13 @@ class EvolInstructTask(BaseGenerationTask):
                 context=source_context,
             )
         else:
+            # prompt_template is validated to require {context} (it's also used
+            # in the source_context branch above), but there's no source text
+            # here — pass context="" so a custom template never raises
+            # KeyError('context'); _DEFAULT_EVOL_PROMPT itself has no {context}
+            # placeholder, so the extra kwarg is simply unused there.
             template = self.prompt_template or _DEFAULT_EVOL_PROMPT
-            prompt = template.format(instruction=instruction, strategy=strategy)
+            prompt = template.format(instruction=instruction, strategy=strategy, context="")
 
         return [{"role": "user", "content": prompt}]
 

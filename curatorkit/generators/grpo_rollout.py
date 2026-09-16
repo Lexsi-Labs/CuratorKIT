@@ -29,16 +29,7 @@ from curatorkit.schema import DataSample
 
 _DEFAULT_RESPONSE_PROMPT = """Answer the following instruction to the best of your ability.
 
-{instruction}"""
-
-_RESPONSE_PROMPT_WITH_CONTEXT = """Answer the following instruction based on the source passage provided.
-
-Source passage:
----
-{context}
----
-
-Instruction:
+{context_section}Instruction:
 {instruction}"""
 
 _CORPUS_RESPONSE_PROMPT = """Based on the following source passage, provide a thorough and accurate response covering the key points.
@@ -83,7 +74,12 @@ class GRPORolloutTask(BaseGenerationTask):
         Temperature variation across responses. Responses are generated
         at temperatures from (base - spread/2) to (base + spread/2).
     response_prompt : str | None
-        Custom template for response generation.
+        Custom template for response generation. Must contain {instruction}
+        and {context_section} — the latter is populated with the source
+        passage when the sample carries one, and is an empty string
+        otherwise, so the same custom template is used either way instead
+        of being swapped out for a different, non-customizable prompt
+        whenever context happens to be available.
     scoring_prompt : str | None
         Custom template for response scoring.
     """
@@ -109,7 +105,7 @@ class GRPORolloutTask(BaseGenerationTask):
         self.response_prompt = response_prompt or _DEFAULT_RESPONSE_PROMPT
         self.scoring_prompt = scoring_prompt or _DEFAULT_SCORING_PROMPT
         if response_prompt:
-            self._validate_template(response_prompt, ["instruction"])
+            self._validate_template(response_prompt, ["instruction", "context_section"])
         if scoring_prompt:
             self._validate_template(scoring_prompt, ["instruction", "response"], "scoring_prompt")
 
@@ -119,14 +115,15 @@ class GRPORolloutTask(BaseGenerationTask):
         instruction = sample.instruction
 
         if not instruction and source_context:
+            # No instruction to substitute at all — a from-scratch corpus
+            # response, not "answer this instruction". response_prompt
+            # doesn't apply here regardless of whether it's customized.
             prompt = _CORPUS_RESPONSE_PROMPT.format(context=source_context)
-        elif source_context:
-            prompt = _RESPONSE_PROMPT_WITH_CONTEXT.format(
-                instruction=instruction,
-                context=source_context,
-            )
         else:
-            prompt = self.response_prompt.format(instruction=instruction)
+            prompt = self.response_prompt.format(
+                instruction=instruction,
+                context_section=self._context_section(source_context),
+            )
 
         return [{"role": "user", "content": prompt}]
 

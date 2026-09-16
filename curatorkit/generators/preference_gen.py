@@ -152,11 +152,7 @@ class PreferenceGenerationTask(BaseGenerationTask):
     def _is_corpus_mode(self, sample: DataSample) -> bool:
         return not sample.instruction and bool(self._get_source_context(sample))
 
-    @staticmethod
-    def _context_section(source_context: str) -> str:
-        if not source_context:
-            return ""
-        return f"Source passage:\n---\n{source_context}\n---\n\n"
+    # _context_section is inherited from BaseGenerationTask.
 
     # ── Message building ─────────────────────────────────────────────────────
 

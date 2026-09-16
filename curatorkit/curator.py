@@ -323,6 +323,11 @@ class CuratorConfig:
     generate_answers: bool = True
     cot_mode: str = "generate"  # generate | wrap
     preference_mode: str = "single_call"  # single_call | two_pass
+    # turn_by_turn (default): each turn is its own LLM call, not customizable
+    # via multiturn_prompt_template. single_call: one LLM call generates the
+    # whole conversation, using multiturn_prompt_template if set — that field
+    # has no effect at all in turn_by_turn mode.
+    multiturn_mode: str = "turn_by_turn"  # turn_by_turn | single_call
 
     # ── Per-task concurrency overrides (None = use llm_concurrency for all) ──
     generation_concurrency: int | None = None  # overrides llm_concurrency for generation task
@@ -342,7 +347,7 @@ class CuratorConfig:
     preference_chosen_prompt: str | None = None  # two_pass: prompt for chosen generation
     preference_rejected_prompt: str | None = None  # two_pass: prompt for rejected generation
     grpo_prompt_template: str | None = None
-    multiturn_prompt_template: str | None = None
+    multiturn_prompt_template: str | None = None  # only used when multiturn_mode="single_call"
     cot_prompt_template: str | None = None
     cot_marker: str | None = None  # separator string between reasoning and answer
     adversarial_prompt_template: str | None = None  # for adversarial_preference task
@@ -1466,6 +1471,7 @@ class Curator:
                 llm=llm,
                 prompt_template=cfg.multiturn_prompt_template,
                 num_turns=cfg.num_turns,
+                mode=cfg.multiturn_mode,
                 concurrency=concurrency,
             )
         elif task in ("evol", "evol_instruct"):

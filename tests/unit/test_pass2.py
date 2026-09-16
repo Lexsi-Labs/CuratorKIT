@@ -157,6 +157,39 @@ class TestAdaptivePass2Runner:
             runner.run([sample], force_patch={"llm_temperature": 0.3})
             assert mock_gen.llm.temperature == 0.9, "LLM temperature was not restored"
 
+    def test_prompt_template_patch_applied_and_restored(self):
+        """apply_patch({"prompt_template": ...}) sets patched_config.llm_prompt_template,
+        but _regenerate_sample previously never read that field at all — the patch had
+        zero effect on the actual regeneration call. It must now swap the generator's
+        prompt_template for the duration of the call, then restore it.
+        """
+        with tempfile.TemporaryDirectory() as tmpdir:
+            runner, mock_gen, _, _ = _make_runner(gate_passes=True, output_dir=Path(tmpdir))
+            mock_gen.prompt_template = "original_template"
+            seen_templates = []
+
+            def _capture_run(samples):
+                seen_templates.append(mock_gen.prompt_template)
+                return [DataSample(source_uri="test/doc", instruction="What is X?", output="Regen answer.")]
+
+            mock_gen.run.side_effect = _capture_run
+            sample = _make_recoverable(FailureMode.GENERATOR_TEMPERATURE)
+            runner.run(
+                [sample],
+                force_patch={"llm_temperature": 0.3, "prompt_template": "strict_grounding"},
+            )
+
+            assert seen_templates == ["strict_grounding"]
+            assert mock_gen.prompt_template == "original_template", "prompt_template was not restored"
+
+    def test_prompt_template_untouched_when_not_patched(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            runner, mock_gen, _, _ = _make_runner(gate_passes=True, output_dir=Path(tmpdir))
+            mock_gen.prompt_template = "original_template"
+            sample = _make_recoverable(FailureMode.GENERATOR_TEMPERATURE)
+            runner.run([sample], force_patch={"llm_temperature": 0.3})
+            assert mock_gen.prompt_template == "original_template"
+
 
 class TestMarkFailed:
     def test_appends_suffix(self):

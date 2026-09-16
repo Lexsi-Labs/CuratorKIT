@@ -52,6 +52,40 @@ All notable changes to CuratorKIT are documented here. The format follows
   never invoked the refiner at all, so `enable_reward_refiner` had no effect when called directly
   instead of through `run()`. Exporting is now deferred until after refiner recovery (and, when
   configured, `output_split`) completes in both `run()` and `run_async()`.
+- `EvolInstructTask` required a custom `evol_prompt_template` to contain `{context}` (it's used in
+  the with-context branch), but the no-context branch called `.format(instruction=, strategy=)`
+  without passing `context=` at all — any template that passed validation still raised
+  `KeyError('context')` the moment a sample had no source text (e.g. plain instruction-only data).
+  Fixed by always passing `context=""` in that branch.
+- Added the missing upfront placeholder validation (construction-time `ValueError` instead of a
+  silently-broken prompt at generation time) to `QAGenerationTask.prompt_template`/
+  `table_prompt_template`, `AdversarialPreferenceTask.faithful_prompt_template`/
+  `adversarial_prompt_template`, `HallucinationGate.prompt_template`, `RewardGate.prompt_template`,
+  `RewardRefiner.refine_prompt_template`/`instruction_refine_template`, and
+  `DiagnosticProbe.extra_templates` — previously only `cot_prompt_template`, `evol_prompt_template`,
+  `preference_prompt_template`, and `grpo_prompt_template`/`scoring_prompt` validated their
+  placeholders; the rest silently dropped the real data from the prompt on a typo instead of
+  raising. Extracted the shared check into `curatorkit.utils.prompt_validation` so gates and the
+  recovery modules (not `BaseGenerationTask` subclasses) can use it too.
+- `multiturn_prompt_template` had no effect at all: `MultiTurnTask` only reads it in
+  `mode="single_call"`, but `Curator` never passed a `mode`, so it always used the constructor's
+  `"turn_by_turn"` default. Added `CuratorConfig.multiturn_mode` (mirroring the existing
+  `preference_mode`/`cot_mode` pattern) so `multiturn_prompt_template` can actually take effect.
+- `CuratorConfig.apply_patch({"prompt_template": ...})` (used by `AdaptivePass2Runner` for offline
+  patch-sweep analysis) set `llm_prompt_template` on the patched config, but nothing ever read that
+  field back — the patch had zero effect on the actual regeneration call, only `llm_temperature`
+  did. `_regenerate_sample` now swaps the generator's `prompt_template` for the duration of the
+  call too, restoring it afterward.
+- `grpo_prompt_template` and `cot_prompt_template` (`cot_mode="generate"`) were silently dropped
+  the moment a sample carried source context — even with an instruction present — in favor of a
+  different, non-customizable built-in prompt, so a custom template had no effect at all on any
+  PDF/corpus-derived pipeline. Both now always use the custom template, with context threaded in
+  through a new required `{context_section}` placeholder (empty string when there's no context) —
+  the same pattern `preference_prompt_template`/`evol_prompt_template` already used. Added
+  `BaseGenerationTask._context_section()` as the shared implementation (previously duplicated only
+  in `PreferenceGenerationTask`). `qa_prompt_template`, `preference_prompt_template`,
+  `evol_prompt_template`, `multiturn_prompt_template` (`single_call`), and the adversarial
+  templates were already always honored regardless of context and needed no change.
 
 ## 1.0.0 - 2026-06-12
 

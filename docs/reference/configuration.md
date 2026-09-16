@@ -283,6 +283,7 @@ Same 3-tier cascade and role-default table as the Python API (see above), includ
 | `cot_mode` | `str` | `"generate"` | Chain-of-thought mode: `"generate"` (LLM produces CoT from scratch) or `"wrap"` (wrap an existing answer with reasoning) |
 | `cot_marker` | `str \| None` | `None` | Separator inserted between the reasoning block and the final answer in `cot` output. `None` = the built-in separator (`"\n\n## Answer\n"`). |
 | `preference_mode` | `str` | `"single_call"` | Preference pair generation: `"single_call"` (one call for both chosen/rejected) or `"two_pass"` (separate calls) |
+| `multiturn_mode` | `str` | `"turn_by_turn"` | Multi-turn generation: `"turn_by_turn"` (each turn is its own LLM call, conditioned on prior real turns) or `"single_call"` (one call generates the whole conversation — required for `multiturn_prompt_template` to have any effect) |
 | `generation_concurrency` | `int \| None` | `None` | Concurrency for the generation task. `None` = use `llm_concurrency`. |
 | `judge_concurrency` | `int \| None` | `None` | Concurrency for scoring/judging calls. `None` = use `llm_concurrency`. |
 
@@ -311,13 +312,13 @@ Override the default LLM prompt for each task. If you provide a template, all re
 | `preference_prompt_template` | `{instruction}`, `{context_section}` | `preference` (`single_call` mode) |
 | `preference_chosen_prompt` | `{instruction}`, `{context_section}` | `preference` (`two_pass` mode) — chosen-response generation |
 | `preference_rejected_prompt` | `{instruction}`, `{context_section}` | `preference` (`two_pass` mode) — rejected-response generation |
-| `grpo_prompt_template` | `{instruction}` | `grpo` |
-| `multiturn_prompt_template` | `{num_turns}`, `{context_section}`, `{initial_question}` | `multiturn` (only used in `single_call` mode — not active via `CuratorConfig`, which always uses `turn_by_turn`; see the [customisation guide](../guides/customisation.md)) |
-| `cot_prompt_template` | `{instruction}` (generate mode); `{instruction}`, `{answer}` (wrap mode) | `cot` |
-| `adversarial_prompt_template` | `{context}`, `{question}`, `{injection_type}` | `adversarial_preference` (template for the adversarially-corrupted rejected response) |
-| `llm_prompt_template` | task-dependent | fallback for unlisted tasks |
+| `grpo_prompt_template` | `{instruction}`, `{context_section}` | `grpo` — `{context_section}` is the source passage when the sample has one, else `""`; always used either way (never swapped for a different built-in prompt just because context is present) |
+| `multiturn_prompt_template` | `{num_turns}`, `{context_section}`, `{initial_question}` | `multiturn` — only used when `multiturn_mode="single_call"`; ignored (no effect) in the default `"turn_by_turn"` mode |
+| `cot_prompt_template` | `{instruction}`, `{context_section}` (generate mode); `{instruction}`, `{answer}` (wrap mode) | `cot` — same `{context_section}` contract as `grpo_prompt_template` in generate mode |
+| `adversarial_prompt_template` | `{context}`, `{question}` | `adversarial_preference` (template for the adversarially-corrupted rejected response) |
+| `llm_prompt_template` | n/a — not part of `CuratorConfig`'s normal generation path | Read only by `AdaptivePass2Runner` (offline patch-sweep tool), via `CuratorConfig.apply_patch({"prompt_template": ...})`. Not a per-task override. |
 
-All default to `None` (built-in template used).
+All default to `None` (built-in template used). `multiturn_mode` defaults to `"turn_by_turn"` — set it to `"single_call"` for `multiturn_prompt_template` to take effect.
 
 ---
 
@@ -356,10 +357,10 @@ All default to `None` (built-in template used).
 | `probe_temperatures` | `list[float]` | `[0.3, 0.5]` | Temperature values to try during the temperature sweep recovery path |
 | `probe_generator_model` | `str \| None` | `None` | Model for probe re-generation. `None` = use `llm_model`. |
 | `probe_score_split` | `float` | `0.5` | Score boundary for routing. Samples above this go to the temperature path; below go to the strict grounding path. |
-| `probe_extra_templates` | `dict[str, str]` | `{}` | Override built-in probe templates (`"default"`, `"strict_grounding"`, `"domain_specific"`) or add new keys, selected per sample via `metadata["domain_prompt_key"]`. See [Customisation](../guides/customisation.md#custom-probe-templates) for routing details. |
+| `probe_extra_templates` | `dict[str, str]` | `{}` | Override built-in probe templates (`"default"`, `"strict_grounding"`, `"domain_specific"`) or add new keys, selected per sample via `metadata["domain_prompt_key"]`. Each template requires `{source}` and `{question}`. See [Customisation](../guides/customisation.md#custom-probe-templates) for routing details. |
 | `enable_reward_refiner` | `bool` | `False` | Enable the post-pipeline reward refiner (rewrites answers targeting the weakest quality dimension) |
-| `reward_refine_prompt_template` | `str \| None` | `None` | Custom refiner prompt. `None` = built-in template. |
-| `reward_instruction_refine_template` | `str \| None` | `None` | Custom template for instruction rewrites (used when `instruction_quality` failure mode is detected). `None` = built-in. |
+| `reward_refine_prompt_template` | `str \| None` | `None` | Custom refiner prompt. Required variables: `{axis}`, `{weakness}`, `{instruction}`, `{source}`, `{answer}`. `None` = built-in template. |
+| `reward_instruction_refine_template` | `str \| None` | `None` | Custom template for instruction rewrites (used when `instruction_quality` failure mode is detected). Required variables: `{weakness}`, `{source}`, `{question}`. `None` = built-in. |
 
 ---
 

@@ -28,29 +28,12 @@ from curatorkit.schema import DataSample
 
 _DEFAULT_COT_GENERATE_PROMPT = """Solve the following step by step. Show your reasoning clearly before giving the final answer.
 
-Instruction:
+{context_section}Instruction:
 {instruction}
 
 Format your response as:
 ## Reasoning
 (step-by-step thinking)
-
-## Answer
-(final answer)"""
-
-_COT_GENERATE_PROMPT_WITH_CONTEXT = """Based on the source passage, solve the following step by step. Ground your reasoning strictly in the passage.
-
-Source passage:
----
-{context}
----
-
-Instruction:
-{instruction}
-
-Format your response as:
-## Reasoning
-(step-by-step thinking grounded in the passage)
 
 ## Answer
 (final answer)"""
@@ -85,6 +68,18 @@ Respond in JSON format ONLY:
 }}"""
 
 
+def _cot_context_section(source_context: str) -> str:
+    """Like BaseGenerationTask._context_section, plus an explicit grounding
+    instruction — for a reasoning task this needs to be said outright, not
+    just implied by a source passage being present."""
+    if not source_context:
+        return ""
+    return (
+        f"Source passage:\n---\n{source_context}\n---\n\n"
+        "Ground your reasoning strictly in the passage above.\n\n"
+    )
+
+
 class ChainOfThoughtTask(BaseGenerationTask):
     """
     Generate chain-of-thought reasoning for instructions.
@@ -97,7 +92,13 @@ class ChainOfThoughtTask(BaseGenerationTask):
         "generate": Generate both CoT and answer from instruction only.
         "wrap": Given instruction + existing answer, generate CoT reasoning.
     prompt_template : str | None
-        Custom prompt template.
+        Custom prompt template. In "generate" mode, must contain
+        {instruction} and {context_section} — the latter is populated with
+        the source passage when the sample carries one, and is an empty
+        string otherwise, so the same custom template is used either way
+        instead of being swapped out for a different, non-customizable
+        prompt whenever context happens to be available. In "wrap" mode,
+        must contain {instruction} and {answer} instead.
     cot_marker : str
         String used to separate reasoning from the final answer in the output.
     """
@@ -114,7 +115,9 @@ class ChainOfThoughtTask(BaseGenerationTask):
         self.mode = mode
         self.cot_marker = cot_marker
         if prompt_template:
-            required = ["instruction", "answer"] if mode == "wrap" else ["instruction"]
+            required = (
+                ["instruction", "answer"] if mode == "wrap" else ["instruction", "context_section"]
+            )
             self._validate_template(prompt_template, required)
 
     def _build_messages(self, sample: DataSample) -> list[dict[str, str]]:
@@ -128,16 +131,16 @@ class ChainOfThoughtTask(BaseGenerationTask):
                 answer=sample.output,
             )
         elif not instruction and source_context:
-            # Corpus mode: analyze source text
+            # No instruction to substitute at all — a from-scratch corpus
+            # analysis, not "solve this instruction". prompt_template
+            # doesn't apply here regardless of whether it's customized.
             prompt = _CORPUS_COT_PROMPT.format(context=source_context)
-        elif source_context:
-            prompt = _COT_GENERATE_PROMPT_WITH_CONTEXT.format(
-                instruction=instruction,
-                context=source_context,
-            )
         else:
             template = self.prompt_template or _DEFAULT_COT_GENERATE_PROMPT
-            prompt = template.format(instruction=instruction)
+            prompt = template.format(
+                instruction=instruction,
+                context_section=_cot_context_section(source_context),
+            )
 
         return [{"role": "user", "content": prompt}]
 
