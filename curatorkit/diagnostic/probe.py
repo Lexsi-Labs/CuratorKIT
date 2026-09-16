@@ -34,6 +34,7 @@ from curatorkit.diagnostic.failure_modes import PROMPT_TEMPLATES, FailureDiagnos
 from curatorkit.interfaces import BaseGate
 from curatorkit.llm.base import BaseLLM
 from curatorkit.schema import DataSample, ProvenanceRecord, RejectedSample
+from curatorkit.utils.prompt_validation import validate_prompt_template
 
 _PROBE_VERSION = "1.0.0"
 
@@ -82,6 +83,10 @@ class DiagnosticProbe:
         if extra_templates:
             import copy
 
+            for name, template in extra_templates.items():
+                validate_prompt_template(
+                    template, ["source", "question"], f"probe_extra_templates[{name!r}]"
+                )
             self._prompt_templates = {**copy.deepcopy(PROMPT_TEMPLATES), **extra_templates}
         else:
             self._prompt_templates = PROMPT_TEMPLATES

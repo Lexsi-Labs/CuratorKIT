@@ -27,6 +27,7 @@ from tqdm import tqdm
 from curatorkit.interfaces import BaseNormalizer
 from curatorkit.llm.base import BaseLLM, LLMResponse
 from curatorkit.schema import DataSample, ProvenanceRecord, RejectedSample
+from curatorkit.utils.prompt_validation import validate_prompt_template
 
 STEP_VERSION = "1.0.0"
 
@@ -121,15 +122,12 @@ class BaseGenerationTask(BaseNormalizer):
 
         Call this in __init__ when the user supplies a custom prompt_template so
         they get a clear error at construction time rather than a KeyError at
-        generation time.
+        generation time. Thin wrapper over the shared
+        curatorkit.utils.prompt_validation.validate_prompt_template — quality
+        gates and the reward-refiner/probe recovery modules (not
+        BaseGenerationTask subclasses) call that directly.
         """
-        missing = [v for v in required_vars if "{" + v + "}" not in template]
-        if missing:
-            raise ValueError(
-                f"Custom {name} is missing required placeholder(s): "
-                + ", ".join(f"{{{v}}}" for v in missing)
-                + f". Available: {', '.join('{' + v + '}' for v in required_vars)}"
-            )
+        validate_prompt_template(template, required_vars, name)
 
     def _get_source_context(self, sample: DataSample) -> str:
         """Extract source text from any input format.
@@ -142,6 +140,22 @@ class BaseGenerationTask(BaseNormalizer):
         if sample.task_type == "language_modeling" and sample.output:
             return sample.output
         return sample.input or sample.output or ""
+
+    @staticmethod
+    def _context_section(source_context: str) -> str:
+        """Optional "Source passage: ..." block for a custom prompt_template.
+
+        Empty string when there's no source context, so a template with
+        {context_section} in it always renders cleanly either way. This is
+        how a custom template stays in effect *together with* grounding
+        context instead of being swapped out for a different, non-
+        customizable built-in prompt the moment context is available —
+        every generator should build its with-context branch through this,
+        not a second hardcoded template string.
+        """
+        if not source_context:
+            return ""
+        return f"Source passage:\n---\n{source_context}\n---\n\n"
 
     # ------------------------------------------------------------------
     # Abstract interface — subclasses implement these

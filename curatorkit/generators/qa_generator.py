@@ -125,6 +125,12 @@ class QAGenerationTask(BaseGenerationTask):
         self.num_questions = max(1, num_questions)
         self.table_prompt_template = table_prompt_template or _DEFAULT_TABLE_QA_PROMPT
         self.difficulty = difficulty
+        if prompt_template:
+            self._validate_template(prompt_template, ["context", "num_questions"])
+        if table_prompt_template:
+            self._validate_template(
+                table_prompt_template, ["context", "num_questions"], "table_prompt_template"
+            )
 
     def _get_context(self, sample: DataSample) -> str:
         """Extract the text chunk from the sample."""

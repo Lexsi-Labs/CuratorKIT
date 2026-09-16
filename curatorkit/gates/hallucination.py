@@ -30,6 +30,7 @@ from curatorkit.gates._score_parsing import extract_score, template_mentions_key
 from curatorkit.interfaces import BaseGate
 from curatorkit.llm.base import BaseLLM
 from curatorkit.schema import DataSample, ProvenanceRecord, RejectedSample
+from curatorkit.utils.prompt_validation import validate_prompt_template
 
 STEP_VERSION = "1.0.0"
 
@@ -100,6 +101,13 @@ class HallucinationGate(BaseGate):
         self.concurrency = concurrency
         self._fallback_count = 0
         self._scored_count = 0
+
+        if prompt_template is not None:
+            validate_prompt_template(
+                prompt_template,
+                ["source_text", "question", "answer"],
+                "hallucination_prompt_template",
+            )
 
         if not template_mentions_key(prompt_template, "grounding_score"):
             warnings.warn(

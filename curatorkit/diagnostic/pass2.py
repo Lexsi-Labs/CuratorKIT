@@ -196,9 +196,15 @@ class AdaptivePass2Runner:
         )
 
         orig_temp = getattr(self.generator.llm, "temperature", None)
+        # apply_patch({"prompt_template": ...}) sets patched_config.llm_prompt_template
+        # — swap it onto the generator for this regeneration only, same
+        # save/override/restore pattern as the temperature patch above.
+        orig_prompt_template = getattr(self.generator, "prompt_template", None)
         try:
             if orig_temp is not None:
                 self.generator.llm.temperature = patched_config.llm_temperature
+            if patched_config.llm_prompt_template is not None:
+                self.generator.prompt_template = patched_config.llm_prompt_template
             result = self.generator.run([seed])
             return result[0] if result else None
         except Exception as exc:
@@ -207,6 +213,8 @@ class AdaptivePass2Runner:
         finally:
             if orig_temp is not None:
                 self.generator.llm.temperature = orig_temp
+            if patched_config.llm_prompt_template is not None:
+                self.generator.prompt_template = orig_prompt_template
 
     def _write_outputs(self, rejected2: list[RejectedSample], summary: dict) -> None:
         self.output_dir.mkdir(parents=True, exist_ok=True)

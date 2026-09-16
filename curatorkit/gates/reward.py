@@ -27,6 +27,7 @@ from curatorkit.gates._score_parsing import extract_score, template_mentions_key
 from curatorkit.interfaces import BaseGate
 from curatorkit.llm.base import BaseLLM
 from curatorkit.schema import DataSample, ProvenanceRecord, RejectedSample
+from curatorkit.utils.prompt_validation import validate_prompt_template
 
 STEP_VERSION = "1.0.0"
 
@@ -121,6 +122,11 @@ class RewardGate(BaseGate):
         for dim in self.dimensions:
             if dim not in _VALID_DIMENSIONS:
                 raise ValueError(f"Unknown dimension '{dim}'. Valid: {sorted(_VALID_DIMENSIONS)}")
+
+        if prompt_template is not None:
+            validate_prompt_template(
+                prompt_template, ["instruction", "response"], "reward_prompt_template"
+            )
 
         # Static check, before any LLM calls: does the custom template even
         # ask for the key this gate parses out of the judge's response? If

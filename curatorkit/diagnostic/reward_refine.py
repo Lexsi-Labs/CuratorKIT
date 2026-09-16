@@ -23,6 +23,7 @@ from datetime import UTC, datetime
 from curatorkit.interfaces import BaseGate, BaseNormalizer
 from curatorkit.llm.base import BaseLLM
 from curatorkit.schema import DataSample, ProvenanceRecord, RejectedSample
+from curatorkit.utils.prompt_validation import validate_prompt_template
 
 logger = logging.getLogger(__name__)
 
@@ -94,6 +95,18 @@ class RewardRefiner(BaseNormalizer):
         self.concurrency = concurrency
         self._refine_prompt = refine_prompt_template or _REWARD_REFINE_PROMPT
         self._instruction_prompt = instruction_refine_template or _INSTRUCTION_REFINE_PROMPT
+        if refine_prompt_template is not None:
+            validate_prompt_template(
+                refine_prompt_template,
+                ["axis", "weakness", "instruction", "source", "answer"],
+                "reward_refine_prompt_template",
+            )
+        if instruction_refine_template is not None:
+            validate_prompt_template(
+                instruction_refine_template,
+                ["weakness", "source", "question"],
+                "reward_instruction_refine_template",
+            )
 
     def run(self, samples: list[DataSample]) -> list[DataSample]:
         """BaseNormalizer pipeline interface.

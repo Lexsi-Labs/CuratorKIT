@@ -143,7 +143,8 @@ class AdversarialPreferenceTask(BaseGenerationTask):
         RNG seed for reproducible injection assignment.
     faithful_prompt_template : str | None
         Custom prompt for faithful answer generation. Must include
-        {context}, {num_questions}, {difficulty} placeholders.
+        {context} and {num_questions}; {difficulty} is optional (same
+        contract as QAGenerationTask.prompt_template).
     adversarial_prompt_template : str | None
         Custom prompt for adversarial rejected generation. Must include
         {context}, {question} placeholders.
@@ -172,6 +173,17 @@ class AdversarialPreferenceTask(BaseGenerationTask):
         self.faithful_prompt = faithful_prompt_template or _DEFAULT_FAITHFUL_PROMPT
         self.adversarial_prompt = adversarial_prompt_template
         self.difficulty = difficulty
+        if faithful_prompt_template:
+            # {difficulty} is optional here too — same contract as
+            # QAGenerationTask.prompt_template, which this field is backed by
+            # via CuratorConfig.qa_prompt_template.
+            self._validate_template(
+                faithful_prompt_template, ["context", "num_questions"], "faithful_prompt_template"
+            )
+        if adversarial_prompt_template:
+            self._validate_template(
+                adversarial_prompt_template, ["context", "question"], "adversarial_prompt_template"
+            )
 
     @property
     def task_name(self) -> str:
