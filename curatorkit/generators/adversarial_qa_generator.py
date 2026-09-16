@@ -39,12 +39,15 @@ See ~/CONTRASTIVE_DATASET_PLAN.md for the full roadmap.
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import json
 import random
 import uuid
 from datetime import UTC, datetime
 from typing import Literal
+
+from tqdm import tqdm
 
 from curatorkit.generators.base import coerce_text
 from curatorkit.generators.qa_generator import _DEFAULT_QA_PROMPT, QAGenerationTask
@@ -199,6 +202,52 @@ class AdversarialQAGenerationTask(QAGenerationTask):
         self._injection_plan = self._make_plan([s.id for s in seeds])
         return self._run_with_plan(seeds)
 
+    async def run_async(self, seeds: list[DataSample]) -> list[DataSample]:
+        """
+        Async counterpart to run(). Without this override, the inherited
+        BaseGenerationTask.run_async never builds self._injection_plan at
+        all (that setup lives only in run()) — every seed would fall
+        through with inj_type=None, so injection_rate/injection_types would
+        be silently ignored entirely: a "successful" run producing a normal
+        QA dataset with zero adversarial samples, regardless of what was
+        configured.
+        """
+        self._injection_plan = self._make_plan([s.id for s in seeds])
+
+        self._rejected = []
+        semaphore = asyncio.Semaphore(self.concurrency)
+        results_map: dict[int, list[DataSample]] = {}
+
+        async def _process(idx: int, seed: DataSample) -> None:
+            async with semaphore:
+                inj_type = self._injection_plan.get(seed.id)
+                try:
+                    results_map[idx] = await self._generate_one_async(
+                        seed, inj_type, datetime.now(UTC)
+                    )
+                except Exception as exc:
+                    self._rejected.append(
+                        RejectedSample(
+                            **seed.model_dump(),
+                            rejection_reason=f"generation_failed:{exc}",
+                            rejecting_step=self.task_name,
+                        )
+                    )
+
+        tasks = [_process(i, s) for i, s in enumerate(seeds)]
+        for coro in tqdm(
+            asyncio.as_completed(tasks),
+            total=len(tasks),
+            desc=f"[{self.task_name}] generating (async)",
+            unit="sample",
+        ):
+            await coro
+
+        results: list[DataSample] = []
+        for i in sorted(results_map):
+            results.extend(results_map[i])
+        return results
+
     def run_multi_passage(
         self, seed_pairs: list[tuple[DataSample, DataSample]]
     ) -> list[DataSample]:
@@ -296,6 +345,30 @@ class AdversarialQAGenerationTask(QAGenerationTask):
             messages, temperature = self._adversarial_messages(source_ctx, inj_type)
 
         response = self.llm.generate(
+            messages,
+            **({"temperature": temperature} if temperature is not None else {}),
+        )
+        qa_pairs = self._extract_qa_pairs(response.text.strip()) or self._fallback_extract(
+            response.text.strip()
+        )
+
+        return self._build_samples(seed, qa_pairs, source_ctx, inj_type, messages, response, ts)
+
+    async def _generate_one_async(
+        self,
+        seed: DataSample,
+        inj_type: InjectionType | None,
+        ts: datetime,
+    ) -> list[DataSample]:
+        """Async counterpart to _generate_one()."""
+        source_ctx = self._get_context(seed)
+        if inj_type is None:
+            messages = self._build_messages(seed)
+            temperature = None
+        else:
+            messages, temperature = self._adversarial_messages(source_ctx, inj_type)
+
+        response = await self.llm.agenerate(
             messages,
             **({"temperature": temperature} if temperature is not None else {}),
         )
