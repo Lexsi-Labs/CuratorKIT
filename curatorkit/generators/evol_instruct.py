@@ -21,6 +21,7 @@ Each evolution preserves the original instruction in provenance.
 
 from __future__ import annotations
 
+import asyncio
 import json
 import re
 import uuid
@@ -305,3 +306,60 @@ class EvolInstructTask(BaseGenerationTask):
                 answered[idx] = sample
 
         return [s for s in answered if s is not None]
+
+    async def run_async(self, samples: list[DataSample]) -> list[DataSample]:
+        """
+        Async counterpart to run(). Mirrors its two-stage pipeline (strategy-
+        cycling expansion, then evolution, then an optional answer pass) —
+        without this override, the inherited BaseGenerationTask.run_async
+        skips both the expansion and the answer pass entirely (it only
+        knows how to call _build_messages/_parse_response once per input
+        sample), silently producing one un-evolved-variant-count, answerless
+        sample per input instead of num_evolutions variants with (optionally)
+        generated answers.
+        """
+        expanded: list[DataSample] = []
+        for sample in samples:
+            for i in range(self.num_evolutions):
+                strategy = self.strategies[i % len(self.strategies)]
+                tagged = sample.model_copy(deep=True)
+                tagged.metadata["_evol_strategy"] = strategy
+                expanded.append(tagged)
+
+        evolved = await super().run_async(expanded)
+
+        if not self.generate_answers:
+            return evolved
+
+        semaphore = asyncio.Semaphore(self.concurrency)
+        answered_map: dict[int, DataSample] = {}
+
+        async def _answer_one(idx: int, sample: DataSample) -> None:
+            async with semaphore:
+                try:
+                    source_context = sample.input  # already set by _parse_response
+                    if source_context:
+                        prompt = _ANSWER_PROMPT_WITH_CONTEXT.format(
+                            instruction=sample.instruction,
+                            context=source_context,
+                        )
+                    else:
+                        prompt = self.answer_prompt_template.format(
+                            instruction=sample.instruction,
+                        )
+                    response = await self.llm.agenerate([{"role": "user", "content": prompt}])
+                    sample.output = response.text.strip()
+                except Exception:
+                    pass
+                answered_map[idx] = sample
+
+        tasks = [_answer_one(i, s) for i, s in enumerate(evolved)]
+        for coro in tqdm(
+            asyncio.as_completed(tasks),
+            total=len(tasks),
+            desc="[EvolInstruct] answering (async)",
+            unit="sample",
+        ):
+            await coro
+
+        return [answered_map[i] for i in sorted(answered_map)]

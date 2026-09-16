@@ -17,6 +17,7 @@ The output format matches what TRL's GRPOTrainer expects.
 
 from __future__ import annotations
 
+import asyncio
 import json
 import re
 import uuid
@@ -25,7 +26,7 @@ from tqdm import tqdm
 
 from curatorkit.generators.base import BaseGenerationTask
 from curatorkit.llm.base import BaseLLM, LLMResponse
-from curatorkit.schema import DataSample
+from curatorkit.schema import DataSample, RejectedSample
 
 _DEFAULT_RESPONSE_PROMPT = """Answer the following instruction to the best of your ability.
 
@@ -211,6 +212,13 @@ class GRPORolloutTask(BaseGenerationTask):
                         response_status.append("empty")
 
                 if not responses:
+                    self._rejected.append(
+                        RejectedSample(
+                            **sample.model_dump(),
+                            rejection_reason="generation_failed:no_responses",
+                            rejecting_step=self.task_name,
+                        )
+                    )
                     continue
 
                 scores: list[float] = []
@@ -248,8 +256,6 @@ class GRPORolloutTask(BaseGenerationTask):
                 )
 
             except Exception as e:
-                from curatorkit.schema import RejectedSample
-
                 self._rejected.append(
                     RejectedSample(
                         **sample.model_dump(),
@@ -259,3 +265,115 @@ class GRPORolloutTask(BaseGenerationTask):
                 )
 
         return results
+
+    async def _score_single_async(self, instruction: str, response_text: str) -> float:
+        """Async counterpart to _score_single()."""
+        prompt = self.scoring_prompt.format(instruction=instruction, response=response_text)
+        try:
+            resp = await self.scoring_llm.agenerate(
+                [{"role": "user", "content": prompt}],
+                temperature=self.scoring_llm.temperature,
+                max_tokens=self.scoring_llm.max_tokens,
+            )
+            text = resp.text.strip()
+            text = re.sub(r"```(?:json)?\s*", "", text)
+            text = re.sub(r"```\s*$", "", text)
+
+            parsed = json.loads(text)
+            score = float(parsed.get("score", 0.5))
+            return max(0.0, min(1.0, score))
+        except (json.JSONDecodeError, ValueError, KeyError, RuntimeError):
+            return 0.5
+
+    async def run_async(self, samples: list[DataSample]) -> list[DataSample]:
+        """
+        Async counterpart to run(). Mirrors its per-sample multi-rollout
+        logic — without this override, the inherited BaseGenerationTask.
+        run_async always calls _parse_response(), which is an intentional
+        no-op for this class (multi-rollout generation doesn't fit that
+        per-sample single-response shape) — every sample would be rejected
+        with generation_parse_failed, and no rollouts would ever be produced.
+        """
+        self._rejected = []
+        temperatures = self._get_temperatures()
+        semaphore = asyncio.Semaphore(self.concurrency)
+        results_map: dict[int, DataSample] = {}
+
+        async def _process_one(idx: int, sample: DataSample) -> None:
+            async with semaphore:
+                try:
+                    source_context = self._get_source_context(sample)
+                    instruction = (
+                        sample.instruction
+                        or "Analyze and discuss the key points from the source passage."
+                    )
+                    messages = self._build_messages(sample)
+                    responses: list[str] = []
+                    response_status: list[str] = []
+
+                    for temp in temperatures:
+                        resp = await self.llm.agenerate(messages, temperature=temp)
+                        text = resp.text.strip()
+                        if text:
+                            responses.append(text)
+                            response_status.append("ok")
+                        else:
+                            response_status.append("empty")
+
+                    if not responses:
+                        self._rejected.append(
+                            RejectedSample(
+                                **sample.model_dump(),
+                                rejection_reason="generation_failed:no_responses",
+                                rejecting_step=self.task_name,
+                            )
+                        )
+                        return
+
+                    if self.score_responses:
+                        scores = list(
+                            await asyncio.gather(
+                                *[self._score_single_async(instruction, rt) for rt in responses]
+                            )
+                        )
+                    else:
+                        scores = [0.0] * len(responses)
+
+                    results_map[idx] = DataSample(
+                        id=str(uuid.uuid4()),
+                        source_uri=sample.source_uri,
+                        instruction=instruction,
+                        input=source_context,
+                        responses=responses,
+                        reward_scores=scores,
+                        task_type="grpo",
+                        metadata={
+                            "generation_source": "grpo_rollout",
+                            "num_responses": len(responses),
+                            "temperatures_used": temperatures[: len(responses)],
+                            "response_status": response_status,
+                            "scored": self.score_responses,
+                            "corpus_mode": not sample.instruction and bool(source_context),
+                            "source_sample_id": sample.id,
+                        },
+                        provenance_chain=list(sample.provenance_chain),
+                    )
+                except Exception as e:
+                    self._rejected.append(
+                        RejectedSample(
+                            **sample.model_dump(),
+                            rejection_reason=f"generation_failed:{type(e).__name__}:{e}",
+                            rejecting_step=self.task_name,
+                        )
+                    )
+
+        tasks = [_process_one(i, s) for i, s in enumerate(samples)]
+        for coro in tqdm(
+            asyncio.as_completed(tasks),
+            total=len(tasks),
+            desc="[GRPORollout] generating (async)",
+            unit="sample",
+        ):
+            await coro
+
+        return [results_map[i] for i in sorted(results_map)]

@@ -18,6 +18,7 @@ single_call
 
 from __future__ import annotations
 
+import asyncio
 import json
 import re
 import uuid
@@ -282,6 +283,106 @@ class MultiTurnTask(BaseGenerationTask):
                     )
 
         return [results_map[i] for i in sorted(results_map)]
+
+    # ── run_async() ──────────────────────────────────────────────────────────
+
+    async def run_async(self, samples: list[DataSample]) -> list[DataSample]:
+        """
+        Async counterpart to run(). Mirrors its mode dispatch — without this
+        override, the inherited BaseGenerationTask.run_async always uses the
+        single-call _build_messages/_parse_response path regardless of
+        self.mode, since Pipeline picks run_async whenever hasattr(step,
+        "run_async") is true, which it always is (inherited). That silently
+        ignored mode="turn_by_turn" (the default) on every async invocation.
+        """
+        if self.mode == "single_call":
+            return await super().run_async(samples)
+
+        # turn_by_turn — concurrent across samples, sequential within each
+        self._rejected = []
+        semaphore = asyncio.Semaphore(self.concurrency)
+        results_map: dict[int, DataSample] = {}
+
+        async def _process(idx: int, sample: DataSample) -> None:
+            async with semaphore:
+                try:
+                    ds = await self._generate_turn_by_turn_async(sample)
+                    err = None
+                except Exception as e:
+                    ds = None
+                    err = str(e)
+
+                if ds is not None:
+                    results_map[idx] = ds
+                else:
+                    self._rejected.append(
+                        RejectedSample(
+                            **sample.model_dump(),
+                            rejection_reason=f"generation_failed:{self.task_name}:{err or 'empty'}",
+                            rejecting_step=self.task_name,
+                        )
+                    )
+
+        tasks = [_process(i, s) for i, s in enumerate(samples)]
+        for coro in tqdm(
+            asyncio.as_completed(tasks),
+            total=len(tasks),
+            desc="[MultiTurn] turn_by_turn (async)",
+            unit="sample",
+        ):
+            await coro
+
+        return [results_map[i] for i in sorted(results_map)]
+
+    async def _generate_turn_by_turn_async(self, sample: DataSample) -> DataSample | None:
+        """Async counterpart to _generate_turn_by_turn()."""
+        context = self._get_context(sample)
+        turns: list[dict] = []
+
+        if sample.instruction:
+            first_q = sample.instruction
+        elif context:
+            resp = await self.llm.agenerate(
+                [{"role": "user", "content": _INITIAL_QUESTION_PROMPT.format(context=context)}],
+                temperature=0.7,
+                max_tokens=128,
+            )
+            first_q = resp.text.strip() or "Can you explain this topic in detail?"
+        else:
+            first_q = "Can you explain this topic in detail?"
+
+        turns.append({"role": "user", "content": first_q})
+
+        for turn_idx in range(self.num_turns):
+            conv_str = self._format_conversation(turns)
+
+            if turn_idx == self.num_turns - 1 and len(turns) % 2 == 1:
+                # Last turn is an assistant response
+                prompt = _ASSISTANT_RESPONSE_PROMPT.format(context=context, conversation=conv_str)
+                resp = await self.llm.agenerate(
+                    [{"role": "user", "content": prompt}], temperature=0.7, max_tokens=512
+                )
+                turns.append({"role": "assistant", "content": resp.text.strip()})
+                break
+
+            if len(turns) % 2 == 1:
+                # Need assistant response
+                prompt = _ASSISTANT_RESPONSE_PROMPT.format(context=context, conversation=conv_str)
+                resp = await self.llm.agenerate(
+                    [{"role": "user", "content": prompt}], temperature=0.7, max_tokens=512
+                )
+                turns.append({"role": "assistant", "content": resp.text.strip()})
+            else:
+                # Need user follow-up
+                prompt = _USER_FOLLOWUP_PROMPT.format(context=context, conversation=conv_str)
+                resp = await self.llm.agenerate(
+                    [{"role": "user", "content": prompt}], temperature=0.8, max_tokens=128
+                )
+                turns.append({"role": "user", "content": resp.text.strip()})
+
+        if len(turns) < 2:
+            return None
+        return self._turns_to_sample(sample, turns)
 
     # ── Shared output builder ─────────────────────────────────────────────────
 

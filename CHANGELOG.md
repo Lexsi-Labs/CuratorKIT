@@ -34,6 +34,27 @@ All notable changes to CuratorKIT are documented here. The format follows
   of exporting seed prompts before `GRPORolloutTask` has run.
 
 ### Fixed
+- `GRPORolloutTask`, `EvolInstructTask`, `MultiTurnTask`, and `AdversarialQAGenerationTask` each
+  override the synchronous `run()` with real per-task logic (multi-rollout generation,
+  strategy-cycling expansion, turn-by-turn conversation, adversarial injection planning) but
+  never overrode `run_async()` — since `Curator.run()` always executes asynchronously whenever
+  any `generation_task` is configured, and `Pipeline.run_async()` dispatches to `run_async()`
+  whenever `hasattr(step, "run_async")` is true (which it always was, via inheritance from
+  `BaseGenerationTask`), every one of these tasks silently used the wrong, generic
+  single-response async path on every real invocation through `Curator` — this bug has been
+  present since the library's first public release. For `GRPORolloutTask` this was total and
+  loud: its `_parse_response()` is an intentional no-op (`run()` handles multi-response
+  generation directly), so **100% of samples were rejected with `generation_parse_failed` and
+  zero rollouts were ever produced** — `generation_task="grpo"` was completely non-functional
+  through the standard API. For the other three it was silent and partial: `EvolInstructTask`
+  silently skipped `num_evolutions` expansion and the `generate_answers` pass; `MultiTurnTask`
+  always behaved like `single_call` regardless of `multiturn_mode`/its `turn_by_turn` default;
+  `AdversarialQAGenerationTask` silently produced zero adversarial samples regardless of
+  `injection_rate`, since its injection plan is only built inside `run()`. All four now have a
+  proper `run_async()` mirroring their sync counterpart's logic with `agenerate`/`asyncio`
+  concurrency. (`PreferenceGenerationTask` already had this fixed in a previous release —
+  see its own `run_async()` — but the fix wasn't recognized as one instance of a general
+  pattern at the time, so it wasn't applied to these four sibling classes.)
 - Generation tasks discarded valid samples when a model nested a string field in an object
   (e.g. `{"chosen": {"poem": "..."}}`) — added a shared `coerce_text()` helper to unwrap these
   instead of failing downstream.
