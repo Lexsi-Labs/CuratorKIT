@@ -28,9 +28,9 @@ from tqdm.asyncio import tqdm as atqdm
 
 from curatorkit.gates._score_parsing import extract_score, template_mentions_key
 from curatorkit.interfaces import BaseGate
-from curatorkit.utils.prompt_validation import validate_prompt_template
 from curatorkit.llm.base import BaseLLM
 from curatorkit.schema import DataSample, ProvenanceRecord, RejectedSample
+from curatorkit.utils.prompt_validation import validate_prompt_template
 
 STEP_VERSION = "1.0.0"
 
