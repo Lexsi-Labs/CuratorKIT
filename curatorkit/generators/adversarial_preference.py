@@ -25,12 +25,16 @@ Usage:
 
 from __future__ import annotations
 
+import asyncio
+import json
 import random
 import uuid
 
+from tqdm import tqdm
+
 from curatorkit.generators.base import BaseGenerationTask, coerce_text
 from curatorkit.llm.base import BaseLLM, LLMResponse
-from curatorkit.schema import DataSample, ProvenanceRecord
+from curatorkit.schema import DataSample, ProvenanceRecord, RejectedSample
 
 # Faithful QA generation prompt — same structure as QAGenerationTask default
 _DEFAULT_FAITHFUL_PROMPT = """You are an expert question-answer generator. Generate {num_questions} question(s) and answer(s) based ONLY on the provided source text.
@@ -115,6 +119,33 @@ Return ONLY the answer text, no explanation.
 /no_think""",
 }
 
+# Naive (non-adversarial) rejected answer prompt — an explicit, generic
+# degradation instruction, same philosophy as PreferenceGenerationTask's
+# _DEFAULT_REJECTED_PROMPT. Previously this path just re-asked the faithful
+# prompt at temperature=1.1 with no "make it worse" instruction at all,
+# relying entirely on sampling noise to produce something worse — which
+# isn't guaranteed to actually be worse.
+_NAIVE_REJECTED_PROMPT = """\
+Answer the following question, but deliberately make the answer worse using \
+ONE or TWO of these quality issues:
+- Be vague or overly general where the source has specific details
+- Omit an important detail that a careful answer would include
+- Use awkward phrasing or a confusing structure
+- Provide a surface-level answer that lacks depth
+
+The answer must still be relevant, on-topic, and plausible — not nonsensical \
+or obviously broken. It should read like a real but noticeably weaker answer, \
+not a joke or a non-answer.
+
+Source passage:
+---
+{context}
+---
+
+Question: {question}
+
+Degraded answer:"""
+
 _DEFAULT_INJECTION_TYPES = list(_ADVERSARIAL_PROMPTS.keys())
 
 
@@ -124,8 +155,9 @@ class AdversarialPreferenceTask(BaseGenerationTask):
 
     For each source chunk, generates `num_questions` faithful QA pairs (chosen),
     then for `injection_rate` fraction of pairs generates an adversarial variant
-    of the answer as the rejected response. The remaining pairs use a quality-
-    degraded variant (lower temperature re-generation) as the rejected response.
+    of the answer as the rejected response. The remaining pairs get an explicitly
+    degraded variant (instructed to be vague/incomplete/shallow, at a moderately
+    elevated temperature) as the rejected response.
 
     Parameters
     ----------
@@ -135,7 +167,7 @@ class AdversarialPreferenceTask(BaseGenerationTask):
         Preference pairs per source chunk.
     injection_rate : float
         Fraction of pairs to inject with adversarial rejected responses (0–1).
-        Remaining pairs get a naive re-generation at higher temperature as rejected.
+        Remaining pairs get an explicitly-degraded naive rejected response instead.
     injection_types : list[str] | None
         Which adversarial types to sample from. None = all four.
         Options: contradicts_source, parametric_drift, domain_mismatch, instruction_quality
@@ -220,30 +252,81 @@ class AdversarialPreferenceTask(BaseGenerationTask):
         return [{"role": "user", "content": prompt}]
 
     def _build_naive_rejected_messages(self, context: str, question: str) -> list[dict[str, str]]:
-        """Naive rejected: re-generate at higher temperature (no adversarial intent)."""
-        prompt = self.faithful_prompt.format(
-            context=context,
-            num_questions=1,
-            difficulty="hard",
-        )
+        """Naive rejected: explicitly instructed degradation, not just sampling noise."""
+        prompt = _NAIVE_REJECTED_PROMPT.format(context=context, question=question)
         return [{"role": "user", "content": prompt}]
 
-    def _parse_response(self, sample: DataSample, response: LLMResponse) -> list[DataSample]:
-        import json
+    # ── Shared parsing / sample-building (used by both run() and run_async()) ──
 
-        text = response.text.strip()
+    @staticmethod
+    def _extract_pairs(text: str) -> list[dict]:
+        """Parse the faithful-pass JSON response into raw {question, answer} dicts."""
+        text = text.strip()
         if text.startswith("```"):
             text = "\n".join(text.split("\n")[1:])
             if text.endswith("```"):
                 text = text[: text.rfind("```")]
-
         try:
             pairs = json.loads(text)
             if not isinstance(pairs, list):
                 pairs = [pairs]
+            return pairs
         except json.JSONDecodeError:
             return []
 
+    def _build_pair_sample(
+        self,
+        sample: DataSample,
+        context: str,
+        question: str,
+        answer: str,
+        rejected_text: str,
+        injection_type: str | None,
+        use_adversarial: bool,
+        response: LLMResponse,
+    ) -> DataSample:
+        ds = DataSample(
+            id=str(uuid.uuid4()),
+            source_uri=sample.source_uri,
+            instruction=question,
+            input=context,
+            output=answer,  # output mirrors chosen for downstream compatibility
+            chosen=answer,
+            rejected=rejected_text,
+            task_type="preference",
+            metadata={
+                "generation_source": "adversarial_preference",
+                "source_sample_id": sample.id,
+                "injection_type": injection_type or "naive_degraded",
+                "adversarial_rejected": use_adversarial,
+                "difficulty": self.difficulty,
+            },
+            provenance_chain=list(sample.provenance_chain),
+        )
+        ds.append_provenance(
+            ProvenanceRecord(
+                step_name="AdversarialPreferenceTask",
+                step_version="1.0.0",
+                config_hash=self.llm.config_hash(),
+                notes={
+                    **response.to_provenance_dict(),
+                    "injection_type": injection_type or "naive_degraded",
+                    "adversarial_rejected": use_adversarial,
+                    "source_sample_id": sample.id,
+                },
+            )
+        )
+        return ds
+
+    def _parse_response(self, sample: DataSample, response: LLMResponse) -> list[DataSample]:
+        """Sync path — used by the inherited BaseGenerationTask.run(). Makes
+        blocking self.llm.generate() calls for the rejected pass, which is
+        fine here since run() is fully synchronous anyway. run_async() below
+        has its own async counterpart — it must NOT reuse this method, since
+        a blocking call made from inside an async coroutine would freeze the
+        whole event loop for its duration, not just the current task.
+        """
+        pairs = self._extract_pairs(response.text)
         context = self._get_context(sample)
         results = []
 
@@ -253,11 +336,9 @@ class AdversarialPreferenceTask(BaseGenerationTask):
             if not question or not answer:
                 continue
 
-            # Decide injection type for this pair
             use_adversarial = self.rng.random() < self.injection_rate
             injection_type = self.rng.choice(self.injection_types) if use_adversarial else None
 
-            # Generate rejected response
             if use_adversarial:
                 adv_msgs = self._build_adversarial_messages(context, question, injection_type)
                 try:
@@ -266,57 +347,124 @@ class AdversarialPreferenceTask(BaseGenerationTask):
                 except Exception:
                     rejected_text = ""
             else:
-                # Naive rejected: higher temperature regeneration
                 naive_msgs = self._build_naive_rejected_messages(context, question)
                 try:
-                    naive_resp = self.llm.generate(naive_msgs, temperature=1.1)
-                    # Parse first answer from response
-                    naive_text = naive_resp.text.strip()
-                    try:
-                        naive_pairs = json.loads(naive_text)
-                        if isinstance(naive_pairs, list) and naive_pairs:
-                            rejected_text = coerce_text(naive_pairs[0].get("answer", naive_text))
-                        else:
-                            rejected_text = naive_text
-                    except json.JSONDecodeError:
-                        rejected_text = naive_text
+                    naive_resp = self.llm.generate(naive_msgs, temperature=0.9)
+                    rejected_text = naive_resp.text.strip()
                 except Exception:
                     rejected_text = ""
 
             if not rejected_text:
                 continue
 
-            ds = DataSample(
-                id=str(uuid.uuid4()),
-                source_uri=sample.source_uri,
-                instruction=question,
-                input=context,
-                output=answer,  # output mirrors chosen for downstream compatibility
-                chosen=answer,
-                rejected=rejected_text,
-                task_type="preference",
-                metadata={
-                    "generation_source": "adversarial_preference",
-                    "source_sample_id": sample.id,
-                    "injection_type": injection_type or "naive_high_temp",
-                    "adversarial_rejected": use_adversarial,
-                    "difficulty": self.difficulty,
-                },
-                provenance_chain=list(sample.provenance_chain),
-            )
-            ds.append_provenance(
-                ProvenanceRecord(
-                    step_name="AdversarialPreferenceTask",
-                    step_version="1.0.0",
-                    config_hash=self.llm.config_hash(),
-                    notes={
-                        **response.to_provenance_dict(),
-                        "injection_type": injection_type or "naive_high_temp",
-                        "adversarial_rejected": use_adversarial,
-                        "source_sample_id": sample.id,
-                    },
+            results.append(
+                self._build_pair_sample(
+                    sample, context, question, answer, rejected_text, injection_type,
+                    use_adversarial, response,
                 )
             )
-            results.append(ds)
 
+        return results
+
+    async def run_async(self, samples: list[DataSample]) -> list[DataSample]:
+        """
+        Async counterpart to the generic BaseGenerationTask flow. Without
+        this override, run_async() would call the inherited flow, which
+        still calls this class's _parse_response() to interpret the
+        faithful-pass response — and _parse_response() makes *blocking*
+        self.llm.generate() calls for the rejected-answer pass. A blocking
+        call made from inside an async coroutine freezes the entire event
+        loop for its duration, not just the current task — so every
+        sample's rejected-answer generation ran one at a time, back to
+        back, regardless of `concurrency`, even though the faithful pass
+        itself was genuinely concurrent.
+        """
+        self._rejected = []
+        semaphore = asyncio.Semaphore(self.concurrency)
+        results_map: dict[int, list[DataSample]] = {}
+
+        async def _process_one(idx: int, sample: DataSample) -> None:
+            async with semaphore:
+                try:
+                    messages = self._build_messages(sample)
+                    response = await self.llm.agenerate(messages)
+                    pairs = self._extract_pairs(response.text)
+
+                    if not pairs:
+                        self._rejected.append(
+                            RejectedSample(
+                                **sample.model_dump(exclude={"metadata"}),
+                                rejection_reason=f"generation_parse_failed:{self.task_name}",
+                                rejecting_step=self.task_name,
+                                metadata={
+                                    **sample.metadata,
+                                    "raw_llm_response": response.text[:2000],
+                                },
+                            )
+                        )
+                        return
+
+                    context = self._get_context(sample)
+                    out: list[DataSample] = []
+
+                    for pair in pairs:
+                        question = coerce_text(pair.get("question") or pair.get("q", ""))
+                        answer = coerce_text(pair.get("answer") or pair.get("a", ""))
+                        if not question or not answer:
+                            continue
+
+                        use_adversarial = self.rng.random() < self.injection_rate
+                        injection_type = (
+                            self.rng.choice(self.injection_types) if use_adversarial else None
+                        )
+
+                        if use_adversarial:
+                            adv_msgs = self._build_adversarial_messages(
+                                context, question, injection_type
+                            )
+                            try:
+                                adv_resp = await self.llm.agenerate(adv_msgs, temperature=0.8)
+                                rejected_text = adv_resp.text.strip()
+                            except Exception:
+                                rejected_text = ""
+                        else:
+                            naive_msgs = self._build_naive_rejected_messages(context, question)
+                            try:
+                                naive_resp = await self.llm.agenerate(naive_msgs, temperature=0.9)
+                                rejected_text = naive_resp.text.strip()
+                            except Exception:
+                                rejected_text = ""
+
+                        if not rejected_text:
+                            continue
+
+                        out.append(
+                            self._build_pair_sample(
+                                sample, context, question, answer, rejected_text,
+                                injection_type, use_adversarial, response,
+                            )
+                        )
+
+                    results_map[idx] = out
+                except Exception as e:
+                    self._rejected.append(
+                        RejectedSample(
+                            **sample.model_dump(),
+                            rejection_reason=f"generation_failed:{type(e).__name__}:{e}",
+                            rejecting_step=self.task_name,
+                        )
+                    )
+
+        tasks = [_process_one(i, s) for i, s in enumerate(samples)]
+        for coro in tqdm(
+            asyncio.as_completed(tasks),
+            total=len(tasks),
+            desc="[AdversarialPreference] generating (async)",
+            unit="sample",
+        ):
+            await coro
+
+        results: list[DataSample] = []
+        for i in sorted(results_map):
+            results.extend(results_map[i])
         return results
