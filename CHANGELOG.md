@@ -54,19 +54,6 @@ All notable changes to CuratorKIT are documented here. The format follows
   of exporting seed prompts before `GRPORolloutTask` has run.
 
 ### Fixed
-- `ExactDeduplicator`/`MinHashDeduplicator` used the generic instruction+output comparison for
-  `conversational` and `unpaired_preference` samples, both of which lost information that
-  distinguishes genuinely different samples. A `conversational` sample only stores its first
-  user/assistant exchange in `instruction`/`output` — every later turn lives in
-  `metadata["turns"]` — so two conversations that diverge after turn 1 were wrongly collapsed into
-  "duplicates". An `unpaired_preference` sample's `label` (e.g. the same instruction+output rated
-  differently by two annotators) was ignored entirely, so differently-labeled rows for the same
-  text also collapsed into one, silently dropping a label. Both dedup classes now use a single
-  shared `_sample_dedup_text()` helper (previously this task_type branching was duplicated
-  verbatim in each class) that adds dedicated branches: `conversational` folds in every turn from
-  `metadata["turns"]` (handling both the ChatML `{"role","content"}` shape readers normalize to
-  and the ShareGPT `{"from","value"}` shape `MultiTurnTask`'s own generation output uses), and
-  `unpaired_preference` includes `label` in the comparison key.
 - `PreferenceGenerationTask`'s `two_pass` mode (both `run()` and `run_async()`) crashed the whole
   curation run — instead of cleanly rejecting the one affected sample — whenever chosen/rejected
   generation failed for a sample (empty completion, or corpus-mode parse/incomplete failure). The
