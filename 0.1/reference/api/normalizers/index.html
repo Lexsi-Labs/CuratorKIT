@@ -1095,6 +1095,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="ExactDeduplicator">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#curatorkit.normalizers.ExactDeduplicator--parameters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parameters
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
         
           <li class="md-nav__item">
@@ -1105,6 +1122,23 @@
       
     </span>
   </a>
+  
+    <nav class="md-nav" aria-label="MinHashDeduplicator">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#curatorkit.normalizers.MinHashDeduplicator--parameters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parameters
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
         
@@ -1529,6 +1563,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="ExactDeduplicator">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#curatorkit.normalizers.ExactDeduplicator--parameters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parameters
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
         
           <li class="md-nav__item">
@@ -1539,6 +1590,23 @@
       
     </span>
   </a>
+  
+    <nav class="md-nav" aria-label="MinHashDeduplicator">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#curatorkit.normalizers.MinHashDeduplicator--parameters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parameters
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
         
@@ -1764,7 +1832,8 @@ Keys: strip_html, normalise_unicode, fix_encoding_artifacts,
 
 
 <a href="#curatorkit.normalizers.ExactDeduplicator" class="headerlink" title="Permanent link">&para;</a></h3>
-
+<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">ExactDeduplicator</span><span class="p">(</span><span class="n">ignore_for_dedup</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span>
+</code></pre></div>
 
     <div class="doc doc-contents ">
             <p class="doc doc-class-bases">
@@ -1773,10 +1842,15 @@ Keys: strip_html, normalise_unicode, fix_encoding_artifacts,
 
 
         <p>Remove exact duplicates by SHA-256 - hash key is task-type-aware.</p>
-<p>preference / implicit_preference → instruction + chosen + rejected
-grpo                             → instruction + all responses
-language_modeling                → output
-everything else (SFT)            → instruction + output</p>
+<p>See _dedup_fields() for the exact field selection per task_type.</p>
+<h5 id="curatorkit.normalizers.ExactDeduplicator--parameters">Parameters<a class="headerlink" href="#curatorkit.normalizers.ExactDeduplicator--parameters" title="Permanent link">&para;</a></h5>
+<p>ignore_for_dedup : list[str] | None
+    Regex patterns. Matches are masked out (replaced with a space) from
+    each field's text before it's hashed, so a real but unimportant
+    difference between two samples (a per-sample UUID, a timestamp) does
+    not itself prevent them from being recognized as duplicates. Never
+    mutates the actual sample — only the throwaway string built for
+    comparison.</p>
 
 
 
@@ -1816,7 +1890,7 @@ everything else (SFT)            → instruction + output</p>
 
 
 <a href="#curatorkit.normalizers.MinHashDeduplicator" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">MinHashDeduplicator</span><span class="p">(</span><span class="n">threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.85</span><span class="p">,</span> <span class="n">ngram</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span> <span class="n">num_perm</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">128</span><span class="p">,</span> <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">42</span><span class="p">,</span> <span class="n">bands</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">rows</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span>
+<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">MinHashDeduplicator</span><span class="p">(</span><span class="n">threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.85</span><span class="p">,</span> <span class="n">ngram</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span> <span class="n">num_perm</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">128</span><span class="p">,</span> <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">42</span><span class="p">,</span> <span class="n">bands</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">rows</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">ignore_for_dedup</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
@@ -1844,6 +1918,13 @@ everything else (SFT)            → instruction + output</p>
 </ol>
 </details>        <p>The threshold is a tunable config value — not a code constant.
 A threshold of 0.85 is a starting point, not a universal answer.</p>
+<h5 id="curatorkit.normalizers.MinHashDeduplicator--parameters">Parameters<a class="headerlink" href="#curatorkit.normalizers.MinHashDeduplicator--parameters" title="Permanent link">&para;</a></h5>
+<p>ignore_for_dedup : list[str] | None
+    Regex patterns. Matches are masked out (replaced with a space) from
+    each field's text before n-gram tokenisation, so a real but
+    unimportant difference between two samples doesn't itself push their
+    estimated Jaccard similarity below <code>threshold</code>. Never mutates the
+    actual sample — only the throwaway string built for comparison.</p>
 
 
 

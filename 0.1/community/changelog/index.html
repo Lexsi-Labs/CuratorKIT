@@ -1219,6 +1219,26 @@
 <h2 id="unreleased">Unreleased<a class="headerlink" href="#unreleased" title="Permanent link">&para;</a></h2>
 <h3 id="added">Added<a class="headerlink" href="#added" title="Permanent link">&para;</a></h3>
 <ul>
+<li><code>ignore_for_dedup</code>: regex patterns whose matches are masked out (replaced with a space, then
+  whitespace-collapsed) from a sample's text before deduplication compares or embeds it — lets a
+  real but unimportant difference (a per-sample UUID, a timestamp, a boilerplate disclaimer) not
+  itself prevent two otherwise-identical samples from being recognized as duplicates. Masking is
+  applied per constituent field, before concatenation, so a pattern can't bleed across a field
+  boundary (e.g. match trailing <code>instruction</code> chars and leading <code>chosen</code> chars as one span); it
+  only ever transforms a throwaway comparison string, never the actual <code>DataSample</code> fields, so
+  source grounding for downstream generation tasks and quality gates is unaffected. Available on
+  all three dedup methods — <code>ExactDeduplicator</code>, <code>MinHashDeduplicator</code>, and
+  <code>EmbeddingDeduplicator</code> (constructor param), plus <code>CuratorConfig.dedup_ignore_patterns</code> and
+  YAML <code>NormalizerConfig.ignore_for_dedup</code> for the programmatic and CLI paths respectively. For
+  <code>EmbeddingDeduplicator</code>, masking happens before encoding (not just before comparison), so a
+  masked span is invisible to the embedding model too — since that changes what the persisted
+  cross-run index actually contains, the index's <code>ignore_for_dedup</code> is recorded in a <code>config.json</code>
+  sidecar and <code>run()</code> warns (without failing) if a later run's patterns don't match what the
+  on-disk index was built with. <code>ExactDeduplicator</code>/<code>MinHashDeduplicator</code>'s task-type field
+  selection (previously duplicated verbatim between the two classes) is now the single shared
+  <code>_sample_dedup_text()</code>/<code>_dedup_fields()</code> helper in <code>curatorkit.normalizers.dedup</code>, and
+  <code>ExactDeduplicator._config_hash()</code> — previously a hardcoded literal that never reflected actual
+  config — now hashes real config including <code>ignore_for_dedup</code>.</li>
 <li>YAML/CLI pipeline config now mirrors <code>CuratorConfig</code>'s per-role LLM override shape
   (<code>generator_llm:</code>/<code>judge_llm:</code> buckets, nested <code>&lt;role&gt;_llm:</code> blocks), plus <code>grpo_scoring_llm</code>
   and <code>enable_reward_refiner</code>/<code>refiner_llm</code> YAML support. Legacy fields still work unchanged.</li>
