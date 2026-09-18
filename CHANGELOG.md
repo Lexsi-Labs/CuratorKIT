@@ -34,6 +34,27 @@ All notable changes to CuratorKIT are documented here. The format follows
   of exporting seed prompts before `GRPORolloutTask` has run.
 
 ### Fixed
+- `PreferenceGenerationTask`'s `two_pass` mode (both `run()` and `run_async()`) crashed the whole
+  curation run — instead of cleanly rejecting the one affected sample — whenever chosen/rejected
+  generation failed for a sample (empty completion, or corpus-mode parse/incomplete failure). The
+  rejection path built `RejectedSample(**sample.model_dump(), ..., metadata={...})`, but
+  `sample.model_dump()` already includes `metadata`, so the explicit `metadata=` kwarg collided
+  with it and raised `TypeError: RejectedSample() got multiple values for keyword argument
+  'metadata'` — surfacing as a hard curation failure rather than a rejected-sample entry. Fixed by
+  excluding `metadata` from the `model_dump()` call (`exclude={"metadata"}`), matching the pattern
+  already used elsewhere in the codebase for this exact reason.
+- `AdversarialPreferenceTask`'s naive (non-adversarial) rejected-answer path just re-asked the
+  faithful QA prompt at `temperature=1.1` with no instruction to actually make the answer worse —
+  relying entirely on sampling noise to produce something worse, which isn't guaranteed. It now
+  uses an explicit degradation-instruction prompt (vague/incomplete/shallow, but still plausible)
+  at `temperature=0.9`. Separately, this task had its own instance of the `run_async()` gap above:
+  its `_parse_response()` — reused unchanged by the inherited generic async path — made *blocking*
+  `self.llm.generate()` calls for every rejected-answer generation (both the adversarial and naive
+  branches), which froze the entire event loop for that call's duration on every single sample,
+  serializing what should have been `concurrency`-bounded concurrent work. Added a proper
+  `run_async()` using `await self.llm.agenerate()` throughout, and factored the JSON-parsing and
+  DataSample-construction logic (no I/O) into shared `_extract_pairs()`/`_build_pair_sample()`
+  helpers so `run()` and `run_async()` can't drift apart again.
 - `GRPORolloutTask`, `EvolInstructTask`, `MultiTurnTask`, and `AdversarialQAGenerationTask` each
   override the synchronous `run()` with real per-task logic (multi-rollout generation,
   strategy-cycling expansion, turn-by-turn conversation, adversarial injection planning) but

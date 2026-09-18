@@ -357,7 +357,7 @@ class PreferenceGenerationTask(BaseGenerationTask):
                 else:
                     self._rejected.append(
                         RejectedSample(
-                            **sample.model_dump(),
+                            **sample.model_dump(exclude={"metadata"}),
                             rejection_reason=f"generation_parse_failed:{self.task_name}",
                             rejecting_step=self.task_name,
                             metadata={**sample.metadata, "partial_result": str(err)},
@@ -473,7 +473,7 @@ class PreferenceGenerationTask(BaseGenerationTask):
             else:
                 self._rejected.append(
                     RejectedSample(
-                        **sample.model_dump(),
+                        **sample.model_dump(exclude={"metadata"}),
                         rejection_reason=f"generation_parse_failed:{self.task_name}",
                         rejecting_step=self.task_name,
                         metadata={**sample.metadata, "partial_result": str(err)},

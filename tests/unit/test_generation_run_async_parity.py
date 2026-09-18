@@ -188,3 +188,109 @@ class TestAdversarialQAGenerationTaskAsyncParity:
         result = asyncio.run(Pipeline([_FakeReader(samples), task]).run_async())
 
         assert all(s.metadata.get("injected_failure") for s in result.passed)
+
+
+class _RecordingLLM(BaseLLM):
+    """Returns the faithful-pass JSON on the first call, then a fixed
+    "rejected" string on every later call — while recording every call's
+    messages/temperature so tests can assert on what was actually sent
+    (e.g. which prompt template and temperature the naive-rejected path used).
+    """
+
+    def __init__(self, faithful_json: str, **kw):
+        super().__init__(**kw)
+        self._faithful_json = faithful_json
+        self.calls: list[dict] = []
+
+    def _record(self, messages, kwargs):
+        self.calls.append({"content": messages[0]["content"], "temperature": kwargs.get("temperature")})
+
+    def _call(self, messages, **kwargs):
+        self._record(messages, kwargs)
+        if len(self.calls) == 1:
+            return LLMResponse(text=self._faithful_json, model="fake")
+        return LLMResponse(text="a rejected answer", model="fake")
+
+    async def _acall(self, messages, **kwargs):
+        return self._call(messages, **kwargs)
+
+
+class TestAdversarialPreferenceTaskAsyncParity:
+    def test_run_async_produces_chosen_rejected_pairs(self):
+        from curatorkit.generators.adversarial_preference import AdversarialPreferenceTask
+
+        llm = _llm(json.dumps([{"question": "q1", "answer": "a1"}]))
+        task = AdversarialPreferenceTask(llm=llm, num_questions=1, injection_rate=0.5, seed=42)
+        samples = [
+            DataSample(source_uri="t://", input=f"passage {i}", task_type="language_modeling")
+            for i in range(6)
+        ]
+        results = asyncio.run(task.run_async(samples))
+
+        assert len(task._rejected) == 0
+        assert len(results) == 6
+        assert all(r.task_type == "preference" for r in results)
+        assert all(r.chosen == "a1" and r.rejected for r in results)
+
+    def test_via_pipeline_does_not_reject_everything(self):
+        """End-to-end: Pipeline.run_async() must dispatch to this task's own
+        run_async(), not the inherited generic single-response one."""
+        from curatorkit.generators.adversarial_preference import AdversarialPreferenceTask
+
+        llm = _llm(json.dumps([{"question": "q1", "answer": "a1"}]))
+        task = AdversarialPreferenceTask(llm=llm, num_questions=1, injection_rate=0.5, seed=42)
+        samples = [
+            DataSample(source_uri="t://", input=f"passage {i}", task_type="language_modeling")
+            for i in range(4)
+        ]
+        result = asyncio.run(Pipeline([_FakeReader(samples), task]).run_async())
+
+        assert len(result.passed) == 4
+        assert not any(
+            r.rejection_reason.startswith("generation_parse_failed") for r in result.rejected
+        )
+
+    def test_naive_rejected_path_uses_explicit_degradation_prompt_and_temp_0_9(self):
+        """The naive (non-adversarial) rejected branch must use the explicit
+        degradation-instruction prompt, not a bare re-ask of the faithful
+        prompt, and must sample at temperature=0.9 (not the old 1.1)."""
+        from curatorkit.generators.adversarial_preference import AdversarialPreferenceTask
+
+        llm = _RecordingLLM(
+            faithful_json=json.dumps([{"question": "q1", "answer": "a1"}]),
+            model="fake",
+            temperature=0.7,
+            max_tokens=100,
+        )
+        # injection_rate=0.0 forces every pair down the naive path.
+        task = AdversarialPreferenceTask(llm=llm, num_questions=1, injection_rate=0.0, seed=42)
+        samples = [DataSample(source_uri="t://", input="passage", task_type="language_modeling")]
+
+        results = asyncio.run(task.run_async(samples))
+
+        assert len(results) == 1
+        assert results[0].metadata["adversarial_rejected"] is False
+        naive_call = llm.calls[1]
+        assert "deliberately make the answer worse" in naive_call["content"]
+        assert naive_call["temperature"] == 0.9
+
+    def test_run_and_run_async_agree_on_naive_rejected_temperature(self):
+        """Sync run() must use the same temperature=0.9 for the naive path
+        as run_async() — verifies the fix was applied consistently to both
+        the sync and async code paths."""
+        from curatorkit.generators.adversarial_preference import AdversarialPreferenceTask
+
+        llm = _RecordingLLM(
+            faithful_json=json.dumps([{"question": "q1", "answer": "a1"}]),
+            model="fake",
+            temperature=0.7,
+            max_tokens=100,
+        )
+        task = AdversarialPreferenceTask(llm=llm, num_questions=1, injection_rate=0.0, seed=42)
+        samples = [DataSample(source_uri="t://", input="passage", task_type="language_modeling")]
+
+        results = task.run(samples)
+
+        assert len(results) == 1
+        naive_call = llm.calls[1]
+        assert naive_call["temperature"] == 0.9
