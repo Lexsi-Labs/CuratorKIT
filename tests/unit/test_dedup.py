@@ -22,6 +22,13 @@ from curatorkit.normalizers.dedup import (
     _sample_dedup_text,
 )
 from curatorkit.normalizers.dedup_utils import apply_ignore_patterns, compile_ignore_patterns
+
+try:
+    import numpy  # noqa: F401
+
+    _HAS_NUMPY = True
+except ImportError:
+    _HAS_NUMPY = False
 from curatorkit.schema import DataSample
 
 
@@ -350,6 +357,9 @@ class _FakeEmbeddingModel:
         return vecs
 
 
+@pytest.mark.skipif(
+    not _HAS_NUMPY, reason="numpy not installed — install curatorkit[embedding]"
+)
 class TestEmbeddingDeduplicatorIgnoreForDedup:
     def _task(self, tmp_path, **kw):
         from curatorkit.normalizers.embedding_dedup import EmbeddingDeduplicator
