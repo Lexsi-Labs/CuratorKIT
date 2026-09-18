@@ -547,7 +547,7 @@ def _build_steps(config: object, verbose: bool, include_exporters: bool = True) 
     # ---- Cleaning normalizers (dedup + clean, before generation) ----
     for n in config.normalizers:
         if n.type == "exact_dedup":
-            steps.append(ExactDeduplicator())
+            steps.append(ExactDeduplicator(ignore_for_dedup=n.ignore_for_dedup or None))
         elif n.type == "minhash_dedup":
             steps.append(
                 MinHashDeduplicator(
@@ -555,6 +555,7 @@ def _build_steps(config: object, verbose: bool, include_exporters: bool = True) 
                     ngram=n.minhash_ngram,
                     num_perm=n.minhash_num_perm,
                     seed=n.minhash_seed,
+                    ignore_for_dedup=n.ignore_for_dedup or None,
                 )
             )
         elif n.type == "text_cleaner":
@@ -840,6 +841,7 @@ def _build_steps(config: object, verbose: bool, include_exporters: bool = True) 
                     text_field=n.embedding_text_field,
                     device=n.embedding_device,
                     batch_size=n.embedding_batch_size,
+                    ignore_for_dedup=n.ignore_for_dedup or None,
                 )
             )
 

@@ -190,6 +190,14 @@ class CuratorConfig:
     embedding_dedup     Enable cross-run embedding dedup. Default False.
     embedding_index_dir Directory for persistent index. Default "output/embedding_index".
     embedding_threshold Similarity threshold. Default 0.92.
+
+    dedup_ignore_patterns  Regex patterns whose matches are masked out of the
+                           text before dedup comparison (exact/minhash) or
+                           embedding (embedding_dedup) — lets a real but
+                           unimportant difference (a UUID, a timestamp) not
+                           itself prevent two samples from being recognized
+                           as duplicates. Applies to whichever dedup method(s)
+                           are enabled. Default: none (no masking).
     """
 
     # ── Source ──────────────────────────────────────────────────────────────
@@ -226,6 +234,7 @@ class CuratorConfig:
     minhash_ngram: int = 3
     minhash_num_perm: int = 128
     minhash_seed: int = 42
+    dedup_ignore_patterns: list[str] = field(default_factory=list)  # regex; see dedup_utils
 
     # ── Text cleaning ───────────────────────────────────────────────────────
     clean: bool = True
@@ -979,15 +988,16 @@ class Curator:
 
         # ── Deduplication ───────────────────────────────────────────────────
         if cfg.dedup == "exact":
-            steps.append(ExactDeduplicator())
+            steps.append(ExactDeduplicator(ignore_for_dedup=cfg.dedup_ignore_patterns or None))
         elif cfg.dedup == "minhash":
-            steps.append(ExactDeduplicator())
+            steps.append(ExactDeduplicator(ignore_for_dedup=cfg.dedup_ignore_patterns or None))
             steps.append(
                 MinHashDeduplicator(
                     threshold=cfg.minhash_threshold,
                     ngram=cfg.minhash_ngram,
                     num_perm=cfg.minhash_num_perm,
                     seed=cfg.minhash_seed,
+                    ignore_for_dedup=cfg.dedup_ignore_patterns or None,
                 )
             )
 
@@ -1173,6 +1183,7 @@ class Curator:
                     threshold=cfg.embedding_dedup_threshold,
                     device=cfg.embedding_device,
                     batch_size=cfg.embedding_batch_size,
+                    ignore_for_dedup=cfg.dedup_ignore_patterns or None,
                 )
             )
 
