@@ -381,6 +381,13 @@ class NormalizerConfig(BaseModel):
     minhash_num_perm: int = 128
     minhash_seed: int = 42
 
+    # Dedup — shared by exact_dedup, minhash_dedup, and embedding_dedup.
+    # Regex patterns whose matches are masked (replaced with a space) out of
+    # each field's text before dedup comparison/embedding, so a real but
+    # unimportant difference (a UUID, a timestamp) doesn't itself prevent two
+    # samples from being recognized as duplicates.
+    ignore_for_dedup: list[str] = Field(default_factory=list)
+
     # TextCleaner-specific
     transforms: dict[str, bool] = Field(
         default_factory=lambda: {

@@ -7,6 +7,26 @@ All notable changes to CuratorKIT are documented here. The format follows
 ## Unreleased
 
 ### Added
+- `ignore_for_dedup`: regex patterns whose matches are masked out (replaced with a space, then
+  whitespace-collapsed) from a sample's text before deduplication compares or embeds it — lets a
+  real but unimportant difference (a per-sample UUID, a timestamp, a boilerplate disclaimer) not
+  itself prevent two otherwise-identical samples from being recognized as duplicates. Masking is
+  applied per constituent field, before concatenation, so a pattern can't bleed across a field
+  boundary (e.g. match trailing `instruction` chars and leading `chosen` chars as one span); it
+  only ever transforms a throwaway comparison string, never the actual `DataSample` fields, so
+  source grounding for downstream generation tasks and quality gates is unaffected. Available on
+  all three dedup methods — `ExactDeduplicator`, `MinHashDeduplicator`, and
+  `EmbeddingDeduplicator` (constructor param), plus `CuratorConfig.dedup_ignore_patterns` and
+  YAML `NormalizerConfig.ignore_for_dedup` for the programmatic and CLI paths respectively. For
+  `EmbeddingDeduplicator`, masking happens before encoding (not just before comparison), so a
+  masked span is invisible to the embedding model too — since that changes what the persisted
+  cross-run index actually contains, the index's `ignore_for_dedup` is recorded in a `config.json`
+  sidecar and `run()` warns (without failing) if a later run's patterns don't match what the
+  on-disk index was built with. `ExactDeduplicator`/`MinHashDeduplicator`'s task-type field
+  selection (previously duplicated verbatim between the two classes) is now the single shared
+  `_sample_dedup_text()`/`_dedup_fields()` helper in `curatorkit.normalizers.dedup`, and
+  `ExactDeduplicator._config_hash()` — previously a hardcoded literal that never reflected actual
+  config — now hashes real config including `ignore_for_dedup`.
 - YAML/CLI pipeline config now mirrors `CuratorConfig`'s per-role LLM override shape
   (`generator_llm:`/`judge_llm:` buckets, nested `<role>_llm:` blocks), plus `grpo_scoring_llm`
   and `enable_reward_refiner`/`refiner_llm` YAML support. Legacy fields still work unchanged.

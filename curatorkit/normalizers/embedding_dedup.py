@@ -26,6 +26,7 @@ from typing import Any
 import numpy as np
 
 from curatorkit.interfaces import BaseNormalizer
+from curatorkit.normalizers.dedup_utils import apply_ignore_patterns, compile_ignore_patterns
 from curatorkit.schema import DataSample, ProvenanceRecord
 
 STEP_VERSION = "1.1.0"
@@ -68,6 +69,15 @@ class EmbeddingDeduplicator(BaseNormalizer):
         Encoding batch size.
     text_field : str
         Which DataSample field to embed. "auto" picks based on task_type.
+    ignore_for_dedup : list[str] | None
+        Regex patterns. Matches are masked out (replaced with a space) from
+        each field's text *before it's embedded*, so a real but unimportant
+        difference (a per-sample UUID, a timestamp) doesn't push two
+        otherwise-identical samples below the similarity threshold. Because
+        masking changes what gets embedded, changing this between runs makes
+        a persisted cross-run index not directly comparable to new
+        embeddings — run() warns if the index on disk was built with a
+        different ignore_for_dedup than the current one.
     """
 
     def __init__(
@@ -78,6 +88,7 @@ class EmbeddingDeduplicator(BaseNormalizer):
         batch_size: int = 64,
         text_field: str = "auto",
         device: str | None = None,
+        ignore_for_dedup: list[str] | None = None,
     ) -> None:
         self.index_dir = Path(index_dir)
         self.model_name = model
@@ -85,6 +96,8 @@ class EmbeddingDeduplicator(BaseNormalizer):
         self.batch_size = batch_size
         self.text_field = text_field
         self.device = device
+        self.ignore_for_dedup = list(ignore_for_dedup) if ignore_for_dedup else []
+        self._ignore_patterns = compile_ignore_patterns(self.ignore_for_dedup)
         self._model: Any = None
         # Set at _load_index time
         self._faiss_index: Any = None  # FAISS cross-run index (if faiss available)
@@ -104,6 +117,7 @@ class EmbeddingDeduplicator(BaseNormalizer):
                 "model": self.model_name,
                 "threshold": self.threshold,
                 "text_field": self.text_field,
+                "ignore_for_dedup": self.ignore_for_dedup,
             },
             sort_keys=True,
         )
@@ -111,19 +125,54 @@ class EmbeddingDeduplicator(BaseNormalizer):
 
     def _get_text(self, sample: DataSample) -> str:
         if self.text_field != "auto":
-            return getattr(sample, self.text_field, "") or ""
+            text = getattr(sample, self.text_field, "") or ""
+            return apply_ignore_patterns(text, self._ignore_patterns)
 
         task = sample.task_type
         if task == "language_modeling":
-            return sample.output or ""
-        if task in ("preference", "implicit_preference"):
-            return f"{sample.instruction} {sample.chosen}".strip()
-        if task == "grpo" and sample.responses:
-            return f"{sample.instruction} {sample.responses[0]}".strip()
-        return f"{sample.instruction} {sample.output}".strip()
+            fields = [sample.output or ""]
+        elif task in ("preference", "implicit_preference"):
+            fields = [sample.instruction, sample.chosen]
+        elif task == "grpo" and sample.responses:
+            fields = [sample.instruction, sample.responses[0]]
+        else:
+            fields = [sample.instruction, sample.output]
+
+        fields = [apply_ignore_patterns(f, self._ignore_patterns) for f in fields]
+        return " ".join(fields).strip()
+
+    def _check_ignore_for_dedup_mismatch(self) -> None:
+        """Warn if the persisted index was built with a different
+        ignore_for_dedup than this run's — masking changes what gets
+        embedded, so the two sets of vectors aren't directly comparable."""
+        config_path = self.index_dir / "config.json"
+        if not config_path.exists():
+            return
+        try:
+            with open(config_path) as f:
+                prior_cfg = json.load(f)
+        except Exception:
+            return  # a corrupt/missing sidecar shouldn't fail the run
+        prior_patterns = prior_cfg.get("ignore_for_dedup", [])
+        if prior_patterns != self.ignore_for_dedup:
+            warnings.warn(
+                f"EmbeddingDeduplicator: index at {self.index_dir} was built with "
+                f"ignore_for_dedup={prior_patterns!r}, but this run uses "
+                f"{self.ignore_for_dedup!r}. Cross-run comparisons may not be "
+                "apples-to-apples since masking changes what gets embedded. "
+                "Set embedding_reset_index=True to start a fresh index.",
+                stacklevel=2,
+            )
+
+    def _save_ignore_for_dedup_config(self) -> None:
+        self.index_dir.mkdir(parents=True, exist_ok=True)
+        with open(self.index_dir / "config.json", "w") as f:
+            json.dump({"ignore_for_dedup": self.ignore_for_dedup}, f)
 
     def _load_index(self) -> None:
         """Load the persistent cross-run index from disk."""
+        self._check_ignore_for_dedup_mismatch()
+
         faiss = _try_import_faiss()
         self._has_faiss = faiss is not None
         self._faiss_index = None
@@ -313,5 +362,8 @@ class EmbeddingDeduplicator(BaseNormalizer):
 
         if new_embeddings:
             self._save_index(np.array(new_embeddings, dtype=np.float32), new_metadata)
+        # Always keep the sidecar in sync, even on a run that added nothing
+        # new, so the next run's mismatch check reflects the latest config.
+        self._save_ignore_for_dedup_config()
 
         return passed

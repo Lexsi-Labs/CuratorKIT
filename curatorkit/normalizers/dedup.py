@@ -19,12 +19,81 @@ from __future__ import annotations
 import hashlib
 import json
 import random
+import re
 from datetime import UTC, datetime
 
 from curatorkit.interfaces import BaseNormalizer
+from curatorkit.normalizers.dedup_utils import apply_ignore_patterns, compile_ignore_patterns
 from curatorkit.schema import DataSample, ProvenanceRecord
 
 STEP_VERSION = "0.1.0"
+
+
+def _format_extra_turns(turns: list) -> str:
+    """Flatten metadata['turns'] (everything past the first exchange) into
+    plain text for dedup comparison. Handles both shapes found in the
+    codebase: readers normalize ingested conversations to ChatML
+    {"role": ..., "content": ...} (curatorkit.detection.normalizer), while
+    MultiTurnTask's own generation output uses ShareGPT-style
+    {"from": ..., "value": ...} (generators/multiturn_gen.py)."""
+    parts = []
+    for t in turns:
+        if isinstance(t, dict):
+            parts.append(str(t.get("content", t.get("value", ""))))
+    return "".join(parts)
+
+
+def _dedup_fields(sample: DataSample) -> tuple[list[str], str]:
+    """Task-type-aware field selection for duplicate comparison — the single
+    shared implementation for ExactDeduplicator and MinHashDeduplicator.
+    Returns (maskable components, unmasked suffix): components are kept
+    unjoined so an ignore_for_dedup pattern is applied per-field, before
+    concatenation, and can't bleed across a field boundary; the suffix
+    (currently only unpaired_preference's label) is a semantic tag, not
+    user text, and is never subject to masking.
+
+    preference / implicit_preference → instruction + chosen + rejected
+    grpo                             → instruction + all responses
+    language_modeling                → output
+    conversational                   → instruction + output (first exchange)
+                                        + every later turn in metadata['turns']
+    unpaired_preference              → instruction + output, plus a
+                                        never-masked label suffix
+    everything else (SFT)            → instruction + output
+
+    conversational and unpaired_preference need their own branches, not the
+    generic SFT fallback: a conversational sample's first-exchange fields
+    (instruction/output) don't capture the rest of the conversation, which
+    lives in metadata['turns'] — comparing only the opener let two
+    conversations that diverge after turn 1 collapse into "duplicates".
+    unpaired_preference samples carry a label (e.g. the same instruction+
+    output rated differently by two annotators) that instruction+output
+    alone doesn't reflect — omitting it let differently-labeled rows for the
+    same text wrongly collapse into one, silently dropping a label.
+    """
+    task = sample.task_type
+    if task in ("preference", "implicit_preference"):
+        return [sample.instruction, sample.chosen, sample.rejected], ""
+    if task == "grpo":
+        return [sample.instruction, *sample.responses], ""
+    if task == "language_modeling":
+        return [sample.output], ""
+    if task == "conversational":
+        extra = _format_extra_turns(sample.metadata.get("turns", []))
+        return [sample.instruction, sample.output, extra], ""
+    if task == "unpaired_preference":
+        return [sample.instruction, sample.output], f"|label={sample.label}"
+    return [sample.instruction, sample.output], ""
+
+
+def _sample_dedup_text(sample: DataSample, ignore_patterns: list[re.Pattern] | None = None) -> str:
+    """Build the final comparison string for `sample`, applying
+    ignore_for_dedup patterns (if any) to each field before concatenation."""
+    fields, suffix = _dedup_fields(sample)
+    if ignore_patterns:
+        fields = [apply_ignore_patterns(f, ignore_patterns) for f in fields]
+    return "".join(fields) + suffix
+
 
 # Large prime used in the universal hash family (a*x + b) mod p mod 2^32
 _MERSENNE_PRIME = (1 << 61) - 1
@@ -109,26 +178,29 @@ def _band_keys(sig: list[int], bands: int, rows: int) -> list[tuple]:
 class ExactDeduplicator(BaseNormalizer):
     """Remove exact duplicates by SHA-256 - hash key is task-type-aware.
 
-    preference / implicit_preference → instruction + chosen + rejected
-    grpo                             → instruction + all responses
-    language_modeling                → output
-    everything else (SFT)            → instruction + output
+    See _dedup_fields() for the exact field selection per task_type.
+
+    Parameters
+    ----------
+    ignore_for_dedup : list[str] | None
+        Regex patterns. Matches are masked out (replaced with a space) from
+        each field's text before it's hashed, so a real but unimportant
+        difference between two samples (a per-sample UUID, a timestamp) does
+        not itself prevent them from being recognized as duplicates. Never
+        mutates the actual sample — only the throwaway string built for
+        comparison.
     """
 
-    def _config_hash(self) -> str:
-        return hashlib.sha256(b"ExactDeduplicator:0.2.0").hexdigest()[:16]
+    def __init__(self, ignore_for_dedup: list[str] | None = None) -> None:
+        self.ignore_for_dedup = list(ignore_for_dedup) if ignore_for_dedup else []
+        self._ignore_patterns = compile_ignore_patterns(self.ignore_for_dedup)
 
-    @staticmethod
-    def _sample_key(sample: DataSample) -> str:
-        task = sample.task_type
-        if task in ("preference", "implicit_preference"):
-            text = f"{sample.instruction}{sample.chosen}{sample.rejected}"
-        elif task == "grpo":
-            text = f"{sample.instruction}{''.join(sample.responses)}"
-        elif task == "language_modeling":
-            text = sample.output
-        else:
-            text = f"{sample.instruction}{sample.output}"
+    def _config_hash(self) -> str:
+        payload = json.dumps({"ignore_for_dedup": self.ignore_for_dedup}, sort_keys=True)
+        return hashlib.sha256(f"ExactDeduplicator:0.2.0:{payload}".encode()).hexdigest()[:16]
+
+    def _sample_key(self, sample: DataSample) -> str:
+        text = _sample_dedup_text(sample, self._ignore_patterns)
         return " ".join(text.lower().split())
 
     def run(self, samples: list[DataSample]) -> list[DataSample]:
@@ -188,6 +260,15 @@ class MinHashDeduplicator(BaseNormalizer):
 
     The threshold is a tunable config value — not a code constant.
     A threshold of 0.85 is a starting point, not a universal answer.
+
+    Parameters
+    ----------
+    ignore_for_dedup : list[str] | None
+        Regex patterns. Matches are masked out (replaced with a space) from
+        each field's text before n-gram tokenisation, so a real but
+        unimportant difference between two samples doesn't itself push their
+        estimated Jaccard similarity below `threshold`. Never mutates the
+        actual sample — only the throwaway string built for comparison.
     """
 
     def __init__(
@@ -198,11 +279,14 @@ class MinHashDeduplicator(BaseNormalizer):
         seed: int = 42,
         bands: int | None = None,
         rows: int | None = None,
+        ignore_for_dedup: list[str] | None = None,
     ) -> None:
         self.threshold = threshold
         self.ngram = ngram
         self.num_perm = num_perm
         self.seed = seed
+        self.ignore_for_dedup = list(ignore_for_dedup) if ignore_for_dedup else []
+        self._ignore_patterns = compile_ignore_patterns(self.ignore_for_dedup)
         self._hash_funcs = _make_hash_funcs(num_perm, seed)
         # Auto-pick LSH (bands, rows) unless explicitly provided
         if bands is None or rows is None:
@@ -221,6 +305,7 @@ class MinHashDeduplicator(BaseNormalizer):
                 "seed": self.seed,
                 "bands": self.bands,
                 "rows": self.rows,
+                "ignore_for_dedup": self.ignore_for_dedup,
             },
             sort_keys=True,
         )
@@ -241,16 +326,7 @@ class MinHashDeduplicator(BaseNormalizer):
         from tqdm import tqdm
 
         for i, sample in enumerate(tqdm(samples, desc="MinHashDeduplicator", unit="sample")):
-            task = sample.task_type
-            if task in ("preference", "implicit_preference"):
-                text = f"{sample.instruction}{sample.chosen}{sample.rejected}"
-            elif task == "grpo":
-                text = f"{sample.instruction}{''.join(sample.responses)}"
-            elif task == "language_modeling":
-                text = sample.output
-            else:
-                text = f"{sample.instruction}{sample.output}"
-
+            text = _sample_dedup_text(sample, self._ignore_patterns)
             grams = _ngrams(text.lower(), self.ngram)
             sig = _minhash_signature(grams, self._hash_funcs)
 

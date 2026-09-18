@@ -8,6 +8,8 @@ This is the dedicated correctness check — not folded into the regular test sui
 
 from __future__ import annotations
 
+import warnings
+
 import pytest
 
 from curatorkit.normalizers.dedup import (
@@ -17,7 +19,16 @@ from curatorkit.normalizers.dedup import (
     _make_hash_funcs,
     _minhash_signature,
     _ngrams,
+    _sample_dedup_text,
 )
+from curatorkit.normalizers.dedup_utils import apply_ignore_patterns, compile_ignore_patterns
+
+try:
+    import numpy  # noqa: F401
+
+    _HAS_NUMPY = True
+except ImportError:
+    _HAS_NUMPY = False
 from curatorkit.schema import DataSample
 
 
@@ -119,6 +130,94 @@ class TestMinHashDeduplicator:
         assert notes["minhash_threshold"] == 0.85
 
 
+class TestConversationalDedupText:
+    """conversational samples store only the first exchange in
+    instruction/output; everything past it lives in metadata['turns'].
+    Comparing only instruction+output let two conversations that diverge
+    after turn 1 wrongly collapse into "duplicates"."""
+
+    def test_diverging_later_turns_are_not_duplicates(self):
+        opener = DataSample(
+            source_uri="t://",
+            instruction="What is Python?",
+            output="A programming language.",
+            task_type="conversational",
+            metadata={"turns": [{"role": "user", "content": "Who created it?"}]},
+        )
+        diverging = opener.model_copy(deep=True)
+        diverging.metadata["turns"] = [{"role": "user", "content": "Is it fast?"}]
+
+        assert _sample_dedup_text(opener) != _sample_dedup_text(diverging)
+
+        result = ExactDeduplicator().run([opener, diverging])
+        assert len(result) == 2  # must NOT be collapsed into one
+
+    def test_reader_chatml_and_generator_sharegpt_turn_shapes_both_read(self):
+        chatml = DataSample(
+            source_uri="t://",
+            instruction="q",
+            output="a",
+            task_type="conversational",
+            metadata={"turns": [{"role": "user", "content": "follow-up text"}]},
+        )
+        sharegpt = DataSample(
+            source_uri="t://",
+            instruction="q",
+            output="a",
+            task_type="conversational",
+            metadata={"turns": [{"from": "human", "value": "follow-up text"}]},
+        )
+        assert "follow-up text" in _sample_dedup_text(chatml)
+        assert "follow-up text" in _sample_dedup_text(sharegpt)
+
+    def test_truly_identical_conversations_still_dedup(self):
+        s1 = DataSample(
+            source_uri="t://",
+            instruction="q",
+            output="a",
+            task_type="conversational",
+            metadata={"turns": [{"role": "user", "content": "same follow-up"}]},
+        )
+        s2 = s1.model_copy(deep=True)
+        result = ExactDeduplicator().run([s1, s2])
+        assert len(result) == 1
+
+
+class TestUnpairedPreferenceDedupText:
+    """unpaired_preference rows carry a label (e.g. the same instruction+
+    output rated differently by two annotators) that instruction+output
+    alone doesn't capture — omitting it let differently-labeled rows for
+    the same text wrongly collapse into one."""
+
+    def test_different_labels_are_not_duplicates(self):
+        positive = DataSample(
+            source_uri="t://",
+            instruction="Explain gravity",
+            output="Gravity pulls objects together.",
+            task_type="unpaired_preference",
+            label=1.0,
+        )
+        negative = positive.model_copy(deep=True)
+        negative.label = 0.0
+
+        assert _sample_dedup_text(positive) != _sample_dedup_text(negative)
+
+        result = ExactDeduplicator().run([positive, negative])
+        assert len(result) == 2  # both labeled examples must survive
+
+    def test_same_label_still_dedups(self):
+        s1 = DataSample(
+            source_uri="t://",
+            instruction="Explain gravity",
+            output="Gravity pulls objects together.",
+            task_type="unpaired_preference",
+            label=1.0,
+        )
+        s2 = s1.model_copy(deep=True)
+        result = ExactDeduplicator().run([s1, s2])
+        assert len(result) == 1
+
+
 class TestMinHashCorrectness:
     """Dedicated correctness test — MinHash estimates must be within 5% of true Jaccard.
 
@@ -166,3 +265,171 @@ class TestMinHashCorrectness:
             f"MinHash estimate error {avg_error:.4f} exceeds 5% tolerance "
             f"at target Jaccard {target_j}"
         )
+
+
+class TestIgnoreForDedupPatterns:
+    """Shared curatorkit.normalizers.dedup_utils helpers."""
+
+    def test_invalid_regex_raises_at_compile_time(self):
+        with pytest.raises(ValueError, match="invalid regex"):
+            compile_ignore_patterns(["["])  # unbalanced bracket
+
+    def test_no_patterns_is_a_noop(self):
+        assert apply_ignore_patterns("hello   world", []) == "hello   world"
+
+    def test_match_replaced_with_space_and_whitespace_collapsed(self):
+        patterns = compile_ignore_patterns([r"id-\d+"])
+        assert apply_ignore_patterns("ticket id-4821 closed", patterns) == "ticket closed"
+
+    def test_replacement_does_not_merge_adjacent_words(self):
+        patterns = compile_ignore_patterns([r"\d+"])
+        # deleting outright (not replacing with a space) would produce "itemend"
+        assert apply_ignore_patterns("item42end", patterns) == "item end"
+
+
+class TestExactDeduplicatorIgnoreForDedup:
+    def test_samples_differing_only_in_masked_span_become_duplicates(self):
+        samples = [
+            make_sample("Book flight for order id-1001", output="Confirmed."),
+            make_sample("Book flight for order id-2002", output="Confirmed."),
+        ]
+        # Without masking, these are distinct
+        assert len(ExactDeduplicator().run(samples)) == 2
+        # With the order id masked, they're the same
+        result = ExactDeduplicator(ignore_for_dedup=[r"id-\d+"]).run(samples)
+        assert len(result) == 1
+
+    def test_unmasked_difference_still_prevents_dedup(self):
+        samples = [
+            make_sample("Book flight for order id-1001", output="Confirmed A."),
+            make_sample("Book flight for order id-2002", output="Confirmed B."),
+        ]
+        result = ExactDeduplicator(ignore_for_dedup=[r"id-\d+"]).run(samples)
+        assert len(result) == 2  # outputs genuinely differ
+
+    def test_invalid_pattern_raises_at_construction(self):
+        with pytest.raises(ValueError, match="invalid regex"):
+            ExactDeduplicator(ignore_for_dedup=["("])
+
+    def test_config_hash_reflects_ignore_for_dedup(self):
+        d1 = ExactDeduplicator()._config_hash()
+        d2 = ExactDeduplicator(ignore_for_dedup=[r"\d+"])._config_hash()
+        assert d1 != d2
+
+
+class TestMinHashDeduplicatorIgnoreForDedup:
+    def test_masked_span_pushes_similarity_above_threshold(self):
+        base = "The quick brown fox jumps over the lazy dog id-1001"
+        near_dup = "The quick brown fox jumps over the lazy dog id-9999"
+        samples = [make_sample(base), make_sample(near_dup)]
+
+        # Without masking, the differing id lowers similarity below threshold
+        result = MinHashDeduplicator(threshold=0.95).run(samples)
+        assert len(result) == 2
+
+        # With the id masked, the two texts become identical
+        result_masked = MinHashDeduplicator(
+            threshold=0.95, ignore_for_dedup=[r"id-\d+"]
+        ).run(samples)
+        assert len(result_masked) == 1
+
+    def test_config_hash_reflects_ignore_for_dedup(self):
+        d1 = MinHashDeduplicator()._config_hash()
+        d2 = MinHashDeduplicator(ignore_for_dedup=[r"\d+"])._config_hash()
+        assert d1 != d2
+
+
+class _FakeEmbeddingModel:
+    """Deterministic bag-of-words hashing 'embedding' so EmbeddingDeduplicator's
+    masking behavior can be tested without a real sentence-transformers model.
+    Identical (post-masking) text always produces identical vectors."""
+
+    def __init__(self, dim: int = 64):
+        self.dim = dim
+
+    def encode(self, texts, batch_size=64, show_progress_bar=False, convert_to_numpy=True):
+        import numpy as np
+
+        vecs = np.zeros((len(texts), self.dim), dtype=np.float32)
+        for i, text in enumerate(texts):
+            for word in text.lower().split():
+                vecs[i, hash(word) % self.dim] += 1.0
+        return vecs
+
+
+@pytest.mark.skipif(
+    not _HAS_NUMPY, reason="numpy not installed — install curatorkit[embedding]"
+)
+class TestEmbeddingDeduplicatorIgnoreForDedup:
+    def _task(self, tmp_path, **kw):
+        from curatorkit.normalizers.embedding_dedup import EmbeddingDeduplicator
+
+        task = EmbeddingDeduplicator(index_dir=tmp_path / "idx", threshold=0.99, **kw)
+        task._model = _FakeEmbeddingModel()  # skip loading a real model
+        return task
+
+    def test_masked_span_makes_samples_duplicates(self, tmp_path):
+        samples = [
+            make_sample("Book flight for order id-1001", output="Confirmed."),
+            make_sample("Book flight for order id-2002", output="Confirmed."),
+        ]
+        unmasked = self._task(tmp_path / "a")
+        assert len(unmasked.run(list(samples))) == 2
+
+        masked = self._task(tmp_path / "b", ignore_for_dedup=[r"id-\d+"])
+        assert len(masked.run(list(samples))) == 1
+
+    def test_invalid_pattern_raises_at_construction(self, tmp_path):
+        from curatorkit.normalizers.embedding_dedup import EmbeddingDeduplicator
+
+        with pytest.raises(ValueError, match="invalid regex"):
+            EmbeddingDeduplicator(index_dir=tmp_path, ignore_for_dedup=["("])
+
+    def test_warns_on_ignore_for_dedup_mismatch_across_runs(self, tmp_path):
+        index_dir = tmp_path / "idx"
+        first = self._task(index_dir, ignore_for_dedup=[r"id-\d+"])
+        first.run([make_sample("Order id-1001", output="ok")])
+
+        second = self._task(index_dir, ignore_for_dedup=[r"\d+"])
+        with pytest.warns(UserWarning, match="ignore_for_dedup"):
+            second.run([make_sample("Order id-2002", output="ok")])
+
+    def test_no_warning_when_ignore_for_dedup_unchanged(self, tmp_path):
+        index_dir = tmp_path / "idx"
+        first = self._task(index_dir, ignore_for_dedup=[r"id-\d+"])
+        first.run([make_sample("Order id-1001", output="ok")])
+
+        second = self._task(index_dir, ignore_for_dedup=[r"id-\d+"])
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            second.run([make_sample("Order id-2002", output="ok")])
+
+
+class TestIgnoreForDedupYamlWiring:
+    """The YAML/CLI pipeline path (PipelineConfig -> _build_steps) must
+    thread ignore_for_dedup through to the actual dedup step instances,
+    same as the programmatic CuratorConfig path."""
+
+    def test_exact_dedup_normalizer_config_wires_ignore_for_dedup(self):
+        from curatorkit.cli import _build_steps
+        from curatorkit.config import NormalizerConfig, PipelineConfig
+
+        config = PipelineConfig(
+            normalizers=[NormalizerConfig(type="exact_dedup", ignore_for_dedup=[r"id-\d+"])]
+        )
+        steps, _ = _build_steps(config, verbose=False, include_exporters=False)
+        dedup_steps = [s for s in steps if isinstance(s, ExactDeduplicator)]
+        assert len(dedup_steps) == 1
+        assert dedup_steps[0].ignore_for_dedup == [r"id-\d+"]
+
+    def test_minhash_dedup_normalizer_config_wires_ignore_for_dedup(self):
+        from curatorkit.cli import _build_steps
+        from curatorkit.config import NormalizerConfig, PipelineConfig
+
+        config = PipelineConfig(
+            normalizers=[NormalizerConfig(type="minhash_dedup", ignore_for_dedup=[r"id-\d+"])]
+        )
+        steps, _ = _build_steps(config, verbose=False, include_exporters=False)
+        dedup_steps = [s for s in steps if isinstance(s, MinHashDeduplicator)]
+        assert len(dedup_steps) == 1
+        assert dedup_steps[0].ignore_for_dedup == [r"id-\d+"]
