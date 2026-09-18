@@ -1247,6 +1247,27 @@
 </ul>
 <h3 id="fixed">Fixed<a class="headerlink" href="#fixed" title="Permanent link">&para;</a></h3>
 <ul>
+<li><code>PreferenceGenerationTask</code>'s <code>two_pass</code> mode (both <code>run()</code> and <code>run_async()</code>) crashed the whole
+  curation run — instead of cleanly rejecting the one affected sample — whenever chosen/rejected
+  generation failed for a sample (empty completion, or corpus-mode parse/incomplete failure). The
+  rejection path built <code>RejectedSample(**sample.model_dump(), ..., metadata={...})</code>, but
+  <code>sample.model_dump()</code> already includes <code>metadata</code>, so the explicit <code>metadata=</code> kwarg collided
+  with it and raised <code>TypeError: RejectedSample() got multiple values for keyword argument
+  'metadata'</code> — surfacing as a hard curation failure rather than a rejected-sample entry. Fixed by
+  excluding <code>metadata</code> from the <code>model_dump()</code> call (<code>exclude={"metadata"}</code>), matching the pattern
+  already used elsewhere in the codebase for this exact reason.</li>
+<li><code>AdversarialPreferenceTask</code>'s naive (non-adversarial) rejected-answer path just re-asked the
+  faithful QA prompt at <code>temperature=1.1</code> with no instruction to actually make the answer worse —
+  relying entirely on sampling noise to produce something worse, which isn't guaranteed. It now
+  uses an explicit degradation-instruction prompt (vague/incomplete/shallow, but still plausible)
+  at <code>temperature=0.9</code>. Separately, this task had its own instance of the <code>run_async()</code> gap above:
+  its <code>_parse_response()</code> — reused unchanged by the inherited generic async path — made <em>blocking</em>
+  <code>self.llm.generate()</code> calls for every rejected-answer generation (both the adversarial and naive
+  branches), which froze the entire event loop for that call's duration on every single sample,
+  serializing what should have been <code>concurrency</code>-bounded concurrent work. Added a proper
+  <code>run_async()</code> using <code>await self.llm.agenerate()</code> throughout, and factored the JSON-parsing and
+  DataSample-construction logic (no I/O) into shared <code>_extract_pairs()</code>/<code>_build_pair_sample()</code>
+  helpers so <code>run()</code> and <code>run_async()</code> can't drift apart again.</li>
 <li><code>GRPORolloutTask</code>, <code>EvolInstructTask</code>, <code>MultiTurnTask</code>, and <code>AdversarialQAGenerationTask</code> each
   override the synchronous <code>run()</code> with real per-task logic (multi-rollout generation,
   strategy-cycling expansion, turn-by-turn conversation, adversarial injection planning) but

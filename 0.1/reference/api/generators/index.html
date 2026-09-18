@@ -1042,6 +1042,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#curatorkit.generators.AdversarialPreferenceTask.run_async" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        run_async
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1911,6 +1922,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#curatorkit.generators.AdversarialPreferenceTask.run_async" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        run_async
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -2439,8 +2461,9 @@ multi-turn dialogues, chain-of-thought traces, and adversarial variants.</p>
         <p>Generate DPO preference pairs with adversarially hallucinated rejected responses.</p>
 <p>For each source chunk, generates <code>num_questions</code> faithful QA pairs (chosen),
 then for <code>injection_rate</code> fraction of pairs generates an adversarial variant
-of the answer as the rejected response. The remaining pairs use a quality-
-degraded variant (lower temperature re-generation) as the rejected response.</p>
+of the answer as the rejected response. The remaining pairs get an explicitly
+degraded variant (instructed to be vague/incomplete/shallow, at a moderately
+elevated temperature) as the rejected response.</p>
 <h5 id="curatorkit.generators.AdversarialPreferenceTask--parameters">Parameters<a class="headerlink" href="#curatorkit.generators.AdversarialPreferenceTask--parameters" title="Permanent link">&para;</a></h5>
 <p>llm : BaseLLM
     Generator LLM (used for both faithful and adversarial generation).
@@ -2448,7 +2471,7 @@ num_questions : int
     Preference pairs per source chunk.
 injection_rate : float
     Fraction of pairs to inject with adversarial rejected responses (0–1).
-    Remaining pairs get a naive re-generation at higher temperature as rejected.
+    Remaining pairs get an explicitly-degraded naive rejected response instead.
 injection_types : list[str] | None
     Which adversarial types to sample from. None = all four.
     Options: contradicts_source, parametric_drift, domain_mismatch, instruction_quality
@@ -2485,6 +2508,39 @@ concurrency : int</p>
 
 
 
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="curatorkit.generators.AdversarialPreferenceTask.run_async" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">run_async</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-async"><code>async</code></small>
+  </span>
+
+<a href="#curatorkit.generators.AdversarialPreferenceTask.run_async" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">run_async</span><span class="p">(</span><span class="n">samples</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">DataSample</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">DataSample</span><span class="p">]</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Async counterpart to the generic BaseGenerationTask flow. Without
+this override, run_async() would call the inherited flow, which
+still calls this class's _parse_response() to interpret the
+faithful-pass response — and _parse_response() makes <em>blocking</em>
+self.llm.generate() calls for the rejected-answer pass. A blocking
+call made from inside an async coroutine freezes the entire event
+loop for its duration, not just the current task — so every
+sample's rejected-answer generation ran one at a time, back to
+back, regardless of <code>concurrency</code>, even though the faithful pass
+itself was genuinely concurrent.</p>
+
+
+    </div>
+
+</div>
 
 
 
