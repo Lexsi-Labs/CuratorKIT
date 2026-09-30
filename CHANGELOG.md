@@ -6,6 +6,14 @@ All notable changes to CuratorKIT are documented here. The format follows
 
 ## Unreleased
 
+> **On the version numbers below.** The released version is **0.1.15** -- the
+> latest on PyPI -- and `curatorkit.__version__` and `CITATION.cff` both declare it.
+> The `Unreleased (draft "...")` sections below were planned against version numbers
+> that were **never published**; nothing with those versions exists on PyPI. They
+> are kept as the record of what the work was. To know what a given
+> `pip install curatorkit` contains, use `curatorkit.__version__` or the PyPI page,
+> not a heading here.
+
 ### Added
 - `ignore_for_dedup`: regex patterns whose matches are masked out (replaced with a space, then
   whitespace-collapsed) from a sample's text before deduplication compares or embeds it — lets a
@@ -149,9 +157,10 @@ All notable changes to CuratorKIT are documented here. The format follows
   `evol_prompt_template`, `multiturn_prompt_template` (`single_call`), and the adversarial
   templates were already always honored regardless of context and needed no change.
 
-## 1.0.0 - 2026-06-12
+## Unreleased (draft "1.0.0" — never published)
 
-First public release.
+The work below was planned against a 1.0.0 target that was never released. The
+2026-06-12 date it used to carry was a planning date, not a release date.
 
 ### Added
 - Data hygiene gates: `SecretsGate` (credential/API-key detection), `ToxicityGate`
@@ -170,7 +179,7 @@ First public release.
 ### Fixed
 - Async event-loop handling in notebooks/Jupyter; missing exporter imports in split exports.
 
-## 0.2.0 - 2026-04
+## Unreleased (draft "0.2.0" — never published)
 
 ### Added
 - LLM generation tasks: QA, preference pairs, GRPO rollouts, multi-turn, Evol-Instruct,
@@ -182,7 +191,7 @@ First public release.
 - Declarative YAML pipelines and the `curatorkit` CLI.
 - Provenance manifest, dataset card, rejection log, and checksums on every run.
 
-## 0.1.0 - 2026-03
+## Unreleased (draft "0.1.0" — never published)
 
 ### Added
 - Core ingestion connectors: JSONL, JSON, CSV, Parquet, HuggingFace datasets, PDF.

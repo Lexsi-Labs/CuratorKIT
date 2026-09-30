@@ -9,6 +9,17 @@ permissions:
   contents: read
 
 jobs:
+  version-consistency:
+    name: version consistency
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: authoritative files agree, are semver, and the CHANGELOG does not overclaim
+        run: python scripts/check_version_consistency.py
+
   lint:
     runs-on: ubuntu-latest
     steps:
