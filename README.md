@@ -1,8 +1,8 @@
 <p align="center">
   <a href="https://github.com/Lexsi-Labs/CuratorKIT">
     <picture>
-      <source media="(prefers-color-scheme: dark)" srcset="docs/assets/logo-white.png">
-      <img src="docs/assets/logo.png" alt="CuratorKIT" width="480">
+      <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Lexsi-Labs/CuratorKIT/main/docs/assets/logo-white.png">
+      <img src="https://raw.githubusercontent.com/Lexsi-Labs/CuratorKIT/main/docs/assets/logo.png" alt="CuratorKIT" width="480">
     </picture>
   </a>
 </p>
@@ -134,7 +134,7 @@ result = Curator(CuratorConfig(
 curatorkit run examples/quickstart/pipeline.yaml --output-dir output/
 ```
 
-Every run writes `manifest.json`, `rejected.jsonl`, `dataset_card.md`, `lexsi_provenance.json`, and `checksums.txt` alongside the export files. The [quickstart example](examples/quickstart/) runs end to end without an API key.
+Every run writes `manifest.json`, `rejected.jsonl`, `dataset_card.md`, `lexsi_provenance.json`, and `checksums.txt` alongside the export files. The [quickstart example](https://github.com/Lexsi-Labs/CuratorKIT/tree/main/examples/quickstart) runs end to end without an API key.
 
 The output folder is also a Hugging Face dataset: its `README.md` maps each export to a config (`sft_alpaca`, `sft_sharegpt`, `sft_messages`, `dpo`, `grpo`, `ppo`, `corpus`) with one split per `output_split` directory, or `train`:
 
@@ -236,12 +236,12 @@ Full documentation lives at **[lexsi-labs.github.io/CuratorKIT](https://lexsi-la
 
 | Section | Contents |
 |---------|----------|
-| [Getting started](docs/getting-started/index.md) | Installation, quickstart, reading the output |
-| [Guides](docs/guides/index.md) | Data sources, generation, quality gates, recovery, hygiene, exporters, customisation |
-| [Configuration reference](docs/reference/configuration.md) | Every `CuratorConfig` parameter |
-| [CLI & YAML](docs/reference/cli.md) | `curatorkit run`, all flags, the YAML pipeline schema |
+| [Getting started](https://github.com/Lexsi-Labs/CuratorKIT/blob/main/docs/getting-started/index.md) | Installation, quickstart, reading the output |
+| [Guides](https://github.com/Lexsi-Labs/CuratorKIT/blob/main/docs/guides/index.md) | Data sources, generation, quality gates, recovery, hygiene, exporters, customisation |
+| [Configuration reference](https://github.com/Lexsi-Labs/CuratorKIT/blob/main/docs/reference/configuration.md) | Every `CuratorConfig` parameter |
+| [CLI & YAML](https://github.com/Lexsi-Labs/CuratorKIT/blob/main/docs/reference/cli.md) | `curatorkit run`, all flags, the YAML pipeline schema |
 | [API reference](https://lexsi-labs.github.io/CuratorKIT/reference/api/) | Generated from the source docstrings |
-| [Architecture](docs/reference/architecture.md) | Base classes, contracts, provenance model |
+| [Architecture](https://github.com/Lexsi-Labs/CuratorKIT/blob/main/docs/reference/architecture.md) | Base classes, contracts, provenance model |
 
 ## Tutorials
 
@@ -263,7 +263,7 @@ Full descriptions and prerequisites are in the [tutorials index](https://lexsi-l
 
 ## Contributing
 
-The connector, generator, gate, and exporter layers are designed as plugin points. Read the [contributing guide](CONTRIBUTING.md) and the [architecture reference](docs/reference/architecture.md), then open an issue or PR. Questions go to [GitHub Issues](https://github.com/Lexsi-Labs/CuratorKIT/issues).
+The connector, generator, gate, and exporter layers are designed as plugin points. Read the [contributing guide](https://github.com/Lexsi-Labs/CuratorKIT/blob/main/CONTRIBUTING.md) and the [architecture reference](https://github.com/Lexsi-Labs/CuratorKIT/blob/main/docs/reference/architecture.md), then open an issue or PR. Questions go to [GitHub Issues](https://github.com/Lexsi-Labs/CuratorKIT/issues).
 
 ## Support
 
@@ -273,7 +273,7 @@ The connector, generator, gate, and exporter layers are designed as plugin point
 
 ## Citation
 
-If you use CuratorKIT in your research, please cite it (see [`CITATION.cff`](CITATION.cff)):
+If you use CuratorKIT in your research, please cite it (see [`CITATION.cff`](https://github.com/Lexsi-Labs/CuratorKIT/blob/main/CITATION.cff)):
 
 ```bibtex
 @software{curatorkit2026,
@@ -307,7 +307,7 @@ If you use CuratorKIT in your research, please cite it (see [`CITATION.cff`](CIT
 
 ## License
 
-LSAL v1.1; see [LICENSE](LICENSE.md). Free for research, education, and non-commercial use. Commercial use requires a separate license — contact support@lexsi.ai. The optional `pdf` extra installs [MinerU](https://github.com/opendatalab/MinerU), which is licensed AGPL-3.0. Install it only if that suits your use.
+LSAL v1.1; see [LICENSE](https://github.com/Lexsi-Labs/CuratorKIT/blob/main/LICENSE.md). Free for research, education, and non-commercial use. Commercial use requires a separate license — contact support@lexsi.ai. The optional `pdf` extra installs [MinerU](https://github.com/opendatalab/MinerU), which is licensed AGPL-3.0. Install it only if that suits your use.
 
 ---
 
@@ -316,8 +316,8 @@ LSAL v1.1; see [LICENSE](LICENSE.md). Free for research, education, and non-comm
 <div align="center">
   <a href="https://www.lexsi.ai">
     <picture>
-      <source media="(prefers-color-scheme: dark)" srcset="docs/assets/lexsi-logo-white.png">
-      <img src="docs/assets/lexsi-logo-dark.png" width="300" alt="Lexsi Labs">
+      <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Lexsi-Labs/CuratorKIT/main/docs/assets/lexsi-logo-white.png">
+      <img src="https://raw.githubusercontent.com/Lexsi-Labs/CuratorKIT/main/docs/assets/lexsi-logo-dark.png" width="300" alt="Lexsi Labs">
     </picture>
   </a>
   <p><a href="https://www.lexsi.ai">https://www.lexsi.ai</a></p>
