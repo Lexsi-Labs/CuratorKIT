@@ -32,7 +32,11 @@ from scripts.release import VERSION_FILES, ReleaseError, read_versions  # noqa: 
 SEMVER = re.compile(r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$")
 # "## 1.0.0 - 2026-06-12" and "## 0.2.0" both count; "## Unreleased" and any
 # section with no leading version number are ignored.
-HEADING = re.compile(r"^##\s+(\d+\.\d+\.\d*)\b", re.M)
+HEADING = re.compile(r"^##\s+\[?(\d+\.\d+\.\d*)\]?\b", re.M)
+# optional [..] brackets: AlignTune and CircuitKIT write "## [1.0.0]"; the bracketed
+# form would otherwise slip past an unbracketed regex, which is how a phantom version
+# survived a merged check in CircuitKIT until the negative test caught it.
+
 
 
 def parse(value: str) -> tuple[int, ...]:
