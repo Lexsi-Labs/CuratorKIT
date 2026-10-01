@@ -519,8 +519,6 @@ def _build_steps(config: object, verbose: bool, include_exporters: bool = True) 
                     llm_temperature=llm_cfg.temperature if llm_cfg else 0.7,
                     llm_max_tokens=llm_cfg.max_tokens if llm_cfg else 1024,
                     llm_api_key=llm_cfg.api_key if llm_cfg else None,
-                    pii_scrub=r.pii_scrub,
-                    pii_entities=r.pii_entities,
                 )
             )
 

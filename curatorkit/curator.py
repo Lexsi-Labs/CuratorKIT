@@ -64,12 +64,8 @@ def _exporter_classes() -> dict[str, type]:
     """Exporter registry shared by inline pipeline export, output_split
     export, and post-recovery export, so all three stay in sync."""
     from curatorkit.exporters import EXPORTERS
-    from curatorkit.exporters.argilla import ArgillaExporter
 
-    # Argilla writes review records (argilla_records.jsonl), not a training
-    # dataset, so it stays out of EXPORTERS and the dataset card's configs.
-    # Construct ArgillaExporter(api_url=...) yourself to push to a server.
-    return {**EXPORTERS, "argilla": ArgillaExporter}
+    return EXPORTERS
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -365,31 +361,6 @@ class CuratorConfig:
     injection_seed: int = 42
     high_temp: float = 1.4  # adversarial_qa: temperature for high_temperature_drift
 
-    # ── Magpie / Persona / KG / SOTA generation tasks ───────────────────────
-    # magpie and kg_multihop synthesize from scratch / from the graph, so
-    # their input samples are ignored. joint_bundle reuses num_responses +
-    # score_responses for its GRPO rollouts.
-    magpie_n_samples: int = 100
-    magpie_template_id: str = "default"  # default | llama3 | llama2 | qwen2 | mistral
-    magpie_raw_prefix: bool = False
-    persona_style: str = "instruction"  # instruction | math | logic | knowledge | tool
-    persona_field: str = "instruction"  # or "metadata.persona"
-    persona_generate_answer: bool = True
-    kg_path: str | None = None  # KnowledgeGraph JSON (KnowledgeGraph.save); required by kg_multihop
-    kg_mode: str = "multi_hop"  # atomic | aggregated | multi_hop | mix
-    kg_max_hops: int = 3
-    kg_n_samples: int = 50
-    self_rewarding_n_candidates: int = 4
-    self_rewarding_k_judges: int = 3
-    constitutional_principles: list[str] = field(default_factory=list)  # [] = first two canonical
-    constitutional_early_stop: bool = False
-    bon_n_candidates: int = 8
-    bon_top_k: int = 1
-    bon_dpo_mode: str = "vs_lowest"  # see BestOfNTask
-    bon_scorer: str = "length"  # length | prometheus | deepeval | factscore (judge role LLM)
-    bon_deepeval_criterion: str = "helpfulness"  # G-Eval criterion when bon_scorer="deepeval"
-    bon_sampling_temperature: float = 0.9
-
     # ── Quality gates ───────────────────────────────────────────────────────
     hallucination_threshold: float | None = None  # None = off; set a float to enable
     hallucination_prompt_template: str | None = None  # custom CheckEval judge prompt
@@ -400,15 +371,6 @@ class CuratorConfig:
     reward_prompt_template: str | None = None  # custom UltraFeedback judge prompt
     reward_store_score: bool = True  # write overall_score to DataSample.label
     diversity_threshold: float | None = None
-    # Rubric judges (judge role LLM). None = off.
-    prometheus_threshold: float | None = None
-    prometheus_rubric: str = "helpfulness"  # key of judges.ABSOLUTE_GRADING_RUBRICS
-    factscore_threshold: float | None = None
-    factscore_max_facts: int = 20
-    # Benchmark decontamination: {shard_name: [eval files]}; {} = off.
-    decontamination_shards: dict[str, list[str]] = field(default_factory=dict)
-    decontamination_n: int = 13
-    decontamination_max_overlap: int = 1
 
     # ── Inline recovery ──────────────────────────────────────────────────────
     enable_reward_refiner: bool = False  # run RewardRefiner on RewardGate rejects
@@ -434,8 +396,6 @@ class CuratorConfig:
     pdf_extract_tables: bool = False
     pdf_ocr: bool = False
     pdf_min_section_tokens: int = 30  # heading strategy: merge sections shorter than this
-    pdf_pii_scrub: str = "off"  # off | redact | drop — PII scan per chunk at ingest (PIIGate)
-    pdf_pii_entities: list[str] = field(default_factory=list)  # [] = PIIGate defaults
 
     # ── Diagnostic probe ─────────────────────────────────────────────────────
     enable_diagnostic_probe: bool = False
@@ -505,21 +465,6 @@ class CuratorConfig:
     toxicity_llm_judge: bool = False
     toxicity_llm_reject_threshold: float = 0.5
     toxicity_text_field: str = "auto"
-    # pii_gate                 None (off) | "reject" | "redact" — PIIGate: reject
-    #                          samples with PII, or replace spans with <ENTITY_TYPE>.
-    #                          Reuses pii_fields / pii_entity_types / pii_score_threshold /
-    #                          pii_language. Regex fallback when Presidio is absent.
-    # jailbreak_gate           Reject prompt-injection / jailbreak prompts (PromptGuard 2
-    #                          classifier; heuristic when jailbreak_use_model=False).
-    # output_safety_gate       Classify outputs with a Llama-Guard-style judge (judge role
-    #                          LLM) after the quality gates; heuristic when no judge model.
-    pii_gate: str | None = None
-    jailbreak_gate: bool = False
-    jailbreak_threshold: float = 0.85
-    jailbreak_model: str = "meta-llama/Llama-Prompt-Guard-2-86M"
-    jailbreak_use_model: bool = True
-    output_safety_gate: bool = False
-    output_safety_blocked_categories: list[str] = field(default_factory=list)  # [] = all
 
     # ── Checkpointing ─────────────────────────────────────────────────────────
     # enable_checkpoint    Save stage and batch checkpoints so a failed run can
@@ -807,17 +752,11 @@ class Curator:
     def _export_formats_need_data(self) -> bool:
         """True when the export_formats list can't be resolved until after
         the pipeline has read its input — i.e. left as None (auto) with no
-        generation_task to resolve it from ahead of time (none set, or one
-        whose output task_type depends on its settings, e.g. joint_bundle).
-        In that case the task_type must be "identified" from what was
+        generation_task to resolve it from ahead of time. In that case the
+        task_type must be "identified" from what the readers/connectors
         actually produced, so exporting has to wait for CuratorResult.passed.
         """
-        from curatorkit.exporters.compatibility import GENERATION_TASK_OUTPUT_TYPE
-
-        return (
-            self.config.export_formats is None
-            and GENERATION_TASK_OUTPUT_TYPE.get(self.config.generation_task) is None
-        )
+        return self.config.export_formats is None and self.config.generation_task is None
 
     def _resolve_export_formats(self, observed_task_types: set[str] | None = None) -> list[str]:
         """The export_formats list to actually use. Explicit config value
@@ -1171,31 +1110,6 @@ class Curator:
                 )
             )
 
-        if cfg.pii_gate:
-            from curatorkit.hygiene.pii_gate import PIIGate
-
-            steps.append(
-                PIIGate(
-                    mode=cfg.pii_gate,
-                    fields=cfg.pii_fields or None,
-                    entities=cfg.pii_entity_types or None,
-                    min_score=cfg.pii_score_threshold,
-                    language=cfg.pii_language,
-                )
-            )
-
-        if cfg.jailbreak_gate:
-            from curatorkit.hygiene.jailbreak import JailbreakGate
-
-            steps.append(
-                JailbreakGate(
-                    threshold=cfg.jailbreak_threshold,
-                    model_name=cfg.jailbreak_model,
-                    device=cfg.embedding_device or "cpu",
-                    use_model=cfg.jailbreak_use_model,
-                )
-            )
-
         # ═════════════════════════════════════════════════════════════════════
         # Generation task
         # ═════════════════════════════════════════════════════════════════════
@@ -1279,33 +1193,6 @@ class Curator:
                     concurrency=self._resolve_role_concurrency(cfg.refiner_llm, cfg.generator_llm, 32),
                 )
 
-        if cfg.prometheus_threshold is not None and cfg._any_judge_model():
-            from curatorkit.judges import (
-                ABSOLUTE_GRADING_RUBRICS,
-                PrometheusJudge,
-                PrometheusRewardGate,
-            )
-
-            if cfg.prometheus_rubric not in ABSOLUTE_GRADING_RUBRICS:
-                raise ValueError(
-                    f"Unknown prometheus_rubric {cfg.prometheus_rubric!r}; "
-                    f"expected one of {sorted(ABSOLUTE_GRADING_RUBRICS)}"
-                )
-            judge = PrometheusJudge(
-                llm=self._build_judge_backend(LLMOverride()),
-                rubric=ABSOLUTE_GRADING_RUBRICS[cfg.prometheus_rubric],
-            )
-            steps.append(PrometheusRewardGate(judge=judge, threshold=cfg.prometheus_threshold))
-
-        if cfg.factscore_threshold is not None and cfg._any_judge_model():
-            from curatorkit.judges import FActScoreGate, FActScoreJudge
-
-            judge = FActScoreJudge(
-                llm=self._build_judge_backend(LLMOverride()),
-                max_facts=cfg.factscore_max_facts,
-            )
-            steps.append(FActScoreGate(judge=judge, threshold=cfg.factscore_threshold))
-
         if cfg.diversity_threshold is not None:
             from curatorkit.gates.diversity import DiversityGate
 
@@ -1315,28 +1202,6 @@ class Curator:
                     similarity_threshold=cfg.diversity_threshold,
                     device=cfg.embedding_device,
                     batch_size=cfg.embedding_batch_size,
-                )
-            )
-
-        # ── Output safety + decontamination (on the final samples) ──────────
-        if cfg.output_safety_gate:
-            from curatorkit.hygiene.output_safety import OutputSafetyGate
-
-            steps.append(
-                OutputSafetyGate(
-                    llm=self._build_judge_backend(LLMOverride()) if cfg._any_judge_model() else None,
-                    blocked_categories=cfg.output_safety_blocked_categories or None,
-                )
-            )
-
-        if cfg.decontamination_shards:
-            from curatorkit.gates.decontamination import DecontaminationGate
-
-            steps.append(
-                DecontaminationGate(
-                    shards={k: list(v) for k, v in cfg.decontamination_shards.items()},
-                    n=cfg.decontamination_n,
-                    max_ngram_overlap=cfg.decontamination_max_overlap,
                 )
             )
 
@@ -1709,112 +1574,6 @@ class Curator:
                 high_temp=cfg.high_temp,
                 concurrency=concurrency,
             )
-        elif task == "magpie":
-            from curatorkit.generators.magpie import MagpieTask
-
-            return MagpieTask(
-                llm=llm,
-                n_samples=cfg.magpie_n_samples,
-                raw_prefix=cfg.magpie_raw_prefix,
-                template_id=cfg.magpie_template_id,
-                concurrency=concurrency,
-            )
-        elif task == "persona":
-            from curatorkit.generators.persona import PersonaDrivenTask
-
-            return PersonaDrivenTask(
-                llm=llm,
-                style=cfg.persona_style,
-                persona_field=cfg.persona_field,
-                generate_answer=cfg.persona_generate_answer,
-                concurrency=concurrency,
-            )
-        elif task == "joint_bundle":
-            from curatorkit.generators.joint_bundle import JointBundleTask
-
-            return JointBundleTask(
-                llm=llm,
-                num_rollouts=cfg.num_responses,
-                score_rollouts=cfg.score_responses,
-                concurrency=concurrency,
-            )
-        elif task == "kg_multihop":
-            if not cfg.kg_path:
-                raise ValueError("generation_task='kg_multihop' requires kg_path")
-            from curatorkit.kg.multihop_qa import MultiHopQATask
-            from curatorkit.kg.store import KnowledgeGraph
-
-            return MultiHopQATask(
-                llm=llm,
-                kg=KnowledgeGraph.load(cfg.kg_path),
-                mode=cfg.kg_mode,
-                max_hops=cfg.kg_max_hops,
-                n_samples=cfg.kg_n_samples,
-                concurrency=concurrency,
-            )
-        elif task == "self_rewarding":
-            from curatorkit.generators.self_rewarding import SelfRewardingTask
-
-            return SelfRewardingTask(
-                llm=llm,
-                n_candidates=cfg.self_rewarding_n_candidates,
-                k_judge_samples=cfg.self_rewarding_k_judges,
-                concurrency=concurrency,
-            )
-        elif task in ("constitutional", "constitutional_preference"):
-            from curatorkit.generators.constitutional import (
-                CANONICAL_CONSTITUTION,
-                ConstitutionalPreferenceTask,
-                ConstitutionalRevisionTask,
-            )
-
-            wanted = set(cfg.constitutional_principles)
-            principles = [p for p in CANONICAL_CONSTITUTION if p.name in wanted] or CANONICAL_CONSTITUTION[:2]
-            cls = ConstitutionalRevisionTask if task == "constitutional" else ConstitutionalPreferenceTask
-            return cls(
-                llm=llm,
-                principles=principles,
-                early_stop_on_no_revision=cfg.constitutional_early_stop,
-                concurrency=concurrency,
-            )
-        elif task == "best_of_n":
-            from curatorkit.generators import best_of_n as bon
-            from curatorkit.judges import (
-                ABSOLUTE_GRADING_RUBRICS,
-                DeepEvalJudge,
-                FActScoreJudge,
-                PrometheusJudge,
-            )
-
-            if cfg.bon_scorer == "length":
-                scorer = bon.make_length_scorer()
-            else:
-                judge_llm = self._build_judge_backend(LLMOverride())
-                scorers = {
-                    "prometheus": lambda: bon.make_prometheus_scorer(
-                        PrometheusJudge(llm=judge_llm, rubric=ABSOLUTE_GRADING_RUBRICS[cfg.prometheus_rubric])
-                    ),
-                    "deepeval": lambda: bon.make_deepeval_scorer(
-                        DeepEvalJudge(llm=judge_llm, criterion=cfg.bon_deepeval_criterion)
-                    ),
-                    "factscore": lambda: bon.make_factscore_scorer(
-                        FActScoreJudge(llm=judge_llm, max_facts=cfg.factscore_max_facts)
-                    ),
-                }
-                if cfg.bon_scorer not in scorers:
-                    raise ValueError(
-                        f"Unknown bon_scorer {cfg.bon_scorer!r}; expected length | {' | '.join(scorers)}"
-                    )
-                scorer = scorers[cfg.bon_scorer]()
-            return bon.BestOfNTask(
-                llm=llm,
-                scorer=scorer,
-                n_candidates=cfg.bon_n_candidates,
-                top_k=cfg.bon_top_k,
-                dpo_mode=cfg.bon_dpo_mode,
-                sampling_temperature=cfg.bon_sampling_temperature,
-                concurrency=concurrency,
-            )
         else:
             warnings.warn(f"Unknown generation_task '{task}' — skipping generation.")
             return None
@@ -1871,8 +1630,6 @@ class Curator:
                 llm_temperature=cfg.llm_temperature,
                 llm_max_tokens=cfg.llm_max_tokens,
                 llm_api_key=cfg.llm_api_key,
-                pii_scrub=cfg.pdf_pii_scrub,
-                pii_entities=cfg.pdf_pii_entities or None,
             )
 
         if suffix == ".jsonl":

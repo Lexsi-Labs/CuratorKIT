@@ -66,14 +66,6 @@ GENERATION_TASK_OUTPUT_TYPE: dict[str, str] = {
     "cot": "instruction_following",
     "adversarial_preference": "preference",
     "adversarial_qa": "instruction_following",
-    "magpie": "instruction_following",
-    "kg_multihop": "instruction_following",
-    "self_rewarding": "preference",
-    "constitutional": "instruction_following",
-    "constitutional_preference": "preference",
-    # Not listed (task_type depends on settings, so it is identified from the
-    # generated samples instead): persona (per style), best_of_n (per top_k),
-    # joint_bundle (SFT + DPO + GRPO in one pass).
 }
 
 # Fallback when neither generation_task nor any observed sample task_type is
@@ -130,10 +122,6 @@ def resolve_export_formats(
     return list(DEFAULT_EXPORT_FORMATS)
 
 
-# Formats that take any task_type (a review bundle, not a trainer input): never
-# auto-selected, and never flagged as misaligned when chosen explicitly.
-TASK_TYPE_AGNOSTIC_FORMATS: frozenset[str] = frozenset({"argilla"})
-
 def misaligned_formats(generation_task: str, export_formats: list[str]) -> list[str]:
     """Formats in export_formats not designed for generation_task's output
     task_type. Used only to power a warning — callers still honor the
@@ -142,8 +130,4 @@ def misaligned_formats(generation_task: str, export_formats: list[str]) -> list[
     if task_type is None:
         return []
     compatible = set(compatible_formats_for(task_type))
-    return [
-        fmt
-        for fmt in export_formats
-        if fmt.lower() not in compatible and fmt.lower() not in TASK_TYPE_AGNOSTIC_FORMATS
-    ]
+    return [fmt for fmt in export_formats if fmt.lower() not in compatible]

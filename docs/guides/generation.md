@@ -289,35 +289,6 @@ CuratorConfig(
 
 ---
 
-### Method tasks
-
-Paper implementations; references are in [Method references](../reference/paper-mapping.md).
-
-| `generation_task` | Output | Main config fields |
-|---|---|---|
-| `magpie` | SFT from nothing (inputs ignored) | `magpie_n_samples`, `magpie_template_id`, `magpie_raw_prefix` |
-| `persona` | SFT, per `persona_style` | `persona_style`, `persona_field`, `persona_generate_answer` |
-| `self_rewarding` | DPO pairs | `self_rewarding_n_candidates`, `self_rewarding_k_judges` |
-| `constitutional` | SFT (revised answer) | `constitutional_principles`, `constitutional_early_stop` |
-| `constitutional_preference` | DPO (revised vs original) | same as `constitutional` |
-| `best_of_n` | SFT, DPO or GRPO, per `bon_top_k` | `bon_n_candidates`, `bon_top_k`, `bon_dpo_mode`, `bon_scorer` |
-| `joint_bundle` | linked SFT + DPO + GRPO | `num_responses`, `score_responses` |
-| `kg_multihop` | QA over graph paths | `kg_path`, `kg_mode`, `kg_max_hops`, `kg_n_samples` |
-
-```python
-CuratorConfig(
-    dataset         = "data/seed.jsonl",
-    llm_model       = "openai/gpt-4o-mini",
-    generation_task = "best_of_n",
-    bon_scorer      = "prometheus",   # judged by the judge role LLM
-    bon_top_k       = 2,              # top-1 vs lowest -> DPO pair
-)
-```
-
-These tasks are SDK-only for now; the YAML/CLI `generation.type` does not list them yet.
-
----
-
 ## LLM configuration
 
 ```python
