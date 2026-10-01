@@ -104,7 +104,7 @@
   <nav class="md-header__inner md-grid" aria-label="Header">
     <a href="../.." title="CuratorKIT" class="md-header__button md-logo" aria-label="CuratorKIT" data-md-component="logo">
       
-  <img src="../../assets/icon.png" alt="logo">
+  <img src="../../assets/icon-white.png" alt="logo">
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
@@ -385,7 +385,7 @@
   <label class="md-nav__title" for="__drawer">
     <a href="../.." title="CuratorKIT" class="md-nav__button md-logo" aria-label="CuratorKIT" data-md-component="logo">
       
-  <img src="../../assets/icon.png" alt="logo">
+  <img src="../../assets/icon-white.png" alt="logo">
 
     </a>
     CuratorKIT
@@ -788,6 +788,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#method-tasks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Method tasks
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1010,6 +1021,8 @@
       
         
           
+        
+      
         
       
         
@@ -1283,6 +1296,17 @@
     <span class="md-ellipsis">
       
         adversarial_qa — Multi-strategy adversarial QA
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#method-tasks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Method tasks
       
     </span>
   </a>
@@ -1618,23 +1642,86 @@
 </code></pre></div>
 <p><strong>Output fields:</strong> <code>instruction=question</code>, <code>input=source_text</code>, <code>output=answer</code>, <code>metadata['injected_failure']=True/False</code>, <code>metadata['injection_type']=str</code></p>
 <hr />
-<h2 id="llm-configuration">LLM configuration<a class="headerlink" href="#llm-configuration" title="Permanent link">&para;</a></h2>
+<h3 id="method-tasks">Method tasks<a class="headerlink" href="#method-tasks" title="Permanent link">&para;</a></h3>
+<p>Paper implementations; references are in <a href="../../reference/paper-mapping/">Method references</a>.</p>
+<table>
+<thead>
+<tr>
+<th><code>generation_task</code></th>
+<th>Output</th>
+<th>Main config fields</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>magpie</code></td>
+<td>SFT from nothing (inputs ignored)</td>
+<td><code>magpie_n_samples</code>, <code>magpie_template_id</code>, <code>magpie_raw_prefix</code></td>
+</tr>
+<tr>
+<td><code>persona</code></td>
+<td>SFT, per <code>persona_style</code></td>
+<td><code>persona_style</code>, <code>persona_field</code>, <code>persona_generate_answer</code></td>
+</tr>
+<tr>
+<td><code>self_rewarding</code></td>
+<td>DPO pairs</td>
+<td><code>self_rewarding_n_candidates</code>, <code>self_rewarding_k_judges</code></td>
+</tr>
+<tr>
+<td><code>constitutional</code></td>
+<td>SFT (revised answer)</td>
+<td><code>constitutional_principles</code>, <code>constitutional_early_stop</code></td>
+</tr>
+<tr>
+<td><code>constitutional_preference</code></td>
+<td>DPO (revised vs original)</td>
+<td>same as <code>constitutional</code></td>
+</tr>
+<tr>
+<td><code>best_of_n</code></td>
+<td>SFT, DPO or GRPO, per <code>bon_top_k</code></td>
+<td><code>bon_n_candidates</code>, <code>bon_top_k</code>, <code>bon_dpo_mode</code>, <code>bon_scorer</code></td>
+</tr>
+<tr>
+<td><code>joint_bundle</code></td>
+<td>linked SFT + DPO + GRPO</td>
+<td><code>num_responses</code>, <code>score_responses</code></td>
+</tr>
+<tr>
+<td><code>kg_multihop</code></td>
+<td>QA over graph paths</td>
+<td><code>kg_path</code>, <code>kg_mode</code>, <code>kg_max_hops</code>, <code>kg_n_samples</code></td>
+</tr>
+</tbody>
+</table>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="n">CuratorConfig</span><span class="p">(</span>
-<a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>    <span class="n">llm_model</span>        <span class="o">=</span> <span class="s2">"openai/gpt-4o-mini"</span><span class="p">,</span>   <span class="c1"># any LiteLLM model string</span>
-<a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a>    <span class="n">llm_temperature</span>  <span class="o">=</span> <span class="mf">0.7</span><span class="p">,</span>
-<a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a>    <span class="n">llm_max_tokens</span>   <span class="o">=</span> <span class="mi">1024</span><span class="p">,</span>
-<a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a>    <span class="n">llm_concurrency</span>  <span class="o">=</span> <span class="mi">10</span><span class="p">,</span>                     <span class="c1"># concurrent LLM calls</span>
-<a id="__codelineno-16-6" name="__codelineno-16-6" href="#__codelineno-16-6"></a>    <span class="n">llm_api_base</span>     <span class="o">=</span> <span class="s2">"http://localhost:8000/v1"</span><span class="p">,</span>  <span class="c1"># vLLM, Ollama, custom endpoints</span>
-<a id="__codelineno-16-7" name="__codelineno-16-7" href="#__codelineno-16-7"></a>    <span class="n">llm_api_key</span>      <span class="o">=</span> <span class="s2">"sk-..."</span><span class="p">,</span>               <span class="c1"># or set via env var</span>
-<a id="__codelineno-16-8" name="__codelineno-16-8" href="#__codelineno-16-8"></a>    <span class="n">llm_extra_body</span>   <span class="o">=</span> <span class="p">{</span><span class="s2">"chat_template_kwargs"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"enable_thinking"</span><span class="p">:</span> <span class="kc">False</span><span class="p">}},</span>
-<a id="__codelineno-16-9" name="__codelineno-16-9" href="#__codelineno-16-9"></a><span class="p">)</span>
+<a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>    <span class="n">dataset</span>         <span class="o">=</span> <span class="s2">"data/seed.jsonl"</span><span class="p">,</span>
+<a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a>    <span class="n">llm_model</span>       <span class="o">=</span> <span class="s2">"openai/gpt-4o-mini"</span><span class="p">,</span>
+<a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a>    <span class="n">generation_task</span> <span class="o">=</span> <span class="s2">"best_of_n"</span><span class="p">,</span>
+<a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a>    <span class="n">bon_scorer</span>      <span class="o">=</span> <span class="s2">"prometheus"</span><span class="p">,</span>   <span class="c1"># judged by the judge role LLM</span>
+<a id="__codelineno-16-6" name="__codelineno-16-6" href="#__codelineno-16-6"></a>    <span class="n">bon_top_k</span>       <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>              <span class="c1"># top-1 vs lowest -&gt; DPO pair</span>
+<a id="__codelineno-16-7" name="__codelineno-16-7" href="#__codelineno-16-7"></a><span class="p">)</span>
+</code></pre></div>
+<p>These tasks are SDK-only for now; the YAML/CLI <code>generation.type</code> does not list them yet.</p>
+<hr />
+<h2 id="llm-configuration">LLM configuration<a class="headerlink" href="#llm-configuration" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="n">CuratorConfig</span><span class="p">(</span>
+<a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a>    <span class="n">llm_model</span>        <span class="o">=</span> <span class="s2">"openai/gpt-4o-mini"</span><span class="p">,</span>   <span class="c1"># any LiteLLM model string</span>
+<a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a>    <span class="n">llm_temperature</span>  <span class="o">=</span> <span class="mf">0.7</span><span class="p">,</span>
+<a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a>    <span class="n">llm_max_tokens</span>   <span class="o">=</span> <span class="mi">1024</span><span class="p">,</span>
+<a id="__codelineno-17-5" name="__codelineno-17-5" href="#__codelineno-17-5"></a>    <span class="n">llm_concurrency</span>  <span class="o">=</span> <span class="mi">10</span><span class="p">,</span>                     <span class="c1"># concurrent LLM calls</span>
+<a id="__codelineno-17-6" name="__codelineno-17-6" href="#__codelineno-17-6"></a>    <span class="n">llm_api_base</span>     <span class="o">=</span> <span class="s2">"http://localhost:8000/v1"</span><span class="p">,</span>  <span class="c1"># vLLM, Ollama, custom endpoints</span>
+<a id="__codelineno-17-7" name="__codelineno-17-7" href="#__codelineno-17-7"></a>    <span class="n">llm_api_key</span>      <span class="o">=</span> <span class="s2">"sk-..."</span><span class="p">,</span>               <span class="c1"># or set via env var</span>
+<a id="__codelineno-17-8" name="__codelineno-17-8" href="#__codelineno-17-8"></a>    <span class="n">llm_extra_body</span>   <span class="o">=</span> <span class="p">{</span><span class="s2">"chat_template_kwargs"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"enable_thinking"</span><span class="p">:</span> <span class="kc">False</span><span class="p">}},</span>
+<a id="__codelineno-17-9" name="__codelineno-17-9" href="#__codelineno-17-9"></a><span class="p">)</span>
 </code></pre></div>
 <p>For a separate judge model (recommended for gates):
-<div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="n">CuratorConfig</span><span class="p">(</span>
-<a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a>    <span class="n">judge_llm_model</span>      <span class="o">=</span> <span class="s2">"openai/gpt-4o"</span><span class="p">,</span>    <span class="c1"># stronger/different model for judging</span>
-<a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a>    <span class="n">judge_llm_api_base</span>   <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>               <span class="c1"># separate endpoint if needed</span>
-<a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a>    <span class="n">judge_llm_temperature</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span>               <span class="c1"># low temp for deterministic judgements</span>
-<a id="__codelineno-17-5" name="__codelineno-17-5" href="#__codelineno-17-5"></a><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="n">CuratorConfig</span><span class="p">(</span>
+<a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a>    <span class="n">judge_llm_model</span>      <span class="o">=</span> <span class="s2">"openai/gpt-4o"</span><span class="p">,</span>    <span class="c1"># stronger/different model for judging</span>
+<a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a>    <span class="n">judge_llm_api_base</span>   <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>               <span class="c1"># separate endpoint if needed</span>
+<a id="__codelineno-18-4" name="__codelineno-18-4" href="#__codelineno-18-4"></a>    <span class="n">judge_llm_temperature</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span>               <span class="c1"># low temp for deterministic judgements</span>
+<a id="__codelineno-18-5" name="__codelineno-18-5" href="#__codelineno-18-5"></a><span class="p">)</span>
 </code></pre></div></p>
 <hr />
 <h2 id="next-quality-filtering">Next: <a href="../quality-gates/">Quality filtering →</a><a class="headerlink" href="#next-quality-filtering" title="Permanent link">&para;</a></h2>

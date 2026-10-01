@@ -104,7 +104,7 @@
   <nav class="md-header__inner md-grid" aria-label="Header">
     <a href="../.." title="CuratorKIT" class="md-header__button md-logo" aria-label="CuratorKIT" data-md-component="logo">
       
-  <img src="../../assets/icon.png" alt="logo">
+  <img src="../../assets/icon-white.png" alt="logo">
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
@@ -385,7 +385,7 @@
   <label class="md-nav__title" for="__drawer">
     <a href="../.." title="CuratorKIT" class="md-nav__button md-logo" aria-label="CuratorKIT" data-md-component="logo">
       
-  <img src="../../assets/icon.png" alt="logo">
+  <img src="../../assets/icon-white.png" alt="logo">
 
     </a>
     CuratorKIT
@@ -915,6 +915,8 @@
       
         
       
+        
+      
     
     
     
@@ -1153,9 +1155,10 @@ SFT and RL trainers consume, so the two compose into a curate-then-train workflo
 <p>This writes <code>output/curated/train/sft_alpaca.jsonl</code> and
 <code>output/curated/val/sft_alpaca.jsonl</code>, plus the provenance set.</p>
 <h2 id="2-publish-the-dataset">2. Publish the dataset<a class="headerlink" href="#2-publish-the-dataset" title="Permanent link">&para;</a></h2>
-<p>AlignTune's trainers take a dataset name, so load the exported JSONL with the
-<code>datasets</code> library and push it to the HuggingFace Hub. The auto-generated
-<code>dataset_card.md</code> is a ready-made README for the dataset repository.</p>
+<p>The output folder is already a Hugging Face dataset folder (its <code>README.md</code>
+declares one config per export file), so <code>load_dataset("output/curated", "sft_alpaca")</code>
+works as-is. <code>result.push_to_hub("your-org/handbook-qa-curated")</code> publishes one
+export with the same split names. To do it by hand:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">datasets</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_dataset</span>
 <a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
 <a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">ds</span> <span class="o">=</span> <span class="n">load_dataset</span><span class="p">(</span><span class="s2">"json"</span><span class="p">,</span> <span class="n">data_files</span><span class="o">=</span><span class="p">{</span>

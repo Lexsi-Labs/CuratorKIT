@@ -104,7 +104,7 @@
   <nav class="md-header__inner md-grid" aria-label="Header">
     <a href="../.." title="CuratorKIT" class="md-header__button md-logo" aria-label="CuratorKIT" data-md-component="logo">
       
-  <img src="../../assets/icon.png" alt="logo">
+  <img src="../../assets/icon-white.png" alt="logo">
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
@@ -385,7 +385,7 @@
   <label class="md-nav__title" for="__drawer">
     <a href="../.." title="CuratorKIT" class="md-nav__button md-logo" aria-label="CuratorKIT" data-md-component="logo">
       
-  <img src="../../assets/icon.png" alt="logo">
+  <img src="../../assets/icon-white.png" alt="logo">
 
     </a>
     CuratorKIT
@@ -987,6 +987,8 @@
       
         
       
+        
+      
     
     
     
@@ -1520,6 +1522,11 @@ the full field list and cascade order.</p>
 <td><code>diversity_gate:too_similar:{similarity}</code></td>
 <td>Diversity</td>
 <td>Raise <code>diversity_threshold</code> or reduce <code>num_questions</code></td>
+</tr>
+<tr>
+<td><code>judge_error:{ExceptionType}</code></td>
+<td>Hallucination, Reward</td>
+<td>Judge call failed or returned no parseable score. Check the judge key/endpoint, raise <code>judge_llm_max_tokens</code>, or use a stronger judge. <code>judge_on_error="pass"</code> keeps these samples instead. Not sent to the probe or refiner.</td>
 </tr>
 </tbody>
 </table>

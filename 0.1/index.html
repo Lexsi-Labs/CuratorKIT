@@ -102,7 +102,7 @@
   <nav class="md-header__inner md-grid" aria-label="Header">
     <a href="." title="CuratorKIT" class="md-header__button md-logo" aria-label="CuratorKIT" data-md-component="logo">
       
-  <img src="assets/icon.png" alt="logo">
+  <img src="assets/icon-white.png" alt="logo">
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
@@ -385,7 +385,7 @@
   <label class="md-nav__title" for="__drawer">
     <a href="." title="CuratorKIT" class="md-nav__button md-logo" aria-label="CuratorKIT" data-md-component="logo">
       
-  <img src="assets/icon.png" alt="logo">
+  <img src="assets/icon-white.png" alt="logo">
 
     </a>
     CuratorKIT
@@ -680,6 +680,8 @@
       
         
       
+        
+      
     
     
     
@@ -912,7 +914,8 @@
 
 
 <div class="ck-hero">
-<p><img class="ck-hero-mark" src="assets/icon.png" alt=""></p>
+<p><img class="ck-hero-mark ck-lexsi-on-light" src="assets/icon.png" alt="">
+<img class="ck-hero-mark ck-lexsi-on-dark" src="assets/icon-white.png" alt=""></p>
 <h1 class="ck-hero-title" id="post-training-data-curated-with-proof">Post-training data, <em>curated with proof</em>.<a class="headerlink" href="#post-training-data-curated-with-proof" title="Permanent link">&para;</a></h1>
 <p class="ck-tagline">
 CuratorKIT builds LLM training datasets as a gated pipeline: ingest from any source,
@@ -1011,8 +1014,9 @@ the schema is in the <a href="reference/cli/">CLI reference</a>.</p>
 </div>
 </div>
 </div>
-<p>Every run writes <code>manifest.json</code>, <code>rejected.jsonl</code>, <code>dataset_card.md</code>, and
-<code>checksums.txt</code> alongside the export files.</p>
+<p>Every run writes <code>manifest.json</code>, <code>rejected.jsonl</code>, <code>dataset_card.md</code>,
+<code>lexsi_provenance.json</code>, and <code>checksums.txt</code> alongside the export files, plus a
+<code>README.md</code> that makes the folder loadable with <code>datasets.load_dataset(dir, "&lt;config&gt;")</code>.</p>
 <h2 id="where-next">Where next<a class="headerlink" href="#where-next" title="Permanent link">&para;</a></h2>
 <div class="ck-wide">
 <table>

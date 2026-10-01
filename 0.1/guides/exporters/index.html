@@ -104,7 +104,7 @@
   <nav class="md-header__inner md-grid" aria-label="Header">
     <a href="../.." title="CuratorKIT" class="md-header__button md-logo" aria-label="CuratorKIT" data-md-component="logo">
       
-  <img src="../../assets/icon.png" alt="logo">
+  <img src="../../assets/icon-white.png" alt="logo">
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
@@ -385,7 +385,7 @@
   <label class="md-nav__title" for="__drawer">
     <a href="../.." title="CuratorKIT" class="md-nav__button md-logo" aria-label="CuratorKIT" data-md-component="logo">
       
-  <img src="../../assets/icon.png" alt="logo">
+  <img src="../../assets/icon-white.png" alt="logo">
 
     </a>
     CuratorKIT
@@ -846,6 +846,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#messages-sft_messagesjsonl" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Messages (sft_messages.jsonl)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#dpo-dpojsonl" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -913,6 +924,23 @@
       
     </span>
   </a>
+  
+    <nav class="md-nav" aria-label="Output directory layout">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#loading-the-folder-with-datasets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Loading the folder with datasets
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -1010,6 +1038,8 @@
       
         
           
+        
+      
         
       
         
@@ -1235,6 +1265,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#messages-sft_messagesjsonl" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Messages (sft_messages.jsonl)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#dpo-dpojsonl" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1303,6 +1344,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Output directory layout">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#loading-the-folder-with-datasets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Loading the folder with datasets
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1370,6 +1428,11 @@
 <td><code>{"conversations": [{"from": "human", "value": "..."}, {"from": "gpt", "value": "..."}]}</code></td>
 </tr>
 <tr>
+<td><code>messages</code></td>
+<td><code>sft_messages.jsonl</code></td>
+<td><code>{"messages": [{"role": "user", "content": "..."}, {"role": "assistant", "content": "..."}]}</code></td>
+</tr>
+<tr>
 <td><code>dpo</code></td>
 <td><code>dpo.jsonl</code></td>
 <td><code>{"prompt": "...", "chosen": "...", "rejected": "..."}</code></td>
@@ -1398,7 +1461,7 @@
 <ul>
 <li><strong>DPO / GRPO / PPO / Corpus</strong> skip a sample when its task_type isn't in the accepted set below, <em>or</em> when a field it still needs is empty even for an accepted task_type (<code>chosen</code>/<code>rejected</code>; <code>instruction</code>; <code>instruction</code>; <code>output</code>-or-<code>input</code>, respectively) — one summary warning with the count and the task_type(s) seen.</li>
 <li><strong>GRPO</strong> additionally never warns on empty <code>responses</code>/<code>rewards</code> alone within task_type <code>"grpo"</code> — that's the documented, intentional case of exporting seed prompts before <code>GRPORolloutTask</code> has run.</li>
-<li><strong>Alpaca / ShareGPT</strong> also gate on task_type now (so, notably, a <code>conversational</code> sample is no longer silently truncated to its first turn by Alpaca — it's skipped, with a warning pointing at <code>"sharegpt"</code> instead). Within an accepted task_type, a genuinely empty <code>instruction</code>/<code>output</code> still gets written (it's a real, if broken, sample) but warns separately.</li>
+<li><strong>Alpaca / ShareGPT / Messages</strong> also gate on task_type now (so, notably, a <code>conversational</code> sample is no longer silently truncated to its first turn by Alpaca — it's skipped, with a warning pointing at <code>"sharegpt"</code> / <code>"messages"</code> instead). Within an accepted task_type, a genuinely empty <code>instruction</code>/<code>output</code> still gets written (it's a real, if broken, sample) but warns separately.</li>
 </ul>
 <table>
 <thead>
@@ -1406,6 +1469,7 @@
 <th>task_type</th>
 <th style="text-align: center;">alpaca</th>
 <th style="text-align: center;">sharegpt</th>
+<th style="text-align: center;">messages</th>
 <th style="text-align: center;">dpo</th>
 <th style="text-align: center;">grpo</th>
 <th style="text-align: center;">ppo</th>
@@ -1417,6 +1481,7 @@
 <td><code>instruction_following</code> (qa, evol, cot, adversarial_qa)</td>
 <td style="text-align: center;">✓</td>
 <td style="text-align: center;">✓</td>
+<td style="text-align: center;">✓</td>
 <td style="text-align: center;">—</td>
 <td style="text-align: center;">—</td>
 <td style="text-align: center;">—</td>
@@ -1426,6 +1491,7 @@
 <td><code>conversational</code> (multiturn)</td>
 <td style="text-align: center;">—</td>
 <td style="text-align: center;">✓</td>
+<td style="text-align: center;">✓</td>
 <td style="text-align: center;">—</td>
 <td style="text-align: center;">—</td>
 <td style="text-align: center;">—</td>
@@ -1433,6 +1499,7 @@
 </tr>
 <tr>
 <td><code>preference</code>, <code>implicit_preference</code> (preference, adversarial_preference)</td>
+<td style="text-align: center;">—</td>
 <td style="text-align: center;">—</td>
 <td style="text-align: center;">—</td>
 <td style="text-align: center;">✓</td>
@@ -1444,6 +1511,7 @@
 <td><code>unpaired_preference</code> (connector)</td>
 <td style="text-align: center;">✓</td>
 <td style="text-align: center;">✓</td>
+<td style="text-align: center;">✓</td>
 <td style="text-align: center;">—</td>
 <td style="text-align: center;">—</td>
 <td style="text-align: center;">—</td>
@@ -1451,6 +1519,7 @@
 </tr>
 <tr>
 <td><code>grpo</code> (grpo task)</td>
+<td style="text-align: center;">—</td>
 <td style="text-align: center;">—</td>
 <td style="text-align: center;">—</td>
 <td style="text-align: center;">—</td>
@@ -1464,11 +1533,13 @@
 <td style="text-align: center;">—</td>
 <td style="text-align: center;">—</td>
 <td style="text-align: center;">—</td>
+<td style="text-align: center;">—</td>
 <td style="text-align: center;">✓</td>
 <td style="text-align: center;">—</td>
 </tr>
 <tr>
 <td><code>language_modeling</code> / <code>source_chunk</code> (PDF chunks, pretrain text)</td>
+<td style="text-align: center;">—</td>
 <td style="text-align: center;">—</td>
 <td style="text-align: center;">—</td>
 <td style="text-align: center;">—</td>
@@ -1492,79 +1563,98 @@
 </code></pre></div>
 <p><code>input</code> is the source context (populated for corpus-grounded samples). Empty string when not applicable.</p>
 <h3 id="sharegpt-sft_sharegptjsonl">ShareGPT (<code>sft_sharegpt.jsonl</code>)<a class="headerlink" href="#sharegpt-sft_sharegptjsonl" title="Permanent link">&para;</a></h3>
-<p>Conversation format. For multi-turn samples, the full turn list is encoded from <code>metadata['turns']</code>:</p>
+<p>ShareGPT <code>conversations</code> with <code>from</code>/<code>value</code> (<code>human</code>, <code>gpt</code>, and <code>system</code> for a system prompt). The turns are the same ones the <code>messages</code> exporter writes: a system prompt becomes a leading <code>system</code> turn, a non-empty <code>input</code> is appended to the first <code>human</code> turn, and multi-turn samples carry the rest of <code>metadata['turns']</code> (role/content turns are converted to from/value):</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="p">{</span>
 <a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">  </span><span class="nt">"conversations"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
 <a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">    </span><span class="p">{</span><span class="nt">"from"</span><span class="p">:</span><span class="w"> </span><span class="s2">"human"</span><span class="p">,</span><span class="w"> </span><span class="nt">"value"</span><span class="p">:</span><span class="w"> </span><span class="s2">"What does the study reveal about..."</span><span class="p">},</span>
-<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">    </span><span class="p">{</span><span class="nt">"from"</span><span class="p">:</span><span class="w"> </span><span class="s2">"gpt"</span><span class="p">,</span><span class="w">   </span><span class="nt">"value"</span><span class="p">:</span><span class="w"> </span><span class="s2">"The study reveals that..."</span><span class="p">},</span>
-<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="w">    </span><span class="p">{</span><span class="nt">"from"</span><span class="p">:</span><span class="w"> </span><span class="s2">"human"</span><span class="p">,</span><span class="w"> </span><span class="nt">"value"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Can you elaborate on the methodology?"</span><span class="p">},</span>
-<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="w">    </span><span class="p">{</span><span class="nt">"from"</span><span class="p">:</span><span class="w"> </span><span class="s2">"gpt"</span><span class="p">,</span><span class="w">   </span><span class="nt">"value"</span><span class="p">:</span><span class="w"> </span><span class="s2">"The methodology involved..."</span><span class="p">}</span>
-<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="w">  </span><span class="p">]</span>
-<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="p">}</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">    </span><span class="p">{</span><span class="nt">"from"</span><span class="p">:</span><span class="w"> </span><span class="s2">"gpt"</span><span class="p">,</span><span class="w">   </span><span class="nt">"value"</span><span class="p">:</span><span class="w"> </span><span class="s2">"The study reveals that..."</span><span class="p">}</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="w">  </span><span class="p">]</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="p">}</span>
 </code></pre></div>
-<p>For non-multi-turn samples, produces a two-turn conversation (human + gpt).</p>
+<h3 id="messages-sft_messagesjsonl">Messages (<code>sft_messages.jsonl</code>)<a class="headerlink" href="#messages-sft_messagesjsonl" title="Permanent link">&para;</a></h3>
+<p>Chat <code>messages</code> with <code>role</code>/<code>content</code>, the conversational layout TRL's <code>SFTTrainer</code> and tokenizer chat templates take directly. Use this file (config <code>sft_messages</code>) for TRL, AlignTune and SafeTune:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="p">{</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span><span class="nt">"messages"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">    </span><span class="p">{</span><span class="nt">"role"</span><span class="p">:</span><span class="w"> </span><span class="s2">"user"</span><span class="p">,</span><span class="w">      </span><span class="nt">"content"</span><span class="p">:</span><span class="w"> </span><span class="s2">"What does the study reveal about..."</span><span class="p">},</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">    </span><span class="p">{</span><span class="nt">"role"</span><span class="p">:</span><span class="w"> </span><span class="s2">"assistant"</span><span class="p">,</span><span class="w"> </span><span class="nt">"content"</span><span class="p">:</span><span class="w"> </span><span class="s2">"The study reveals that..."</span><span class="p">},</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="w">    </span><span class="p">{</span><span class="nt">"role"</span><span class="p">:</span><span class="w"> </span><span class="s2">"user"</span><span class="p">,</span><span class="w">      </span><span class="nt">"content"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Can you elaborate on the methodology?"</span><span class="p">},</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="w">    </span><span class="p">{</span><span class="nt">"role"</span><span class="p">:</span><span class="w"> </span><span class="s2">"assistant"</span><span class="p">,</span><span class="w"> </span><span class="nt">"content"</span><span class="p">:</span><span class="w"> </span><span class="s2">"The methodology involved..."</span><span class="p">}</span>
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="w">  </span><span class="p">]</span>
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="p">}</span>
+</code></pre></div>
 <h3 id="dpo-dpojsonl">DPO (<code>dpo.jsonl</code>)<a class="headerlink" href="#dpo-dpojsonl" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="p">{</span><span class="nt">"prompt"</span><span class="p">:</span><span class="w"> </span><span class="s2">"What is..."</span><span class="p">,</span><span class="w"> </span><span class="nt">"chosen"</span><span class="p">:</span><span class="w"> </span><span class="s2">"A thorough answer citing..."</span><span class="p">,</span><span class="w"> </span><span class="nt">"rejected"</span><span class="p">:</span><span class="w"> </span><span class="s2">"A vague answer that omits..."</span><span class="p">}</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="p">{</span><span class="nt">"prompt"</span><span class="p">:</span><span class="w"> </span><span class="s2">"What is..."</span><span class="p">,</span><span class="w"> </span><span class="nt">"chosen"</span><span class="p">:</span><span class="w"> </span><span class="s2">"A thorough answer citing..."</span><span class="p">,</span><span class="w"> </span><span class="nt">"rejected"</span><span class="p">:</span><span class="w"> </span><span class="s2">"A vague answer that omits..."</span><span class="p">}</span>
 </code></pre></div>
 <p>For conversational preference pairs, <code>prompt</code> and both responses are encoded as turn lists.</p>
 <h3 id="grpo-grpojsonl">GRPO (<code>grpo.jsonl</code>)<a class="headerlink" href="#grpo-grpojsonl" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="p">{</span>
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">  </span><span class="nt">"prompt"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Explain the significance of..."</span><span class="p">,</span>
-<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">  </span><span class="nt">"responses"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"Answer A..."</span><span class="p">,</span><span class="w"> </span><span class="s2">"Answer B..."</span><span class="p">,</span><span class="w"> </span><span class="s2">"Answer C..."</span><span class="p">],</span>
-<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="w">  </span><span class="nt">"rewards"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mf">0.82</span><span class="p">,</span><span class="w"> </span><span class="mf">0.61</span><span class="p">,</span><span class="w"> </span><span class="mf">0.74</span><span class="p">]</span>
-<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="p">}</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="p">{</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="w">  </span><span class="nt">"prompt"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Explain the significance of..."</span><span class="p">,</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="w">  </span><span class="nt">"responses"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"Answer A..."</span><span class="p">,</span><span class="w"> </span><span class="s2">"Answer B..."</span><span class="p">,</span><span class="w"> </span><span class="s2">"Answer C..."</span><span class="p">],</span>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="w">  </span><span class="nt">"rewards"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mf">0.82</span><span class="p">,</span><span class="w"> </span><span class="mf">0.61</span><span class="p">,</span><span class="w"> </span><span class="mf">0.74</span><span class="p">]</span>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="p">}</span>
 </code></pre></div>
 <p><code>rewards</code> is populated only when <code>score_responses=True</code> (the default).</p>
 <h3 id="ppo-ppojsonl">PPO (<code>ppo.jsonl</code>)<a class="headerlink" href="#ppo-ppojsonl" title="Permanent link">&para;</a></h3>
 <p>Prompt-only format for PPO rollout collection:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="p">{</span><span class="nt">"prompt"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Explain the significance of..."</span><span class="p">}</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="p">{</span><span class="nt">"prompt"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Explain the significance of..."</span><span class="p">}</span>
 </code></pre></div>
 <h3 id="corpus-corpusjsonl">Corpus (<code>corpus.jsonl</code>)<a class="headerlink" href="#corpus-corpusjsonl" title="Permanent link">&para;</a></h3>
 <p>Full metadata preservation for source chunks:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="p">{</span>
-<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="w">  </span><span class="nt">"text"</span><span class="p">:</span><span class="w"> </span><span class="s2">"The document establishes four categories..."</span><span class="p">,</span>
-<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="w">  </span><span class="nt">"source_uri"</span><span class="p">:</span><span class="w"> </span><span class="s2">"docs/handbook.pdf"</span><span class="p">,</span>
-<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="w">  </span><span class="nt">"page"</span><span class="p">:</span><span class="w"> </span><span class="mi">3</span><span class="p">,</span>
-<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="w">  </span><span class="nt">"heading"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Section 2 — Categories"</span><span class="p">,</span>
-<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="w">  </span><span class="nt">"chunk_index"</span><span class="p">:</span><span class="w"> </span><span class="mi">12</span><span class="p">,</span>
-<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="w">  </span><span class="nt">"content_type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"text"</span><span class="p">,</span>
-<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a><span class="w">  </span><span class="nt">"task_type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"language_modeling"</span>
-<a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a><span class="p">}</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="p">{</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="w">  </span><span class="nt">"text"</span><span class="p">:</span><span class="w"> </span><span class="s2">"The document establishes four categories..."</span><span class="p">,</span>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="w">  </span><span class="nt">"source_uri"</span><span class="p">:</span><span class="w"> </span><span class="s2">"docs/handbook.pdf"</span><span class="p">,</span>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="w">  </span><span class="nt">"page"</span><span class="p">:</span><span class="w"> </span><span class="mi">3</span><span class="p">,</span>
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="w">  </span><span class="nt">"heading"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Section 2 — Categories"</span><span class="p">,</span>
+<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="w">  </span><span class="nt">"chunk_index"</span><span class="p">:</span><span class="w"> </span><span class="mi">12</span><span class="p">,</span>
+<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="w">  </span><span class="nt">"content_type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"text"</span><span class="p">,</span>
+<a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="w">  </span><span class="nt">"task_type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"language_modeling"</span>
+<a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a><span class="p">}</span>
 </code></pre></div>
 <hr />
 <h2 id="train-val-test-splits">Train / val / test splits<a class="headerlink" href="#train-val-test-splits" title="Permanent link">&para;</a></h2>
 <p>Set <code>output_split</code> to split accepted samples across separate subdirectories. Fractions must sum to 1.0.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="n">CuratorConfig</span><span class="p">(</span>
-<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>    <span class="n">export_formats</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"alpaca"</span><span class="p">,</span> <span class="s2">"dpo"</span><span class="p">],</span>
-<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>    <span class="n">output_split</span>   <span class="o">=</span> <span class="p">{</span><span class="s2">"train"</span><span class="p">:</span> <span class="mf">0.8</span><span class="p">,</span> <span class="s2">"val"</span><span class="p">:</span> <span class="mf">0.1</span><span class="p">,</span> <span class="s2">"test"</span><span class="p">:</span> <span class="mf">0.1</span><span class="p">},</span>
-<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>    <span class="n">output_dir</span>     <span class="o">=</span> <span class="s2">"output/"</span><span class="p">,</span>
-<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="n">CuratorConfig</span><span class="p">(</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>    <span class="n">export_formats</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"alpaca"</span><span class="p">,</span> <span class="s2">"dpo"</span><span class="p">],</span>
+<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>    <span class="n">output_split</span>   <span class="o">=</span> <span class="p">{</span><span class="s2">"train"</span><span class="p">:</span> <span class="mf">0.8</span><span class="p">,</span> <span class="s2">"val"</span><span class="p">:</span> <span class="mf">0.1</span><span class="p">,</span> <span class="s2">"test"</span><span class="p">:</span> <span class="mf">0.1</span><span class="p">},</span>
+<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>    <span class="n">output_dir</span>     <span class="o">=</span> <span class="s2">"output/"</span><span class="p">,</span>
+<a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="p">)</span>
 </code></pre></div>
 <p>Output structure:
-<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>output/
-<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>  train/
-<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>    sft_alpaca.jsonl
-<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>    dpo.jsonl
-<a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>  val/
-<a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>    sft_alpaca.jsonl
-<a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a>    dpo.jsonl
-<a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a>  test/
-<a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a>    sft_alpaca.jsonl
-<a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a>    dpo.jsonl
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>output/
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>  train/
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>    sft_alpaca.jsonl
+<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>    dpo.jsonl
+<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>  val/
+<a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>    sft_alpaca.jsonl
+<a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a>    dpo.jsonl
+<a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a>  test/
+<a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a>    sft_alpaca.jsonl
+<a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a>    dpo.jsonl
 </code></pre></div></p>
 <p>Samples are shuffled before splitting. The last split receives any remainder from rounding.</p>
 <hr />
 <h2 id="output-directory-layout">Output directory layout<a class="headerlink" href="#output-directory-layout" title="Permanent link">&para;</a></h2>
 <p>Every run writes these files regardless of which exporters are configured:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>output/
-<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>  manifest.json             Pipeline config hash, stage counts, rejection breakdown
-<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>  rejected.jsonl            All rejected samples with structured reasons
-<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>  dataset_card.md           Human-readable run summary
-<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>  checksums.txt             SHA-256 for all output files
-<a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>  diagnostic_summary.json   Failure mode counts, recovery stats (when probe active)
-<a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a>  [format files]            Only the formats you listed in export_formats
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>output/
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>  manifest.json             Pipeline config hash, stage counts, rejection breakdown
+<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>  rejected.jsonl            All rejected samples with structured reasons
+<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>  dataset_card.md           Human-readable run summary
+<a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>  README.md                 Same card with `configs:` YAML (Hugging Face dataset folder; see below)
+<a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a>  lexsi_provenance.json     lexsi.provenance/1 lineage record (also manifest["provenance"])
+<a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a>  checksums.txt             SHA-256 for all output files
+<a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a>  diagnostic_summary.json   Failure mode counts, recovery stats (when probe active)
+<a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a>  [format files]            Only the formats you listed in export_formats
 </code></pre></div>
 <p><code>manifest.json</code> and <code>rejected.jsonl</code> are always written and cannot be disabled. They are the primary audit trail for the run.</p>
+<h3 id="loading-the-folder-with-datasets">Loading the folder with <code>datasets</code><a class="headerlink" href="#loading-the-folder-with-datasets" title="Permanent link">&para;</a></h3>
+<p><code>README.md</code> declares one config per non-empty export file; the config name is the file stem and each <code>output_split</code> directory is a split (unsplit runs give <code>train</code>). Only the listed files are data, so <code>manifest.json</code>, <code>rejected.jsonl</code> and <code>lexsi_provenance.json</code> never show up as splits.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">datasets</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_dataset</span>
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="n">load_dataset</span><span class="p">(</span><span class="s2">"output/"</span><span class="p">,</span> <span class="s2">"sft_messages"</span><span class="p">)</span>   <span class="c1"># messages (role/content)</span>
+<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="n">load_dataset</span><span class="p">(</span><span class="s2">"output/"</span><span class="p">,</span> <span class="s2">"dpo"</span><span class="p">)</span>            <span class="c1"># prompt / chosen / rejected</span>
+<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="n">load_dataset</span><span class="p">(</span><span class="s2">"output/"</span><span class="p">)</span>                   <span class="c1"># the first config listed</span>
+</code></pre></div>
+<p><code>CuratorResult.push_to_hub(repo_id, export_file=...)</code> uses the same config and split names on the Hub.</p>
+<p>Use a dedicated <code>output_dir</code>. A <code>README.md</code> already there that CuratorKIT did not write (say, a repository's own README) is never overwritten: the run warns, skips it, and the folder is then not loadable by config name. Set <code>write_hf_readme=False</code> (<code>CuratorConfig</code> or YAML) to never write <code>README.md</code>.</p>
 <hr />
 <h2 id="next-customisation">Next: <a href="../customisation/">Customisation →</a><a class="headerlink" href="#next-customisation" title="Permanent link">&para;</a></h2>
 

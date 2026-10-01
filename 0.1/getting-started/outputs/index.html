@@ -104,7 +104,7 @@
   <nav class="md-header__inner md-grid" aria-label="Header">
     <a href="../.." title="CuratorKIT" class="md-header__button md-logo" aria-label="CuratorKIT" data-md-component="logo">
       
-  <img src="../../assets/icon.png" alt="logo">
+  <img src="../../assets/icon-white.png" alt="logo">
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
@@ -385,7 +385,7 @@
   <label class="md-nav__title" for="__drawer">
     <a href="../.." title="CuratorKIT" class="md-nav__button md-logo" aria-label="CuratorKIT" data-md-component="logo">
       
-  <img src="../../assets/icon.png" alt="logo">
+  <img src="../../assets/icon-white.png" alt="logo">
 
     </a>
     CuratorKIT
@@ -775,6 +775,8 @@
       
         
       
+        
+      
     
     
     
@@ -996,16 +998,19 @@
 per requested export format:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>output/
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>  sft_alpaca.jsonl          SFT data in Alpaca format
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>  sft_sharegpt.jsonl        SFT data in ShareGPT conversation format
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>  dpo.jsonl                 DPO preference pairs (only when preference task used)
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>  grpo.jsonl                GRPO rollouts (only when grpo task used)
-<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>  ppo.jsonl                 PPO prompts (only when ppo exporter included)
-<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>  corpus.jsonl              Raw source chunks (only when corpus exporter included)
-<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>  rejected.jsonl            Every rejected sample with a structured reason string
-<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>  manifest.json             Pipeline config hash, stage counts, rejection breakdown
-<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>  dataset_card.md           Human-readable run summary
-<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>  checksums.txt             SHA-256 for all output files
-<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>  diagnostic_summary.json   Failure mode counts, recovery rate (when probe active)
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>  sft_sharegpt.jsonl        SFT data in ShareGPT format (from/value)
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>  sft_messages.jsonl        SFT data as chat messages (role/content), for TRL
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>  dpo.jsonl                 DPO preference pairs (only when preference task used)
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>  grpo.jsonl                GRPO rollouts (only when grpo task used)
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>  ppo.jsonl                 PPO prompts (only when ppo exporter included)
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>  corpus.jsonl              Raw source chunks (only when corpus exporter included)
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>  rejected.jsonl            Every rejected sample with a structured reason string
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>  manifest.json             Pipeline config hash, stage counts, rejection breakdown
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>  dataset_card.md           Human-readable run summary
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>  README.md                 Same card with configs YAML: load_dataset("output/", "dpo") works
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>  lexsi_provenance.json     Lineage record: version, inputs, generator/judge models
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>  checksums.txt             SHA-256 for all output files
+<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>  diagnostic_summary.json   Failure mode counts, recovery rate (when probe active)
 </code></pre></div>
 <h2 id="manifestjson">manifest.json<a class="headerlink" href="#manifestjson" title="Permanent link">&para;</a></h2>
 <p>Per-stage sample counts: how many entered, passed, and were rejected at each stage:</p>

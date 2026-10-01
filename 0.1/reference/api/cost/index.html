@@ -10,13 +10,13 @@
       
       
       
-        <link rel="canonical" href="https://lexsi-labs.github.io/CuratorKIT/0.1/reference/api/exporters/">
+        <link rel="canonical" href="https://lexsi-labs.github.io/CuratorKIT/0.1/reference/api/cost/">
       
       
-        <link rel="prev" href="../cost/">
+        <link rel="prev" href="../coverage/">
       
       
-        <link rel="next" href="../diagnostic/">
+        <link rel="next" href="../exporters/">
       
       
         
@@ -27,7 +27,7 @@
     
     
       
-        <title>Exporters - CuratorKIT</title>
+        <title>Cost & BoM - CuratorKIT</title>
       
     
     
@@ -82,7 +82,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#exporters" class="md-skip">
+        <a href="#cost-bill-of-materials" class="md-skip">
           Skip to content
         </a>
       
@@ -121,7 +121,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Exporters
+              Cost & BoM
             
           </span>
         </div>
@@ -1151,34 +1151,6 @@
                 
   
   
-  
-  
-    <li class="md-nav__item">
-      <a href="../cost/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Cost & BoM
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
     
   
   
@@ -1198,7 +1170,7 @@
   <span class="md-ellipsis">
     
   
-    Exporters
+    Cost & BoM
   
 
     
@@ -1216,7 +1188,7 @@
   <span class="md-ellipsis">
     
   
-    Exporters
+    Cost & BoM
   
 
     
@@ -1242,22 +1214,34 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#curatorkit.exporters" class="md-nav__link">
+  <a href="#curatorkit.cost" class="md-nav__link">
     <span class="md-ellipsis">
       
-        exporters
+        cost
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="exporters">
+    <nav class="md-nav" aria-label="cost">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#curatorkit.exporters.AlpacaExporter" class="md-nav__link">
+  <a href="#curatorkit.cost.BillOfMaterials" class="md-nav__link">
     <span class="md-ellipsis">
       
-        AlpacaExporter
+        BillOfMaterials
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="BillOfMaterials">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#curatorkit.cost.BillOfMaterials.build" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        build
       
     </span>
   </a>
@@ -1265,22 +1249,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#curatorkit.exporters.ArgillaExporter" class="md-nav__link">
+  <a href="#curatorkit.cost.BillOfMaterials.verify" class="md-nav__link">
     <span class="md-ellipsis">
       
-        ArgillaExporter
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="ArgillaExporter">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#curatorkit.exporters.ArgillaExporter--parameters" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Parameters
+        verify
       
     </span>
   </a>
@@ -1293,10 +1265,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#curatorkit.exporters.CorpusExporter" class="md-nav__link">
+  <a href="#curatorkit.cost.BudgetExceeded" class="md-nav__link">
     <span class="md-ellipsis">
       
-        CorpusExporter
+        BudgetExceeded
       
     </span>
   </a>
@@ -1304,10 +1276,22 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#curatorkit.exporters.DPOExporter" class="md-nav__link">
+  <a href="#curatorkit.cost.TokenBudget" class="md-nav__link">
     <span class="md-ellipsis">
       
-        DPOExporter
+        TokenBudget
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="TokenBudget">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#curatorkit.cost.TokenBudget.record" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        record
       
     </span>
   </a>
@@ -1315,10 +1299,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#curatorkit.exporters.GRPOExporter" class="md-nav__link">
+  <a href="#curatorkit.cost.TokenBudget.check" class="md-nav__link">
     <span class="md-ellipsis">
       
-        GRPOExporter
+        check
       
     </span>
   </a>
@@ -1326,10 +1310,26 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#curatorkit.exporters.MessagesExporter" class="md-nav__link">
+  <a href="#curatorkit.cost.TokenBudget.estimate_remaining" class="md-nav__link">
     <span class="md-ellipsis">
       
-        MessagesExporter
+        estimate_remaining
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#curatorkit.cost.CostEstimate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CostEstimate
       
     </span>
   </a>
@@ -1337,10 +1337,22 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#curatorkit.exporters.PPOExporter" class="md-nav__link">
+  <a href="#curatorkit.cost.DryRunCostEstimator" class="md-nav__link">
     <span class="md-ellipsis">
       
-        PPOExporter
+        DryRunCostEstimator
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="DryRunCostEstimator">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#curatorkit.cost.DryRunCostEstimator--parameters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parameters
       
     </span>
   </a>
@@ -1348,10 +1360,65 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#curatorkit.exporters.ShareGPTExporter" class="md-nav__link">
+  <a href="#curatorkit.cost.DryRunCostEstimator.from_curator_config" class="md-nav__link">
     <span class="md-ellipsis">
       
-        ShareGPTExporter
+        from_curator_config
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#curatorkit.cost.CostGateway" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CostGateway
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="CostGateway">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#curatorkit.cost.CostGateway--parameters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parameters
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#curatorkit.cost.CostGateway.wrap" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        wrap
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#curatorkit.cost.CostReport" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CostReport
       
     </span>
   </a>
@@ -1367,6 +1434,34 @@
   
 </nav>
       
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../exporters/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Exporters
+  
+
+    
+  </span>
+  
+  
+
+      </a>
     </li>
   
 
@@ -1670,22 +1765,34 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#curatorkit.exporters" class="md-nav__link">
+  <a href="#curatorkit.cost" class="md-nav__link">
     <span class="md-ellipsis">
       
-        exporters
+        cost
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="exporters">
+    <nav class="md-nav" aria-label="cost">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#curatorkit.exporters.AlpacaExporter" class="md-nav__link">
+  <a href="#curatorkit.cost.BillOfMaterials" class="md-nav__link">
     <span class="md-ellipsis">
       
-        AlpacaExporter
+        BillOfMaterials
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="BillOfMaterials">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#curatorkit.cost.BillOfMaterials.build" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        build
       
     </span>
   </a>
@@ -1693,22 +1800,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#curatorkit.exporters.ArgillaExporter" class="md-nav__link">
+  <a href="#curatorkit.cost.BillOfMaterials.verify" class="md-nav__link">
     <span class="md-ellipsis">
       
-        ArgillaExporter
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="ArgillaExporter">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#curatorkit.exporters.ArgillaExporter--parameters" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Parameters
+        verify
       
     </span>
   </a>
@@ -1721,10 +1816,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#curatorkit.exporters.CorpusExporter" class="md-nav__link">
+  <a href="#curatorkit.cost.BudgetExceeded" class="md-nav__link">
     <span class="md-ellipsis">
       
-        CorpusExporter
+        BudgetExceeded
       
     </span>
   </a>
@@ -1732,10 +1827,22 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#curatorkit.exporters.DPOExporter" class="md-nav__link">
+  <a href="#curatorkit.cost.TokenBudget" class="md-nav__link">
     <span class="md-ellipsis">
       
-        DPOExporter
+        TokenBudget
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="TokenBudget">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#curatorkit.cost.TokenBudget.record" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        record
       
     </span>
   </a>
@@ -1743,10 +1850,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#curatorkit.exporters.GRPOExporter" class="md-nav__link">
+  <a href="#curatorkit.cost.TokenBudget.check" class="md-nav__link">
     <span class="md-ellipsis">
       
-        GRPOExporter
+        check
       
     </span>
   </a>
@@ -1754,10 +1861,26 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#curatorkit.exporters.MessagesExporter" class="md-nav__link">
+  <a href="#curatorkit.cost.TokenBudget.estimate_remaining" class="md-nav__link">
     <span class="md-ellipsis">
       
-        MessagesExporter
+        estimate_remaining
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#curatorkit.cost.CostEstimate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CostEstimate
       
     </span>
   </a>
@@ -1765,10 +1888,22 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#curatorkit.exporters.PPOExporter" class="md-nav__link">
+  <a href="#curatorkit.cost.DryRunCostEstimator" class="md-nav__link">
     <span class="md-ellipsis">
       
-        PPOExporter
+        DryRunCostEstimator
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="DryRunCostEstimator">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#curatorkit.cost.DryRunCostEstimator--parameters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parameters
       
     </span>
   </a>
@@ -1776,10 +1911,65 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#curatorkit.exporters.ShareGPTExporter" class="md-nav__link">
+  <a href="#curatorkit.cost.DryRunCostEstimator.from_curator_config" class="md-nav__link">
     <span class="md-ellipsis">
       
-        ShareGPTExporter
+        from_curator_config
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#curatorkit.cost.CostGateway" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CostGateway
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="CostGateway">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#curatorkit.cost.CostGateway--parameters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parameters
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#curatorkit.cost.CostGateway.wrap" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        wrap
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#curatorkit.cost.CostReport" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CostReport
       
     </span>
   </a>
@@ -1808,7 +1998,7 @@
 
 
   
-    <a href="https://github.com/Lexsi-Labs/CuratorKIT/edit/main/docs/reference/api/exporters.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+    <a href="https://github.com/Lexsi-Labs/CuratorKIT/edit/main/docs/reference/api/cost.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
     </a>
@@ -1816,22 +2006,45 @@
   
 
 
-<h1 id="exporters">Exporters<a class="headerlink" href="#exporters" title="Permanent link">&para;</a></h1>
-<p>Output format writers. Each writes one JSONL file into the output directory.</p>
+<h1 id="cost-bill-of-materials">Cost &amp; bill of materials<a class="headerlink" href="#cost-bill-of-materials" title="Permanent link">&para;</a></h1>
+<p>Token/USD tracking per LLM call (<code>CostGateway</code>), hard and soft budgets (<code>TokenBudget</code>), per-stage cost reports, a checksummed bill of materials for outputs, and a pre-run cost estimator. USD pricing comes from LiteLLM (<code>generation</code> extra).</p>
 
 
 <div class="doc doc-object doc-module">
 
 
 
-<h2 id="curatorkit.exporters" class="doc doc-heading">
-            <span class="doc doc-object-name doc-module-name">curatorkit.exporters</span>
+<h2 id="curatorkit.cost" class="doc doc-heading">
+            <span class="doc doc-object-name doc-module-name">curatorkit.cost</span>
 
 
-<a href="#curatorkit.exporters" class="headerlink" title="Permanent link">&para;</a></h2>
+<a href="#curatorkit.cost" class="headerlink" title="Permanent link">&para;</a></h2>
 
     <div class="doc doc-contents first">
 
+        <p>Cost controls and bill of materials.</p>
+
+
+<details class="components" open>
+  <summary>Components</summary>
+  <p>gateway.py — CostGateway: wraps a BaseLLM, tracks tokens + cost per call.
+budget.py  — TokenBudget: hard / soft caps with BudgetExceeded exception.
+             When the cap fires, the pipeline halts gracefully and exports
+             what was produced (no partial-output loss).
+report.py  — CostReport: per-stage attribution + summary.
+bom.py     — BillOfMaterials: cryptographic verification of every output
+             file + manifest. The BoM is itself checksummed.</p>
+</details>
+
+<details class="public-api" open>
+  <summary>Public API</summary>
+  <p>from curatorkit.cost import (
+    CostGateway,
+    TokenBudget, BudgetExceeded,
+    CostReport,
+    BillOfMaterials,
+)</p>
+</details>
 
 
 
@@ -1855,21 +2068,37 @@
 
 
 
-<h3 id="curatorkit.exporters.AlpacaExporter" class="doc doc-heading">
-            <span class="doc doc-object-name doc-class-name">AlpacaExporter</span>
+<h3 id="curatorkit.cost.BillOfMaterials" class="doc doc-heading">
+            <span class="doc doc-object-name doc-class-name">BillOfMaterials</span>
 
 
-<a href="#curatorkit.exporters.AlpacaExporter" class="headerlink" title="Permanent link">&para;</a></h3>
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-dataclass"><code>dataclass</code></small>
+  </span>
 
+<a href="#curatorkit.cost.BillOfMaterials" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">BillOfMaterials</span><span class="p">(</span><span class="n">pipeline_config_hash</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">run_timestamp</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">sources</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">FileEntry</span><span class="p">]</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(),</span> <span class="n">outputs</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">FileEntry</span><span class="p">]</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(),</span> <span class="n">manifest_sha256</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">''</span><span class="p">,</span> <span class="n">bom_signature</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">''</span><span class="p">,</span> <span class="n">tool_version</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">''</span><span class="p">)</span>
+</code></pre></div>
 
     <div class="doc doc-contents ">
-            <p class="doc doc-class-bases">
-              Bases: <code><a class="autorefs autorefs-internal" title="BaseExporter (curatorkit.interfaces.BaseExporter)" href="../interfaces/#curatorkit.interfaces.BaseExporter">BaseExporter</a></code></p>
 
 
 
-        <p>Export to Alpaca instruction-following format.</p>
+        <p>Run-scoped BoM. Construct via <code>BillOfMaterials.build(...)</code>.</p>
 
+
+<details class="fields" open>
+  <summary>Fields</summary>
+  <p>pipeline_config_hash — copied from the manifest for cross-reference.
+run_timestamp        — UTC ISO-8601.
+sources              — input files the run consumed.
+outputs              — files the run wrote (jsonl + manifest + reports).
+manifest_sha256      — SHA-256 of manifest.json.
+bom_signature        — SHA-256 over the canonical-JSON BoM body
+                       (everything in this object except <code>bom_signature</code>
+                       itself). Re-computing it and comparing is how
+                       callers verify the BoM has not been edited.</p>
+</details>
 
 
 
@@ -1890,6 +2119,61 @@
 
 
 
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="curatorkit.cost.BillOfMaterials.build" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">build</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
+  </span>
+
+<a href="#curatorkit.cost.BillOfMaterials.build" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">build</span><span class="p">(</span><span class="n">manifest_path</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">output_dir</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">source_files</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">],</span> <span class="n">pipeline_config_hash</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">tool_version</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">extra_outputs</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Path</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BillOfMaterials</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Hash everything and assemble the BoM.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="curatorkit.cost.BillOfMaterials.verify" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">verify</span>
+
+
+<a href="#curatorkit.cost.BillOfMaterials.verify" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">verify</span><span class="p">(</span><span class="n">manifest_path</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">output_dir</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Re-hash every file in the BoM and report any mismatches.</p>
+
+
+<details class="returns-a-dict" open>
+  <summary>Returns a dict</summary>
+  <p>{
+  "signature_ok": bool,             # the BoM itself wasn't edited
+  "manifest_ok":  bool,             # manifest.json is unchanged
+  "sources_ok":   {path: bool},     # per-source file integrity
+  "outputs_ok":   {path: bool},     # per-output file integrity
+  "all_ok":       bool,             # AND of all of the above
+}</p>
+</details>
+
+    </div>
+
+</div>
 
 
 
@@ -1903,41 +2187,25 @@
 
 
 
-<h3 id="curatorkit.exporters.ArgillaExporter" class="doc doc-heading">
-            <span class="doc doc-object-name doc-class-name">ArgillaExporter</span>
+<h3 id="curatorkit.cost.BudgetExceeded" class="doc doc-heading">
+            <span class="doc doc-object-name doc-class-name">BudgetExceeded</span>
 
 
-<a href="#curatorkit.exporters.ArgillaExporter" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">ArgillaExporter</span><span class="p">(</span><span class="n">api_url</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">''</span><span class="p">,</span> <span class="n">api_key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">''</span><span class="p">,</span> <span class="n">workspace</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">'argilla'</span><span class="p">,</span> <span class="n">dataset_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">'curatorkit_review'</span><span class="p">,</span> <span class="n">include_rejected</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">rejected_samples</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">RejectedSample</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">write_local_jsonl_fallback</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
+<a href="#curatorkit.cost.BudgetExceeded" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">BudgetExceeded</span><span class="p">(</span><span class="n">spent_tokens</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">spent_usd</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">token_cap</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n">usd_cap</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span><span class="p">)</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
             <p class="doc doc-class-bases">
-              Bases: <code><a class="autorefs autorefs-internal" title="BaseExporter (curatorkit.interfaces.BaseExporter)" href="../interfaces/#curatorkit.interfaces.BaseExporter">BaseExporter</a></code></p>
+              Bases: <code><span title="RuntimeError">RuntimeError</span></code></p>
 
 
 
-        <p>Push CuratorKIT samples to an Argilla 2.x workspace.</p>
-<h5 id="curatorkit.exporters.ArgillaExporter--parameters">Parameters<a class="headerlink" href="#curatorkit.exporters.ArgillaExporter--parameters" title="Permanent link">&para;</a></h5>
-<p>api_url : str
-    Argilla server URL (e.g., "https://my-argilla.huggingface.cloud").
-api_key : str
-    API token.
-workspace : str
-    Argilla workspace name. Created if it doesn't exist.
-dataset_name : str
-    Argilla dataset name. Created with the standard CuratorKIT schema
-    if it doesn't exist.
-include_rejected : bool
-    Push rejected samples alongside passed (default True).
-    Reviewers can then confirm or override rejection decisions.
-rejected_samples : list[RejectedSample] | None
-    Override the rejected list passed at construction. Useful when the
-    Pipeline result's rejected list lives in a separate object.
-write_local_jsonl_fallback : bool
-    If Argilla isn't installed or the connection fails, write the
-    records to <code>{output_dir}/argilla_records.jsonl</code> so the human-review
-    bundle isn't lost. Default True.</p>
+        <p>Raised by CostGateway when the TokenBudget hard cap is reached.</p>
+<p>Carries the spent / cap counts so callers can render an honest
+cost-attribution report at halt time.</p>
+<p>Marked <strong>no_retry</strong> so BaseLLM.generate() lets it propagate instead
+of swallowing it in the retry loop.</p>
 
 
 
@@ -1972,24 +2240,146 @@ write_local_jsonl_fallback : bool
 
 
 
-<h3 id="curatorkit.exporters.CorpusExporter" class="doc doc-heading">
-            <span class="doc doc-object-name doc-class-name">CorpusExporter</span>
+<h3 id="curatorkit.cost.TokenBudget" class="doc doc-heading">
+            <span class="doc doc-object-name doc-class-name">TokenBudget</span>
 
 
-<a href="#curatorkit.exporters.CorpusExporter" class="headerlink" title="Permanent link">&para;</a></h3>
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-dataclass"><code>dataclass</code></small>
+  </span>
 
+<a href="#curatorkit.cost.TokenBudget" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">TokenBudget</span><span class="p">(</span><span class="n">hard_token_cap</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">soft_token_cap</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">hard_usd_cap</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">soft_usd_cap</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">tokens_spent</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">usd_spent</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">calls_made</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">calls_halted</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">soft_warning_fired</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">_lock</span><span class="p">:</span> <span class="n">Lock</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">Lock</span><span class="p">())</span>
+</code></pre></div>
 
     <div class="doc doc-contents ">
-            <p class="doc doc-class-bases">
-              Bases: <code><a class="autorefs autorefs-internal" title="BaseExporter (curatorkit.interfaces.BaseExporter)" href="../interfaces/#curatorkit.interfaces.BaseExporter">BaseExporter</a></code></p>
 
 
 
-        <p>Export corpus chunks to corpus.jsonl with full chunk metadata.</p>
-<p>Only task_type "language_modeling" or "source_chunk" is written —
-everything else is skipped, even with non-empty output/input (e.g. any
-SFT/preference/GRPO task_type also has <em>some</em> text in one of those
-fields; that doesn't make it a corpus chunk).</p>
+        <p>Per-run token + USD spend cap.</p>
+<p>Either or both caps may be set. Soft / hard caps let callers distinguish
+a warning from a halt — typical usage is <code>soft = 0.8 * hard</code>.</p>
+<p>Thread-safe: increments are guarded by a Lock so the async pipeline can
+update the same budget from multiple workers without races.</p>
+
+
+<details class="counters" open>
+  <summary>Counters</summary>
+  <p>tokens_spent  — sum of total_tokens from every gateway call.
+usd_spent     — sum of cost estimates (LiteLLM cost_per_token table).
+calls_made    — number of LLM calls made through any wrapped gateway.
+calls_halted  — calls that were rejected because the hard cap was hit.</p>
+</details>
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="curatorkit.cost.TokenBudget.record" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">record</span>
+
+
+<a href="#curatorkit.cost.TokenBudget.record" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">record</span><span class="p">(</span><span class="n">tokens</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">usd</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Atomically add the cost of one completed call.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="curatorkit.cost.TokenBudget.check" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">check</span>
+
+
+<a href="#curatorkit.cost.TokenBudget.check" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">check</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Raise BudgetExceeded if any hard cap is breached. Soft cap → warn.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="curatorkit.cost.TokenBudget.estimate_remaining" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">estimate_remaining</span>
+
+
+<a href="#curatorkit.cost.TokenBudget.estimate_remaining" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">estimate_remaining</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span> <span class="o">|</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span><span class="p">]</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Return how much room is left (None where no cap is set).</p>
+
+
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h3 id="curatorkit.cost.CostEstimate" class="doc doc-heading">
+            <span class="doc doc-object-name doc-class-name">CostEstimate</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-dataclass"><code>dataclass</code></small>
+  </span>
+
+<a href="#curatorkit.cost.CostEstimate" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">CostEstimate</span><span class="p">(</span><span class="n">per_stage</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">StageEstimate</span><span class="p">]</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(),</span> <span class="n">total_tokens</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">total_cost_usd</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">assumptions</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(),</span> <span class="n">warnings</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="nb">list</span><span class="p">())</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+
+
+        <p>The full pre-flight estimate.</p>
 
 
 
@@ -2024,23 +2414,39 @@ fields; that doesn't make it a corpus chunk).</p>
 
 
 
-<h3 id="curatorkit.exporters.DPOExporter" class="doc doc-heading">
-            <span class="doc doc-object-name doc-class-name">DPOExporter</span>
+<h3 id="curatorkit.cost.DryRunCostEstimator" class="doc doc-heading">
+            <span class="doc doc-object-name doc-class-name">DryRunCostEstimator</span>
 
 
-<a href="#curatorkit.exporters.DPOExporter" class="headerlink" title="Permanent link">&para;</a></h3>
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-dataclass"><code>dataclass</code></small>
+  </span>
 
+<a href="#curatorkit.cost.DryRunCostEstimator" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">DryRunCostEstimator</span><span class="p">(</span><span class="n">n_input_samples</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span> <span class="n">gate_pass_rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">expected_chunks_per_sample</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">probe_calls_per_rejection</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">6</span><span class="p">,</span> <span class="n">overall_failure_rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.2</span><span class="p">)</span>
+</code></pre></div>
 
     <div class="doc doc-contents ">
-            <p class="doc doc-class-bases">
-              Bases: <code><a class="autorefs autorefs-internal" title="BaseExporter (curatorkit.interfaces.BaseExporter)" href="../interfaces/#curatorkit.interfaces.BaseExporter">BaseExporter</a></code></p>
 
 
 
-        <p>Export preference data in TRL DPO format.</p>
-<p>Only samples with task_type "preference" or "implicit_preference"
-are written. All others are skipped (not rejected — skipping is
-intentional when exporting a multi-task pipeline subset).</p>
+        <p>Build a CostEstimate for a given pipeline configuration.</p>
+<h5 id="curatorkit.cost.DryRunCostEstimator--parameters">Parameters<a class="headerlink" href="#curatorkit.cost.DryRunCostEstimator--parameters" title="Permanent link">&para;</a></h5>
+<p>n_input_samples : int
+    Expected number of input samples after readers.
+gate_pass_rate : float
+    Cumulative pass rate per gate. 0.7 means each gate keeps 70% of its
+    input. Default 1.0 (worst-case — no attenuation).
+expected_chunks_per_sample : int
+    For PDF connectors: how many chunks one input file yields. Used
+    only when the first reader is a PDFReader.
+probe_calls_per_rejection : int
+    When adaptive_loop is on, each rejected sample triggers up to this
+    many probe LLM calls. Default 6 (the plan's worst case).
+overall_failure_rate : float
+    Fraction of samples expected to land in the rejected list before
+    the diagnostic loop runs. Default 0.2 — only matters when
+    adaptive_loop=True.</p>
 
 
 
@@ -2063,6 +2469,31 @@ intentional when exporting a multi-task pipeline subset).</p>
 
 
 
+<div class="doc doc-object doc-function">
+
+
+<h4 id="curatorkit.cost.DryRunCostEstimator.from_curator_config" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">from_curator_config</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
+  </span>
+
+<a href="#curatorkit.cost.DryRunCostEstimator.from_curator_config" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">from_curator_config</span><span class="p">(</span><span class="n">config</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">n_input_samples</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span> <span class="n">gate_pass_rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">DryRunCostEstimator</span><span class="p">,</span> <span class="n">CostEstimate</span><span class="p">]</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Build steps via Curator._build_steps() and immediately estimate.</p>
+<p>Returns (estimator, estimate). Useful for <code>--dry-run</code> CLI flags.</p>
+
+
+    </div>
+
+</div>
+
 
 
   </div>
@@ -2075,22 +2506,34 @@ intentional when exporting a multi-task pipeline subset).</p>
 
 
 
-<h3 id="curatorkit.exporters.GRPOExporter" class="doc doc-heading">
-            <span class="doc doc-object-name doc-class-name">GRPOExporter</span>
+<h3 id="curatorkit.cost.CostGateway" class="doc doc-heading">
+            <span class="doc doc-object-name doc-class-name">CostGateway</span>
 
 
-<a href="#curatorkit.exporters.GRPOExporter" class="headerlink" title="Permanent link">&para;</a></h3>
-
+<a href="#curatorkit.cost.CostGateway" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">CostGateway</span><span class="p">(</span><span class="n">inner</span><span class="p">:</span> <span class="n">BaseLLM</span><span class="p">,</span> <span class="n">budget</span><span class="p">:</span> <span class="n">TokenBudget</span><span class="p">,</span> <span class="n">stage_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">'generic'</span><span class="p">,</span> <span class="n">report</span><span class="p">:</span> <span class="n">CostReport</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span>
+</code></pre></div>
 
     <div class="doc doc-contents ">
             <p class="doc doc-class-bases">
-              Bases: <code><a class="autorefs autorefs-internal" title="BaseExporter (curatorkit.interfaces.BaseExporter)" href="../interfaces/#curatorkit.interfaces.BaseExporter">BaseExporter</a></code></p>
+              Bases: <code><a class="autorefs autorefs-internal" title="BaseLLM (curatorkit.llm.base.BaseLLM)" href="../llm/#curatorkit.llm.BaseLLM">BaseLLM</a></code></p>
 
 
 
-        <p>Export to GRPO group rollout format.</p>
-<p>Uses DataSample.responses and DataSample.reward_scores if populated.
-Falls back to empty arrays when no rollouts have been generated yet.</p>
+        <p>BaseLLM-compatible wrapper that meters every call.</p>
+<h5 id="curatorkit.cost.CostGateway--parameters">Parameters<a class="headerlink" href="#curatorkit.cost.CostGateway--parameters" title="Permanent link">&para;</a></h5>
+<p>inner : BaseLLM
+    The underlying backend the gateway delegates to.
+budget : TokenBudget
+    Shared budget for the run. A single TokenBudget instance can be
+    shared across multiple gateways (one per generator / gate) — the
+    budget tracks global spend.
+stage_name : str
+    Label used for per-stage attribution in CostReport. Generators set
+    this to their class name; gates do the same.
+report : Optional[CostReport]
+    Where call records are appended. Pass a shared report so every
+    gateway logs into the same run-wide report.</p>
 
 
 
@@ -2113,53 +2556,29 @@ Falls back to empty arrays when no rollouts have been generated yet.</p>
 
 
 
+<div class="doc doc-object doc-function">
 
 
-  </div>
+<h4 id="curatorkit.cost.CostGateway.wrap" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">wrap</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
+  </span>
+
+<a href="#curatorkit.cost.CostGateway.wrap" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">wrap</span><span class="p">(</span><span class="n">inner</span><span class="p">:</span> <span class="n">BaseLLM</span><span class="p">,</span> <span class="n">budget</span><span class="p">:</span> <span class="n">TokenBudget</span><span class="p">,</span> <span class="n">stage_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">report</span><span class="p">:</span> <span class="n">CostReport</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CostGateway</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Idempotent: if <code>inner</code> is already a CostGateway, rebind its stage.</p>
+
 
     </div>
 
 </div>
-
-<div class="doc doc-object doc-class">
-
-
-
-<h3 id="curatorkit.exporters.MessagesExporter" class="doc doc-heading">
-            <span class="doc doc-object-name doc-class-name">MessagesExporter</span>
-
-
-<a href="#curatorkit.exporters.MessagesExporter" class="headerlink" title="Permanent link">&para;</a></h3>
-
-
-    <div class="doc doc-contents ">
-            <p class="doc doc-class-bases">
-              Bases: <code><a class="autorefs autorefs-internal" title="BaseExporter (curatorkit.interfaces.BaseExporter)" href="../interfaces/#curatorkit.interfaces.BaseExporter">BaseExporter</a></code></p>
-
-
-
-        <p>Export to multi-turn chat <code>messages</code> (role/content) format.</p>
-
-
-
-
-
-
-
-
-
-
-
-<div class="doc doc-children">
-
-
-
-
-
-
-
-
-
 
 
 
@@ -2173,68 +2592,27 @@ Falls back to empty arrays when no rollouts have been generated yet.</p>
 
 
 
-<h3 id="curatorkit.exporters.PPOExporter" class="doc doc-heading">
-            <span class="doc doc-object-name doc-class-name">PPOExporter</span>
+<h3 id="curatorkit.cost.CostReport" class="doc doc-heading">
+            <span class="doc doc-object-name doc-class-name">CostReport</span>
 
 
-<a href="#curatorkit.exporters.PPOExporter" class="headerlink" title="Permanent link">&para;</a></h3>
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-dataclass"><code>dataclass</code></small>
+  </span>
 
-
-    <div class="doc doc-contents ">
-            <p class="doc doc-class-bases">
-              Bases: <code><a class="autorefs autorefs-internal" title="BaseExporter (curatorkit.interfaces.BaseExporter)" href="../interfaces/#curatorkit.interfaces.BaseExporter">BaseExporter</a></code></p>
-
-
-
-        <p>Export prompts in PPO training format.</p>
-
-
-
-
-
-
-
-
-
-
-
-<div class="doc doc-children">
-
-
-
-
-
-
-
-
-
-
-
-
-  </div>
-
-    </div>
-
-</div>
-
-<div class="doc doc-object doc-class">
-
-
-
-<h3 id="curatorkit.exporters.ShareGPTExporter" class="doc doc-heading">
-            <span class="doc doc-object-name doc-class-name">ShareGPTExporter</span>
-
-
-<a href="#curatorkit.exporters.ShareGPTExporter" class="headerlink" title="Permanent link">&para;</a></h3>
-
+<a href="#curatorkit.cost.CostReport" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">CostReport</span><span class="p">(</span><span class="n">records</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">CallRecord</span><span class="p">]</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(),</span> <span class="n">halted</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">halt_reason</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span>
+</code></pre></div>
 
     <div class="doc doc-contents ">
-            <p class="doc doc-class-bases">
-              Bases: <code><a class="autorefs autorefs-internal" title="BaseExporter (curatorkit.interfaces.BaseExporter)" href="../interfaces/#curatorkit.interfaces.BaseExporter">BaseExporter</a></code></p>
 
 
 
-        <p>Export to ShareGPT multi-turn conversation (from/value) format.</p>
+        <p>Aggregates CallRecords into per-stage and per-model rollups.</p>
+<p>Built by <code>CostReport.from_records(records)</code> — records are emitted by
+CostGateway each time <code>generate()</code> returns. The report itself is a
+plain dataclass with serialization helpers so it slots into the
+manifest without circular imports.</p>
 
 
 
@@ -2310,7 +2688,7 @@ Falls back to empty arrays when no rollouts have been generated yet.</p>
       <nav class="md-footer__inner md-grid" aria-label="Footer" >
         
           
-          <a href="../cost/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Cost &amp; BoM">
+          <a href="../coverage/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Coverage">
             <div class="md-footer__button md-icon">
               
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
@@ -2320,20 +2698,20 @@ Falls back to empty arrays when no rollouts have been generated yet.</p>
                 Previous
               </span>
               <div class="md-ellipsis">
-                Cost & BoM
+                Coverage
               </div>
             </div>
           </a>
         
         
           
-          <a href="../diagnostic/" class="md-footer__link md-footer__link--next" aria-label="Next: Diagnostics">
+          <a href="../exporters/" class="md-footer__link md-footer__link--next" aria-label="Next: Exporters">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Next
               </span>
               <div class="md-ellipsis">
-                Diagnostics
+                Exporters
               </div>
             </div>
             <div class="md-footer__button md-icon">

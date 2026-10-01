@@ -10,13 +10,13 @@
       
       
       
-        <link rel="canonical" href="https://lexsi-labs.github.io/CuratorKIT/0.1/reference/api/exporters/">
+        <link rel="canonical" href="https://lexsi-labs.github.io/CuratorKIT/0.1/reference/api/kg/">
       
       
-        <link rel="prev" href="../cost/">
+        <link rel="prev" href="../judges/">
       
       
-        <link rel="next" href="../diagnostic/">
+        <link rel="next" href="../coverage/">
       
       
         
@@ -27,7 +27,7 @@
     
     
       
-        <title>Exporters - CuratorKIT</title>
+        <title>Knowledge graph - CuratorKIT</title>
       
     
     
@@ -82,7 +82,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#exporters" class="md-skip">
+        <a href="#knowledge-graph" class="md-skip">
           Skip to content
         </a>
       
@@ -121,7 +121,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Exporters
+              Knowledge graph
             
           </span>
         </div>
@@ -1095,10 +1095,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../kg/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Knowledge graph
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -1114,6 +1141,170 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#curatorkit.kg" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        kg
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="kg">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#curatorkit.kg.KnowledgeGraph" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        KnowledgeGraph
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="KnowledgeGraph">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#curatorkit.kg.KnowledgeGraph.add_triple" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        add_triple
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#curatorkit.kg.KnowledgeGraph.add_triples" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        add_triples
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#curatorkit.kg.KnowledgeGraph.entities" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        entities
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#curatorkit.kg.KnowledgeGraph.relations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        relations
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#curatorkit.kg.KnowledgeGraph.neighbors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        neighbors
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#curatorkit.kg.KnowledgeGraph.successors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        successors
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#curatorkit.kg.KnowledgeGraph.predecessors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        predecessors
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#curatorkit.kg.KnowledgeGraph.paths" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        paths
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#curatorkit.kg.KnowledgeGraph.sample_paths" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        sample_paths
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#curatorkit.kg.Triple" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Triple
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -1179,37 +1370,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Exporters
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../exporters/" class="md-nav__link">
         
   
   
@@ -1225,148 +1389,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#curatorkit.exporters" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        exporters
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="exporters">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#curatorkit.exporters.AlpacaExporter" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        AlpacaExporter
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#curatorkit.exporters.ArgillaExporter" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        ArgillaExporter
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="ArgillaExporter">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#curatorkit.exporters.ArgillaExporter--parameters" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Parameters
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#curatorkit.exporters.CorpusExporter" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        CorpusExporter
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#curatorkit.exporters.DPOExporter" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        DPOExporter
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#curatorkit.exporters.GRPOExporter" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        GRPOExporter
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#curatorkit.exporters.MessagesExporter" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        MessagesExporter
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#curatorkit.exporters.PPOExporter" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        PPOExporter
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#curatorkit.exporters.ShareGPTExporter" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        ShareGPTExporter
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -1670,22 +1692,34 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#curatorkit.exporters" class="md-nav__link">
+  <a href="#curatorkit.kg" class="md-nav__link">
     <span class="md-ellipsis">
       
-        exporters
+        kg
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="exporters">
+    <nav class="md-nav" aria-label="kg">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#curatorkit.exporters.AlpacaExporter" class="md-nav__link">
+  <a href="#curatorkit.kg.KnowledgeGraph" class="md-nav__link">
     <span class="md-ellipsis">
       
-        AlpacaExporter
+        KnowledgeGraph
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="KnowledgeGraph">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#curatorkit.kg.KnowledgeGraph.add_triple" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        add_triple
       
     </span>
   </a>
@@ -1693,22 +1727,87 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#curatorkit.exporters.ArgillaExporter" class="md-nav__link">
+  <a href="#curatorkit.kg.KnowledgeGraph.add_triples" class="md-nav__link">
     <span class="md-ellipsis">
       
-        ArgillaExporter
+        add_triples
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="ArgillaExporter">
-      <ul class="md-nav__list">
+</li>
         
           <li class="md-nav__item">
-  <a href="#curatorkit.exporters.ArgillaExporter--parameters" class="md-nav__link">
+  <a href="#curatorkit.kg.KnowledgeGraph.entities" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Parameters
+        entities
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#curatorkit.kg.KnowledgeGraph.relations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        relations
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#curatorkit.kg.KnowledgeGraph.neighbors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        neighbors
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#curatorkit.kg.KnowledgeGraph.successors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        successors
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#curatorkit.kg.KnowledgeGraph.predecessors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        predecessors
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#curatorkit.kg.KnowledgeGraph.paths" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        paths
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#curatorkit.kg.KnowledgeGraph.sample_paths" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        sample_paths
       
     </span>
   </a>
@@ -1721,65 +1820,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#curatorkit.exporters.CorpusExporter" class="md-nav__link">
+  <a href="#curatorkit.kg.Triple" class="md-nav__link">
     <span class="md-ellipsis">
       
-        CorpusExporter
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#curatorkit.exporters.DPOExporter" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        DPOExporter
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#curatorkit.exporters.GRPOExporter" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        GRPOExporter
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#curatorkit.exporters.MessagesExporter" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        MessagesExporter
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#curatorkit.exporters.PPOExporter" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        PPOExporter
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#curatorkit.exporters.ShareGPTExporter" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        ShareGPTExporter
+        Triple
       
     </span>
   </a>
@@ -1808,7 +1852,7 @@
 
 
   
-    <a href="https://github.com/Lexsi-Labs/CuratorKIT/edit/main/docs/reference/api/exporters.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+    <a href="https://github.com/Lexsi-Labs/CuratorKIT/edit/main/docs/reference/api/kg.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
     </a>
@@ -1816,22 +1860,48 @@
   
 
 
-<h1 id="exporters">Exporters<a class="headerlink" href="#exporters" title="Permanent link">&para;</a></h1>
-<p>Output format writers. Each writes one JSONL file into the output directory.</p>
+<h1 id="knowledge-graph">Knowledge graph<a class="headerlink" href="#knowledge-graph" title="Permanent link">&para;</a></h1>
+<p>Knowledge-graph-driven generation after GraphGen: an in-memory triple store, LLM triple extraction, multi-hop QA over graph paths, and graph coverage analysis. No graph library is required.</p>
 
 
 <div class="doc doc-object doc-module">
 
 
 
-<h2 id="curatorkit.exporters" class="doc doc-heading">
-            <span class="doc doc-object-name doc-module-name">curatorkit.exporters</span>
+<h2 id="curatorkit.kg" class="doc doc-heading">
+            <span class="doc doc-object-name doc-module-name">curatorkit.kg</span>
 
 
-<a href="#curatorkit.exporters" class="headerlink" title="Permanent link">&para;</a></h2>
+<a href="#curatorkit.kg" class="headerlink" title="Permanent link">&para;</a></h2>
 
     <div class="doc doc-contents first">
 
+        <p>Knowledge-graph-driven generation.</p>
+<p>Reference: Yang et al., "GraphGen: Enhancing Supervised Fine-Tuning for LLMs
+with Knowledge-Driven Synthetic Data Generation" (2025) —
+  Paper: https://arxiv.org/abs/2505.20416
+  Repo:  https://github.com/open-sciencelab/GraphGen</p>
+
+
+<details class="components" open>
+  <summary>Components</summary>
+  <p>store.py      — KnowledgeGraph: in-memory triples + adjacency + persistence
+extractor.py  — KGExtractor: LLM-based entity+relation extraction
+multihop_qa.py — MultiHopQATask: atomic / aggregated / k-hop QA over the graph
+coverage.py   — GraphCoverageAnalyser: under-represented entities/relations</p>
+</details>        <p>Implemented from scratch — no external graph library imported (the plan
+forbids opaque dependencies). Triple set is a plain dict-of-dict-of-set.</p>
+
+
+<details class="public-api" open>
+  <summary>Public API</summary>
+  <p>from curatorkit.kg import (
+    KnowledgeGraph, Triple,
+    KGExtractor,
+    MultiHopQATask,
+    GraphCoverageAnalyser,
+)</p>
+</details>
 
 
 
@@ -1855,89 +1925,23 @@
 
 
 
-<h3 id="curatorkit.exporters.AlpacaExporter" class="doc doc-heading">
-            <span class="doc doc-object-name doc-class-name">AlpacaExporter</span>
+<h3 id="curatorkit.kg.KnowledgeGraph" class="doc doc-heading">
+            <span class="doc doc-object-name doc-class-name">KnowledgeGraph</span>
 
 
-<a href="#curatorkit.exporters.AlpacaExporter" class="headerlink" title="Permanent link">&para;</a></h3>
-
-
-    <div class="doc doc-contents ">
-            <p class="doc doc-class-bases">
-              Bases: <code><a class="autorefs autorefs-internal" title="BaseExporter (curatorkit.interfaces.BaseExporter)" href="../interfaces/#curatorkit.interfaces.BaseExporter">BaseExporter</a></code></p>
-
-
-
-        <p>Export to Alpaca instruction-following format.</p>
-
-
-
-
-
-
-
-
-
-
-
-<div class="doc doc-children">
-
-
-
-
-
-
-
-
-
-
-
-
-  </div>
-
-    </div>
-
-</div>
-
-<div class="doc doc-object doc-class">
-
-
-
-<h3 id="curatorkit.exporters.ArgillaExporter" class="doc doc-heading">
-            <span class="doc doc-object-name doc-class-name">ArgillaExporter</span>
-
-
-<a href="#curatorkit.exporters.ArgillaExporter" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">ArgillaExporter</span><span class="p">(</span><span class="n">api_url</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">''</span><span class="p">,</span> <span class="n">api_key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">''</span><span class="p">,</span> <span class="n">workspace</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">'argilla'</span><span class="p">,</span> <span class="n">dataset_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">'curatorkit_review'</span><span class="p">,</span> <span class="n">include_rejected</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">rejected_samples</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">RejectedSample</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">write_local_jsonl_fallback</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
+<a href="#curatorkit.kg.KnowledgeGraph" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">KnowledgeGraph</span><span class="p">()</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
-            <p class="doc doc-class-bases">
-              Bases: <code><a class="autorefs autorefs-internal" title="BaseExporter (curatorkit.interfaces.BaseExporter)" href="../interfaces/#curatorkit.interfaces.BaseExporter">BaseExporter</a></code></p>
 
 
 
-        <p>Push CuratorKIT samples to an Argilla 2.x workspace.</p>
-<h5 id="curatorkit.exporters.ArgillaExporter--parameters">Parameters<a class="headerlink" href="#curatorkit.exporters.ArgillaExporter--parameters" title="Permanent link">&para;</a></h5>
-<p>api_url : str
-    Argilla server URL (e.g., "https://my-argilla.huggingface.cloud").
-api_key : str
-    API token.
-workspace : str
-    Argilla workspace name. Created if it doesn't exist.
-dataset_name : str
-    Argilla dataset name. Created with the standard CuratorKIT schema
-    if it doesn't exist.
-include_rejected : bool
-    Push rejected samples alongside passed (default True).
-    Reviewers can then confirm or override rejection decisions.
-rejected_samples : list[RejectedSample] | None
-    Override the rejected list passed at construction. Useful when the
-    Pipeline result's rejected list lives in a separate object.
-write_local_jsonl_fallback : bool
-    If Argilla isn't installed or the connection fails, write the
-    records to <code>{output_dir}/argilla_records.jsonl</code> so the human-review
-    bundle isn't lost. Default True.</p>
+        <p>Dict-of-dict-of-set triple store.</p>
+<p>Construction is empty by default; populate via <code>add_triple()</code> or load
+from disk via <code>KnowledgeGraph.load()</code>.</p>
+<p>Thread-safety: not thread-safe. Build the graph in one thread (or
+serialize updates externally); reads are safe once construction is done.</p>
 
 
 
@@ -1960,254 +1964,196 @@ write_local_jsonl_fallback : bool
 
 
 
+<div class="doc doc-object doc-function">
 
 
-  </div>
+<h4 id="curatorkit.kg.KnowledgeGraph.add_triple" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">add_triple</span>
+
+
+<a href="#curatorkit.kg.KnowledgeGraph.add_triple" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">add_triple</span><span class="p">(</span><span class="n">subject</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">predicate</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">obj</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">source_uri</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">''</span><span class="p">,</span> <span class="n">source_chunk_hash</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">''</span><span class="p">,</span> <span class="n">confidence</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Insert one triple. Returns True if the (s,p,o) was new, False if it
+was a duplicate. Duplicates do not raise — the call is idempotent —
+but the highest-confidence provenance wins.</p>
+
 
     </div>
 
 </div>
 
-<div class="doc doc-object doc-class">
+<div class="doc doc-object doc-function">
 
 
+<h4 id="curatorkit.kg.KnowledgeGraph.add_triples" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">add_triples</span>
 
-<h3 id="curatorkit.exporters.CorpusExporter" class="doc doc-heading">
-            <span class="doc doc-object-name doc-class-name">CorpusExporter</span>
 
-
-<a href="#curatorkit.exporters.CorpusExporter" class="headerlink" title="Permanent link">&para;</a></h3>
-
+<a href="#curatorkit.kg.KnowledgeGraph.add_triples" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">add_triples</span><span class="p">(</span><span class="n">triples</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">Triple</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]])</span> <span class="o">-&gt;</span> <span class="nb">int</span>
+</code></pre></div>
 
     <div class="doc doc-contents ">
-            <p class="doc doc-class-bases">
-              Bases: <code><a class="autorefs autorefs-internal" title="BaseExporter (curatorkit.interfaces.BaseExporter)" href="../interfaces/#curatorkit.interfaces.BaseExporter">BaseExporter</a></code></p>
 
+        <p>Bulk insert. Returns count of NEW triples added.</p>
 
-
-        <p>Export corpus chunks to corpus.jsonl with full chunk metadata.</p>
-<p>Only task_type "language_modeling" or "source_chunk" is written —
-everything else is skipped, even with non-empty output/input (e.g. any
-SFT/preference/GRPO task_type also has <em>some</em> text in one of those
-fields; that doesn't make it a corpus chunk).</p>
-
-
-
-
-
-
-
-
-
-
-
-<div class="doc doc-children">
-
-
-
-
-
-
-
-
-
-
-
-
-  </div>
 
     </div>
 
 </div>
 
-<div class="doc doc-object doc-class">
+<div class="doc doc-object doc-function">
 
 
+<h4 id="curatorkit.kg.KnowledgeGraph.entities" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">entities</span>
 
-<h3 id="curatorkit.exporters.DPOExporter" class="doc doc-heading">
-            <span class="doc doc-object-name doc-class-name">DPOExporter</span>
 
-
-<a href="#curatorkit.exporters.DPOExporter" class="headerlink" title="Permanent link">&para;</a></h3>
-
+<a href="#curatorkit.kg.KnowledgeGraph.entities" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">entities</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+</code></pre></div>
 
     <div class="doc doc-contents ">
-            <p class="doc doc-class-bases">
-              Bases: <code><a class="autorefs autorefs-internal" title="BaseExporter (curatorkit.interfaces.BaseExporter)" href="../interfaces/#curatorkit.interfaces.BaseExporter">BaseExporter</a></code></p>
 
+        <p>Return the union of subjects and objects (the vocabulary).</p>
 
-
-        <p>Export preference data in TRL DPO format.</p>
-<p>Only samples with task_type "preference" or "implicit_preference"
-are written. All others are skipped (not rejected — skipping is
-intentional when exporting a multi-task pipeline subset).</p>
-
-
-
-
-
-
-
-
-
-
-
-<div class="doc doc-children">
-
-
-
-
-
-
-
-
-
-
-
-
-  </div>
 
     </div>
 
 </div>
 
-<div class="doc doc-object doc-class">
+<div class="doc doc-object doc-function">
 
 
+<h4 id="curatorkit.kg.KnowledgeGraph.relations" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">relations</span>
 
-<h3 id="curatorkit.exporters.GRPOExporter" class="doc doc-heading">
-            <span class="doc doc-object-name doc-class-name">GRPOExporter</span>
 
-
-<a href="#curatorkit.exporters.GRPOExporter" class="headerlink" title="Permanent link">&para;</a></h3>
-
+<a href="#curatorkit.kg.KnowledgeGraph.relations" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">relations</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+</code></pre></div>
 
     <div class="doc doc-contents ">
-            <p class="doc doc-class-bases">
-              Bases: <code><a class="autorefs autorefs-internal" title="BaseExporter (curatorkit.interfaces.BaseExporter)" href="../interfaces/#curatorkit.interfaces.BaseExporter">BaseExporter</a></code></p>
 
+        <p>All distinct predicates.</p>
 
-
-        <p>Export to GRPO group rollout format.</p>
-<p>Uses DataSample.responses and DataSample.reward_scores if populated.
-Falls back to empty arrays when no rollouts have been generated yet.</p>
-
-
-
-
-
-
-
-
-
-
-
-<div class="doc doc-children">
-
-
-
-
-
-
-
-
-
-
-
-
-  </div>
 
     </div>
 
 </div>
 
-<div class="doc doc-object doc-class">
+<div class="doc doc-object doc-function">
 
 
+<h4 id="curatorkit.kg.KnowledgeGraph.neighbors" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">neighbors</span>
 
-<h3 id="curatorkit.exporters.MessagesExporter" class="doc doc-heading">
-            <span class="doc doc-object-name doc-class-name">MessagesExporter</span>
 
-
-<a href="#curatorkit.exporters.MessagesExporter" class="headerlink" title="Permanent link">&para;</a></h3>
-
+<a href="#curatorkit.kg.KnowledgeGraph.neighbors" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">neighbors</span><span class="p">(</span><span class="n">entity</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+</code></pre></div>
 
     <div class="doc doc-contents ">
-            <p class="doc doc-class-bases">
-              Bases: <code><a class="autorefs autorefs-internal" title="BaseExporter (curatorkit.interfaces.BaseExporter)" href="../interfaces/#curatorkit.interfaces.BaseExporter">BaseExporter</a></code></p>
 
+        <p>Return all entities reachable from <code>entity</code> in ≤ k hops (directed +
+reverse). Excludes <code>entity</code> itself.</p>
 
-
-        <p>Export to multi-turn chat <code>messages</code> (role/content) format.</p>
-
-
-
-
-
-
-
-
-
-
-
-<div class="doc doc-children">
-
-
-
-
-
-
-
-
-
-
-
-
-  </div>
 
     </div>
 
 </div>
 
-<div class="doc doc-object doc-class">
+<div class="doc doc-object doc-function">
 
 
+<h4 id="curatorkit.kg.KnowledgeGraph.successors" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">successors</span>
 
-<h3 id="curatorkit.exporters.PPOExporter" class="doc doc-heading">
-            <span class="doc doc-object-name doc-class-name">PPOExporter</span>
 
-
-<a href="#curatorkit.exporters.PPOExporter" class="headerlink" title="Permanent link">&para;</a></h3>
-
+<a href="#curatorkit.kg.KnowledgeGraph.successors" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">successors</span><span class="p">(</span><span class="n">entity</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span>
+</code></pre></div>
 
     <div class="doc doc-contents ">
-            <p class="doc doc-class-bases">
-              Bases: <code><a class="autorefs autorefs-internal" title="BaseExporter (curatorkit.interfaces.BaseExporter)" href="../interfaces/#curatorkit.interfaces.BaseExporter">BaseExporter</a></code></p>
+
+        <p>Return [(predicate, object)] for entity as subject.</p>
 
 
+    </div>
 
-        <p>Export prompts in PPO training format.</p>
+</div>
 
-
-
-
-
+<div class="doc doc-object doc-function">
 
 
+<h4 id="curatorkit.kg.KnowledgeGraph.predecessors" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">predecessors</span>
 
 
+<a href="#curatorkit.kg.KnowledgeGraph.predecessors" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">predecessors</span><span class="p">(</span><span class="n">entity</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Return [(predicate, subject)] for entity as object.</p>
 
 
-<div class="doc doc-children">
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
 
 
+<h4 id="curatorkit.kg.KnowledgeGraph.paths" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">paths</span>
 
 
+<a href="#curatorkit.kg.KnowledgeGraph.paths" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">paths</span><span class="p">(</span><span class="n">src</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">dst</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">max_hops</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]]</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Enumerate all paths from <code>src</code> to <code>dst</code> with at most <code>max_hops</code>
+edges. Each path is a list of (s, p, o) tuples. Returns empty list
+if no path exists.</p>
+<p>Used by multi-hop QA: a path of length k generates a k-hop question.
+BFS over the undirected version of the graph; per-path edge direction
+is preserved in the output tuples.</p>
 
 
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
 
 
+<h4 id="curatorkit.kg.KnowledgeGraph.sample_paths" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">sample_paths</span>
 
+
+<a href="#curatorkit.kg.KnowledgeGraph.sample_paths" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">sample_paths</span><span class="p">(</span><span class="n">max_hops</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span> <span class="n">sample_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span> <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">42</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]]</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Uniformly sample paths from the graph for multi-hop QA generation.</p>
+<p>Each sample is a sequence of (s,p,o) tuples of length in [1, max_hops].
+Used by MultiHopQATask to drive generation without enumerating every
+possible path (which is exponential).</p>
+
+
+    </div>
+
+</div>
 
 
 
@@ -2221,20 +2167,23 @@ Falls back to empty arrays when no rollouts have been generated yet.</p>
 
 
 
-<h3 id="curatorkit.exporters.ShareGPTExporter" class="doc doc-heading">
-            <span class="doc doc-object-name doc-class-name">ShareGPTExporter</span>
+<h3 id="curatorkit.kg.Triple" class="doc doc-heading">
+            <span class="doc doc-object-name doc-class-name">Triple</span>
 
 
-<a href="#curatorkit.exporters.ShareGPTExporter" class="headerlink" title="Permanent link">&para;</a></h3>
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-dataclass"><code>dataclass</code></small>
+  </span>
 
+<a href="#curatorkit.kg.Triple" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">Triple</span><span class="p">(</span><span class="n">subject</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">predicate</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">object</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">source_uri</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">''</span><span class="p">,</span> <span class="n">source_chunk_hash</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">''</span><span class="p">,</span> <span class="n">confidence</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">)</span>
+</code></pre></div>
 
     <div class="doc doc-contents ">
-            <p class="doc doc-class-bases">
-              Bases: <code><a class="autorefs autorefs-internal" title="BaseExporter (curatorkit.interfaces.BaseExporter)" href="../interfaces/#curatorkit.interfaces.BaseExporter">BaseExporter</a></code></p>
 
 
 
-        <p>Export to ShareGPT multi-turn conversation (from/value) format.</p>
+        <p>One graph edge: subject -[predicate]-&gt; object, with provenance.</p>
 
 
 
@@ -2310,7 +2259,7 @@ Falls back to empty arrays when no rollouts have been generated yet.</p>
       <nav class="md-footer__inner md-grid" aria-label="Footer" >
         
           
-          <a href="../cost/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Cost &amp; BoM">
+          <a href="../judges/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Judges">
             <div class="md-footer__button md-icon">
               
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
@@ -2320,20 +2269,20 @@ Falls back to empty arrays when no rollouts have been generated yet.</p>
                 Previous
               </span>
               <div class="md-ellipsis">
-                Cost & BoM
+                Judges
               </div>
             </div>
           </a>
         
         
           
-          <a href="../diagnostic/" class="md-footer__link md-footer__link--next" aria-label="Next: Diagnostics">
+          <a href="../coverage/" class="md-footer__link md-footer__link--next" aria-label="Next: Coverage">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Next
               </span>
               <div class="md-ellipsis">
-                Diagnostics
+                Coverage
               </div>
             </div>
             <div class="md-footer__button md-icon">

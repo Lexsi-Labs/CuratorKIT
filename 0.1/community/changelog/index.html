@@ -104,7 +104,7 @@
   <nav class="md-header__inner md-grid" aria-label="Header">
     <a href="../.." title="CuratorKIT" class="md-header__button md-logo" aria-label="CuratorKIT" data-md-component="logo">
       
-  <img src="../../assets/icon.png" alt="logo">
+  <img src="../../assets/icon-white.png" alt="logo">
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
@@ -385,7 +385,7 @@
   <label class="md-nav__title" for="__drawer">
     <a href="../.." title="CuratorKIT" class="md-nav__button md-logo" aria-label="CuratorKIT" data-md-component="logo">
       
-  <img src="../../assets/icon.png" alt="logo">
+  <img src="../../assets/icon-white.png" alt="logo">
 
     </a>
     CuratorKIT
@@ -579,6 +579,8 @@
       
         
           
+        
+      
         
       
         
@@ -862,6 +864,17 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#changed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Changed
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#added" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1066,6 +1079,17 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#changed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Changed
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#added" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1226,8 +1250,73 @@ are kept as the record of what the work was. To know what a given
 <code>pip install curatorkit</code> contains, use <code>curatorkit.__version__</code> or the PyPI page,
 not a heading here.</p>
 </blockquote>
+<h3 id="changed">Changed<a class="headerlink" href="#changed" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>sft_sharegpt.jsonl</code> keeps the ShareGPT <code>conversations</code> / <code>from</code> / <code>value</code> layout, but no longer
+  drops data: <code>metadata["system_prompt"]</code> becomes a leading <code>system</code> turn, a non-empty <code>input</code> is
+  appended to the first <code>human</code> turn, and later turns given as role/content are converted to
+  from/value instead of being copied through as-is.</li>
+</ul>
 <h3 id="added">Added<a class="headerlink" href="#added" title="Permanent link">&para;</a></h3>
 <ul>
+<li><code>messages</code> exporter (<code>sft_messages.jsonl</code>): the same turns as chat <code>messages</code>
+  (<code>[{"role", "content"}, ...]</code>), the layout TRL's <code>SFTTrainer</code> and tokenizer chat templates take
+  directly. Auto-resolved <code>export_formats</code> include it wherever <code>sharegpt</code> is chosen.</li>
+<li>The export folder is a Hugging Face dataset folder: every run also writes <code>README.md</code>, the
+  dataset card with YAML <code>configs:</code> (one config per non-empty export file, one split per
+  <code>output_split</code> directory, <code>train</code> otherwise), so <code>datasets.load_dataset(output_dir, "dpo")</code>
+  loads any export and <code>manifest.json</code> / <code>rejected.jsonl</code> / <code>lexsi_provenance.json</code> are never
+  read as data. Each config's <code>description</code> carries the sha256 of its files, because <code>datasets</code>
+  caches a local folder by its README and would otherwise serve a previous run's rows after a
+  re-run into the same folder. A <code>README.md</code> curatorkit did not write is never overwritten (the
+  run warns and skips it); <code>write_hf_readme=False</code> (<code>CuratorConfig</code>, YAML) skips it always.</li>
+<li><code>lexsi_provenance.json</code> (<code>lexsi.provenance/1</code>) in every output folder, also embedded as
+  <code>manifest["provenance"]</code>: version, method, inputs (with a parent folder's own provenance
+  embedded), and the generator / judge / GRPO-scoring model ids that ran. Written by both
+  <code>Curator.run</code> and <code>curatorkit run</code>.</li>
+<li><code>curatorkit.exporters.EXPORTERS</code> (format name → exporter class, each with <code>filename</code> and
+  <code>columns</code>), used by the Curator, the CLI and the dataset card.</li>
+<li>README: handing an output folder to AlignTune, SafeTune and AuditKIT.</li>
+<li><code>CuratorResult.push_to_hub(repo_id, export_file="sft_alpaca.jsonl", private=True, ...)</code> pushes
+  one export to the Hugging Face Hub as a dataset, one Hub split per <code>output_split</code> directory
+  (needs the <code>hf</code> extra).</li>
+<li><code>on_judge_error="reject" | "pass"</code> on <code>HallucinationGate</code> and <code>RewardGate</code>
+  (<code>CuratorConfig.judge_on_error</code>, YAML <code>on_judge_error</code>).</li>
+<li>README: Cohere Aya quickstart (Cohere API, Ollama, OpenAI-compatible endpoint; Aya as judge).</li>
+<li>Generation tasks, all opt-in through <code>generation_task</code> (config fields default to the papers'
+  settings; see <code>docs/reference/paper-mapping.md</code>): <code>magpie</code> (<code>MagpieTask</code>), <code>persona</code>
+  (<code>PersonaDrivenTask</code>, Persona Hub), <code>self_rewarding</code> (<code>SelfRewardingTask</code>), <code>constitutional</code> /
+  <code>constitutional_preference</code> (Constitutional AI critique-and-revise, SFT or DPO output),
+  <code>best_of_n</code> (<code>BestOfNTask</code>, scorer <code>length</code> | <code>prometheus</code> | <code>deepeval</code> | <code>factscore</code>),
+  <code>joint_bundle</code> (<code>JointBundleTask</code>: linked SFT + DPO + GRPO samples from one pass), and
+  <code>kg_multihop</code> (<code>MultiHopQATask</code> over a saved <code>KnowledgeGraph</code>, <code>kg_path</code>). Tasks whose output
+  task_type depends on their settings (<code>persona</code>, <code>best_of_n</code>, <code>joint_bundle</code>) resolve
+  <code>export_formats</code> from the generated samples.</li>
+<li><code>curatorkit.judges</code>: <code>PrometheusJudge</code> / <code>PrometheusRewardGate</code> (Prometheus 2),
+  <code>DeepEvalJudge</code> / <code>DeepEvalRewardGate</code> (G-Eval), <code>FActScoreJudge</code> / <code>FActScoreGate</code>. Curator
+  wiring: <code>prometheus_threshold</code> + <code>prometheus_rubric</code>, <code>factscore_threshold</code>, all on the judge
+  role LLM. No judge-specific package needed.</li>
+<li><code>DecontaminationGate</code>: n-gram overlap against eval-benchmark shards
+  (<code>decontamination_shards</code>, <code>decontamination_n</code>, <code>decontamination_max_overlap</code>).</li>
+<li>Hygiene: <code>PIIGate</code> (reject or <code>&lt;ENTITY&gt;</code>-redact, Presidio with regex fallback;
+  <code>pii_gate="reject" | "redact"</code>), <code>JailbreakGate</code> (PromptGuard 2 or keyword heuristic;
+  <code>jailbreak_gate</code>), <code>OutputSafetyGate</code> (Llama Guard taxonomy via the judge LLM, regex fallback;
+  <code>output_safety_gate</code>), <code>SafetyComplianceReport</code>. PDF ingest can scrub PII per chunk
+  (<code>PDFReader(pii_scrub="redact" | "drop")</code>, <code>CuratorConfig.pdf_pii_scrub</code>, YAML reader
+  <code>pii_scrub</code>); dropped chunks go to <code>rejected.jsonl</code> as <code>safety_pii_at_ingest:*</code>.</li>
+<li><code>curatorkit.kg</code>: <code>KnowledgeGraph</code> triple store (JSON save/load, k-hop paths), <code>KGExtractor</code>,
+  <code>MultiHopQATask</code>, <code>GraphCoverageAnalyser</code>.</li>
+<li><code>curatorkit.coverage</code>: diversity metrics, <code>CoverageAnalyser</code> (spherical k-means thin-cluster
+  detection), <code>DiversityMonitor</code> (collapse warning), <code>CoverageDirectedGenerator</code>.</li>
+<li><code>curatorkit.cost</code>: <code>CostGateway</code> (per-call token/USD tracking), <code>TokenBudget</code> +
+  <code>BudgetExceeded</code>, <code>CostReport</code>, <code>BillOfMaterials</code> (checksummed outputs, <code>verify()</code>),
+  <code>DryRunCostEstimator</code>. <code>BaseLLM</code> no longer retries exceptions marked <code>__no_retry__ = True</code>
+  (e.g. <code>BudgetExceeded</code>). These are SDK components; they are not yet wired into <code>CuratorConfig</code>.</li>
+<li><code>ArgillaExporter</code> (<code>export_formats=["argilla"]</code>): passed and rejected samples, including the
+  probe's <code>diagnosis</code>, as Argilla 2.x records; writes <code>argilla_records.jsonl</code> when no server is
+  configured.</li>
+<li>Extras: <code>safety</code> (transformers + torch for PromptGuard) and <code>review</code> (argilla). Base install
+  is unchanged.</li>
 <li><code>ignore_for_dedup</code>: regex patterns whose matches are masked out (replaced with a space, then
   whitespace-collapsed) from a sample's text before deduplication compares or embeds it — lets a
   real but unimportant difference (a per-sample UUID, a timestamp, a boilerplate disclaimer) not
@@ -1276,6 +1365,17 @@ not a heading here.</p>
 </ul>
 <h3 id="fixed">Fixed<a class="headerlink" href="#fixed" title="Permanent link">&para;</a></h3>
 <ul>
+<li>The judge gates fail closed. A judge call that raised (bad key, HTTP 500, timeout) used to pass
+  the sample, and judge output with no number in it scored a neutral 0.5 that cleared any
+  threshold &lt;= 0.5. Both now reject the sample as <code>judge_error:&lt;ExceptionType&gt;</code> and record the
+  error in provenance; each run warns with the count. <code>DiagnosticProbe</code> and <code>RewardRefiner</code> skip
+  these rejects. <code>HallucinationGate</code> / <code>RewardGate</code> <code>STEP_VERSION</code> is now 1.1.0.</li>
+<li>Token counting counts each Han, kana, Hangul, Thai, Lao, Khmer or Myanmar character as a token,
+  so complete Chinese, Japanese, Korean and Thai rows are no longer rejected by the default
+  <code>min_tokens=10</code>. SchemaGate's preference-length comparison uses the same counter.</li>
+<li>README: the PyPI badge showed a fixed <code>v0.1.0</code>; it now reads the live version. GitHub
+  Discussions links (404) now point to Issues.</li>
+<li>The <code>trl</code> extra requires <code>transformers&gt;=5.15,&lt;6</code>.</li>
 <li><code>PreferenceGenerationTask</code>'s <code>two_pass</code> mode (both <code>run()</code> and <code>run_async()</code>) crashed the whole
   curation run — instead of cleanly rejecting the one affected sample — whenever chosen/rejected
   generation failed for a sample (empty completion, or corpus-mode parse/incomplete failure). The
@@ -1372,8 +1472,7 @@ not a heading here.</p>
   templates were already always honored regardless of context and needed no change.</li>
 </ul>
 <h2 id="unreleased-draft-100-never-published">Unreleased (draft "1.0.0" — never published)<a class="headerlink" href="#unreleased-draft-100-never-published" title="Permanent link">&para;</a></h2>
-<p>The work below was planned against a 1.0.0 target that was never released. The
-2026-06-12 date it used to carry was a planning date, not a release date.</p>
+<p>First public release.</p>
 <h3 id="added_1">Added<a class="headerlink" href="#added_1" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Data hygiene gates: <code>SecretsGate</code> (credential/API-key detection), <code>ToxicityGate</code>

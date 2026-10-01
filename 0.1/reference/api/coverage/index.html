@@ -10,13 +10,13 @@
       
       
       
-        <link rel="canonical" href="https://lexsi-labs.github.io/CuratorKIT/0.1/reference/api/exporters/">
+        <link rel="canonical" href="https://lexsi-labs.github.io/CuratorKIT/0.1/reference/api/coverage/">
       
       
-        <link rel="prev" href="../cost/">
+        <link rel="prev" href="../kg/">
       
       
-        <link rel="next" href="../diagnostic/">
+        <link rel="next" href="../cost/">
       
       
         
@@ -27,7 +27,7 @@
     
     
       
-        <title>Exporters - CuratorKIT</title>
+        <title>Coverage - CuratorKIT</title>
       
     
     
@@ -82,7 +82,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#exporters" class="md-skip">
+        <a href="#coverage" class="md-skip">
           Skip to content
         </a>
       
@@ -121,7 +121,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Exporters
+              Coverage
             
           </span>
         </div>
@@ -1123,10 +1123,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../coverage/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Coverage
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -1142,6 +1169,98 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#curatorkit.coverage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        coverage
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="coverage">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#curatorkit.coverage.distinct_n" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        distinct_n
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#curatorkit.coverage.diversity_metrics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        diversity_metrics
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#curatorkit.coverage.pairwise_cosine_stats" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        pairwise_cosine_stats
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#curatorkit.coverage.shannon_entropy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        shannon_entropy
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#curatorkit.coverage.type_token_ratio" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        type_token_ratio
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -1179,37 +1298,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Exporters
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../exporters/" class="md-nav__link">
         
   
   
@@ -1225,148 +1317,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#curatorkit.exporters" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        exporters
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="exporters">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#curatorkit.exporters.AlpacaExporter" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        AlpacaExporter
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#curatorkit.exporters.ArgillaExporter" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        ArgillaExporter
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="ArgillaExporter">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#curatorkit.exporters.ArgillaExporter--parameters" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Parameters
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#curatorkit.exporters.CorpusExporter" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        CorpusExporter
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#curatorkit.exporters.DPOExporter" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        DPOExporter
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#curatorkit.exporters.GRPOExporter" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        GRPOExporter
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#curatorkit.exporters.MessagesExporter" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        MessagesExporter
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#curatorkit.exporters.PPOExporter" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        PPOExporter
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#curatorkit.exporters.ShareGPTExporter" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        ShareGPTExporter
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -1670,22 +1620,22 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#curatorkit.exporters" class="md-nav__link">
+  <a href="#curatorkit.coverage" class="md-nav__link">
     <span class="md-ellipsis">
       
-        exporters
+        coverage
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="exporters">
+    <nav class="md-nav" aria-label="coverage">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#curatorkit.exporters.AlpacaExporter" class="md-nav__link">
+  <a href="#curatorkit.coverage.distinct_n" class="md-nav__link">
     <span class="md-ellipsis">
       
-        AlpacaExporter
+        distinct_n
       
     </span>
   </a>
@@ -1693,38 +1643,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#curatorkit.exporters.ArgillaExporter" class="md-nav__link">
+  <a href="#curatorkit.coverage.diversity_metrics" class="md-nav__link">
     <span class="md-ellipsis">
       
-        ArgillaExporter
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="ArgillaExporter">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#curatorkit.exporters.ArgillaExporter--parameters" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Parameters
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#curatorkit.exporters.CorpusExporter" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        CorpusExporter
+        diversity_metrics
       
     </span>
   </a>
@@ -1732,10 +1654,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#curatorkit.exporters.DPOExporter" class="md-nav__link">
+  <a href="#curatorkit.coverage.pairwise_cosine_stats" class="md-nav__link">
     <span class="md-ellipsis">
       
-        DPOExporter
+        pairwise_cosine_stats
       
     </span>
   </a>
@@ -1743,10 +1665,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#curatorkit.exporters.GRPOExporter" class="md-nav__link">
+  <a href="#curatorkit.coverage.shannon_entropy" class="md-nav__link">
     <span class="md-ellipsis">
       
-        GRPOExporter
+        shannon_entropy
       
     </span>
   </a>
@@ -1754,32 +1676,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#curatorkit.exporters.MessagesExporter" class="md-nav__link">
+  <a href="#curatorkit.coverage.type_token_ratio" class="md-nav__link">
     <span class="md-ellipsis">
       
-        MessagesExporter
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#curatorkit.exporters.PPOExporter" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        PPOExporter
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#curatorkit.exporters.ShareGPTExporter" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        ShareGPTExporter
+        type_token_ratio
       
     </span>
   </a>
@@ -1808,7 +1708,7 @@
 
 
   
-    <a href="https://github.com/Lexsi-Labs/CuratorKIT/edit/main/docs/reference/api/exporters.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+    <a href="https://github.com/Lexsi-Labs/CuratorKIT/edit/main/docs/reference/api/coverage.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
     </a>
@@ -1816,22 +1716,45 @@
   
 
 
-<h1 id="exporters">Exporters<a class="headerlink" href="#exporters" title="Permanent link">&para;</a></h1>
-<p>Output format writers. Each writes one JSONL file into the output directory.</p>
+<h1 id="coverage">Coverage<a class="headerlink" href="#coverage" title="Permanent link">&para;</a></h1>
+<p>Diversity metrics, embedding-cluster coverage analysis, a diversity monitor with collapse warning, and coverage-directed generation. Clustering uses the <code>embedding</code> extra when available.</p>
 
 
 <div class="doc doc-object doc-module">
 
 
 
-<h2 id="curatorkit.exporters" class="doc doc-heading">
-            <span class="doc doc-object-name doc-module-name">curatorkit.exporters</span>
+<h2 id="curatorkit.coverage" class="doc doc-heading">
+            <span class="doc doc-object-name doc-module-name">curatorkit.coverage</span>
 
 
-<a href="#curatorkit.exporters" class="headerlink" title="Permanent link">&para;</a></h2>
+<a href="#curatorkit.coverage" class="headerlink" title="Permanent link">&para;</a></h2>
 
     <div class="doc doc-contents first">
 
+        <p>Coverage-aware generation.</p>
+
+
+<details class="components" open>
+  <summary>Components</summary>
+  <p>metrics.py    — diversity primitives (n-gram, type-token ratio, cluster
+                entropy). Pure-python; no embedding dependency.
+analyser.py   — CoverageAnalyser: embed → cluster → identify thin regions →
+                recommend categories for the next generation batch.
+monitor.py    — DiversityMonitor: BaseNormalizer that runs after each
+                generation batch, attaches metrics to provenance, raises
+                a collapse warning if diversity drops sharply between
+                successive runs.</p>
+</details>
+
+<details class="public-api" open>
+  <summary>Public API</summary>
+  <p>from curatorkit.coverage import (
+    diversity_metrics,
+    CoverageAnalyser,
+    DiversityMonitor,
+)</p>
+</details>
 
 
 
@@ -1851,420 +1774,116 @@
 
 
 
-<div class="doc doc-object doc-class">
+
+<div class="doc doc-object doc-function">
 
 
-
-<h3 id="curatorkit.exporters.AlpacaExporter" class="doc doc-heading">
-            <span class="doc doc-object-name doc-class-name">AlpacaExporter</span>
-
-
-<a href="#curatorkit.exporters.AlpacaExporter" class="headerlink" title="Permanent link">&para;</a></h3>
+<h3 id="curatorkit.coverage.distinct_n" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">distinct_n</span>
 
 
-    <div class="doc doc-contents ">
-            <p class="doc doc-class-bases">
-              Bases: <code><a class="autorefs autorefs-internal" title="BaseExporter (curatorkit.interfaces.BaseExporter)" href="../interfaces/#curatorkit.interfaces.BaseExporter">BaseExporter</a></code></p>
-
-
-
-        <p>Export to Alpaca instruction-following format.</p>
-
-
-
-
-
-
-
-
-
-
-
-<div class="doc doc-children">
-
-
-
-
-
-
-
-
-
-
-
-
-  </div>
-
-    </div>
-
-</div>
-
-<div class="doc doc-object doc-class">
-
-
-
-<h3 id="curatorkit.exporters.ArgillaExporter" class="doc doc-heading">
-            <span class="doc doc-object-name doc-class-name">ArgillaExporter</span>
-
-
-<a href="#curatorkit.exporters.ArgillaExporter" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">ArgillaExporter</span><span class="p">(</span><span class="n">api_url</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">''</span><span class="p">,</span> <span class="n">api_key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">''</span><span class="p">,</span> <span class="n">workspace</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">'argilla'</span><span class="p">,</span> <span class="n">dataset_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">'curatorkit_review'</span><span class="p">,</span> <span class="n">include_rejected</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">rejected_samples</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">RejectedSample</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">write_local_jsonl_fallback</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
+<a href="#curatorkit.coverage.distinct_n" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">distinct_n</span><span class="p">(</span><span class="n">texts</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">n</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
-            <p class="doc doc-class-bases">
-              Bases: <code><a class="autorefs autorefs-internal" title="BaseExporter (curatorkit.interfaces.BaseExporter)" href="../interfaces/#curatorkit.interfaces.BaseExporter">BaseExporter</a></code></p>
 
+        <p>Distinct-N: unique n-grams / total n-grams across the batch.</p>
+<p>Returns 0.0 for an empty batch and for texts that produce no n-grams
+(e.g., shorter than n tokens after tokenization).</p>
 
-
-        <p>Push CuratorKIT samples to an Argilla 2.x workspace.</p>
-<h5 id="curatorkit.exporters.ArgillaExporter--parameters">Parameters<a class="headerlink" href="#curatorkit.exporters.ArgillaExporter--parameters" title="Permanent link">&para;</a></h5>
-<p>api_url : str
-    Argilla server URL (e.g., "https://my-argilla.huggingface.cloud").
-api_key : str
-    API token.
-workspace : str
-    Argilla workspace name. Created if it doesn't exist.
-dataset_name : str
-    Argilla dataset name. Created with the standard CuratorKIT schema
-    if it doesn't exist.
-include_rejected : bool
-    Push rejected samples alongside passed (default True).
-    Reviewers can then confirm or override rejection decisions.
-rejected_samples : list[RejectedSample] | None
-    Override the rejected list passed at construction. Useful when the
-    Pipeline result's rejected list lives in a separate object.
-write_local_jsonl_fallback : bool
-    If Argilla isn't installed or the connection fails, write the
-    records to <code>{output_dir}/argilla_records.jsonl</code> so the human-review
-    bundle isn't lost. Default True.</p>
-
-
-
-
-
-
-
-
-
-
-
-<div class="doc doc-children">
-
-
-
-
-
-
-
-
-
-
-
-
-  </div>
 
     </div>
 
 </div>
 
-<div class="doc doc-object doc-class">
+<div class="doc doc-object doc-function">
 
 
+<h3 id="curatorkit.coverage.diversity_metrics" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">diversity_metrics</span>
 
-<h3 id="curatorkit.exporters.CorpusExporter" class="doc doc-heading">
-            <span class="doc doc-object-name doc-class-name">CorpusExporter</span>
 
-
-<a href="#curatorkit.exporters.CorpusExporter" class="headerlink" title="Permanent link">&para;</a></h3>
-
+<a href="#curatorkit.coverage.diversity_metrics" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">diversity_metrics</span><span class="p">(</span><span class="n">texts</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">labels</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">embeddings</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">distinct_ns</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span> <span class="o">|</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]</span>
+</code></pre></div>
 
     <div class="doc doc-contents ">
-            <p class="doc doc-class-bases">
-              Bases: <code><a class="autorefs autorefs-internal" title="BaseExporter (curatorkit.interfaces.BaseExporter)" href="../interfaces/#curatorkit.interfaces.BaseExporter">BaseExporter</a></code></p>
 
+        <p>One-shot diversity bundle. Skips embedding-dependent metrics if no
+embeddings are passed.</p>
 
-
-        <p>Export corpus chunks to corpus.jsonl with full chunk metadata.</p>
-<p>Only task_type "language_modeling" or "source_chunk" is written —
-everything else is skipped, even with non-empty output/input (e.g. any
-SFT/preference/GRPO task_type also has <em>some</em> text in one of those
-fields; that doesn't make it a corpus chunk).</p>
-
-
-
-
-
-
-
-
-
-
-
-<div class="doc doc-children">
-
-
-
-
-
-
-
-
-
-
-
-
-  </div>
 
     </div>
 
 </div>
 
-<div class="doc doc-object doc-class">
+<div class="doc doc-object doc-function">
 
 
+<h3 id="curatorkit.coverage.pairwise_cosine_stats" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">pairwise_cosine_stats</span>
 
-<h3 id="curatorkit.exporters.DPOExporter" class="doc doc-heading">
-            <span class="doc doc-object-name doc-class-name">DPOExporter</span>
 
-
-<a href="#curatorkit.exporters.DPOExporter" class="headerlink" title="Permanent link">&para;</a></h3>
-
+<a href="#curatorkit.coverage.pairwise_cosine_stats" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">pairwise_cosine_stats</span><span class="p">(</span><span class="n">embeddings</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]],</span> <span class="n">sample_pairs</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="mi">5000</span><span class="p">,</span> <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">42</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span>
+</code></pre></div>
 
     <div class="doc doc-contents ">
-            <p class="doc doc-class-bases">
-              Bases: <code><a class="autorefs autorefs-internal" title="BaseExporter (curatorkit.interfaces.BaseExporter)" href="../interfaces/#curatorkit.interfaces.BaseExporter">BaseExporter</a></code></p>
 
+        <p>Mean / min / max pairwise cosine <em>distance</em> (1 - similarity) over a batch.</p>
+<p>For batches larger than ~100 samples computing all C(n, 2) pairs is
+quadratic and slow; pass <code>sample_pairs=N</code> to subsample uniformly.</p>
+<p>Returns {"mean_distance", "min_distance", "max_distance", "n_pairs"}.
+Empty input or n &lt; 2 → all zeros.</p>
 
-
-        <p>Export preference data in TRL DPO format.</p>
-<p>Only samples with task_type "preference" or "implicit_preference"
-are written. All others are skipped (not rejected — skipping is
-intentional when exporting a multi-task pipeline subset).</p>
-
-
-
-
-
-
-
-
-
-
-
-<div class="doc doc-children">
-
-
-
-
-
-
-
-
-
-
-
-
-  </div>
 
     </div>
 
 </div>
 
-<div class="doc doc-object doc-class">
+<div class="doc doc-object doc-function">
 
 
+<h3 id="curatorkit.coverage.shannon_entropy" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">shannon_entropy</span>
 
-<h3 id="curatorkit.exporters.GRPOExporter" class="doc doc-heading">
-            <span class="doc doc-object-name doc-class-name">GRPOExporter</span>
 
-
-<a href="#curatorkit.exporters.GRPOExporter" class="headerlink" title="Permanent link">&para;</a></h3>
-
+<a href="#curatorkit.coverage.shannon_entropy" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">shannon_entropy</span><span class="p">(</span><span class="n">labels</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">float</span>
+</code></pre></div>
 
     <div class="doc doc-contents ">
-            <p class="doc doc-class-bases">
-              Bases: <code><a class="autorefs autorefs-internal" title="BaseExporter (curatorkit.interfaces.BaseExporter)" href="../interfaces/#curatorkit.interfaces.BaseExporter">BaseExporter</a></code></p>
 
+        <p>Shannon entropy of a categorical distribution, in bits (log base 2).</p>
+<p>Returns 0.0 for empty / single-class input. Maximum entropy for K
+classes is log2(K). Use <code>entropy / log2(K)</code> if you want a 0..1
+"occupancy uniformity" reading.</p>
 
-
-        <p>Export to GRPO group rollout format.</p>
-<p>Uses DataSample.responses and DataSample.reward_scores if populated.
-Falls back to empty arrays when no rollouts have been generated yet.</p>
-
-
-
-
-
-
-
-
-
-
-
-<div class="doc doc-children">
-
-
-
-
-
-
-
-
-
-
-
-
-  </div>
 
     </div>
 
 </div>
 
-<div class="doc doc-object doc-class">
+<div class="doc doc-object doc-function">
 
 
+<h3 id="curatorkit.coverage.type_token_ratio" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">type_token_ratio</span>
 
-<h3 id="curatorkit.exporters.MessagesExporter" class="doc doc-heading">
-            <span class="doc doc-object-name doc-class-name">MessagesExporter</span>
 
-
-<a href="#curatorkit.exporters.MessagesExporter" class="headerlink" title="Permanent link">&para;</a></h3>
-
+<a href="#curatorkit.coverage.type_token_ratio" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">type_token_ratio</span><span class="p">(</span><span class="n">texts</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">float</span>
+</code></pre></div>
 
     <div class="doc doc-contents ">
-            <p class="doc doc-class-bases">
-              Bases: <code><a class="autorefs autorefs-internal" title="BaseExporter (curatorkit.interfaces.BaseExporter)" href="../interfaces/#curatorkit.interfaces.BaseExporter">BaseExporter</a></code></p>
 
+        <p>Unique tokens / total tokens across the batch.</p>
 
-
-        <p>Export to multi-turn chat <code>messages</code> (role/content) format.</p>
-
-
-
-
-
-
-
-
-
-
-
-<div class="doc doc-children">
-
-
-
-
-
-
-
-
-
-
-
-
-  </div>
 
     </div>
 
 </div>
-
-<div class="doc doc-object doc-class">
-
-
-
-<h3 id="curatorkit.exporters.PPOExporter" class="doc doc-heading">
-            <span class="doc doc-object-name doc-class-name">PPOExporter</span>
-
-
-<a href="#curatorkit.exporters.PPOExporter" class="headerlink" title="Permanent link">&para;</a></h3>
-
-
-    <div class="doc doc-contents ">
-            <p class="doc doc-class-bases">
-              Bases: <code><a class="autorefs autorefs-internal" title="BaseExporter (curatorkit.interfaces.BaseExporter)" href="../interfaces/#curatorkit.interfaces.BaseExporter">BaseExporter</a></code></p>
-
-
-
-        <p>Export prompts in PPO training format.</p>
-
-
-
-
-
-
-
-
-
-
-
-<div class="doc doc-children">
-
-
-
-
-
-
-
-
-
-
-
-
-  </div>
-
-    </div>
-
-</div>
-
-<div class="doc doc-object doc-class">
-
-
-
-<h3 id="curatorkit.exporters.ShareGPTExporter" class="doc doc-heading">
-            <span class="doc doc-object-name doc-class-name">ShareGPTExporter</span>
-
-
-<a href="#curatorkit.exporters.ShareGPTExporter" class="headerlink" title="Permanent link">&para;</a></h3>
-
-
-    <div class="doc doc-contents ">
-            <p class="doc doc-class-bases">
-              Bases: <code><a class="autorefs autorefs-internal" title="BaseExporter (curatorkit.interfaces.BaseExporter)" href="../interfaces/#curatorkit.interfaces.BaseExporter">BaseExporter</a></code></p>
-
-
-
-        <p>Export to ShareGPT multi-turn conversation (from/value) format.</p>
-
-
-
-
-
-
-
-
-
-
-
-<div class="doc doc-children">
-
-
-
-
-
-
-
-
-
-
-
-
-  </div>
-
-    </div>
-
-</div>
-
 
 
 
@@ -2310,7 +1929,7 @@ Falls back to empty arrays when no rollouts have been generated yet.</p>
       <nav class="md-footer__inner md-grid" aria-label="Footer" >
         
           
-          <a href="../cost/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Cost &amp; BoM">
+          <a href="../kg/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Knowledge graph">
             <div class="md-footer__button md-icon">
               
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
@@ -2320,20 +1939,20 @@ Falls back to empty arrays when no rollouts have been generated yet.</p>
                 Previous
               </span>
               <div class="md-ellipsis">
-                Cost & BoM
+                Knowledge graph
               </div>
             </div>
           </a>
         
         
           
-          <a href="../diagnostic/" class="md-footer__link md-footer__link--next" aria-label="Next: Diagnostics">
+          <a href="../cost/" class="md-footer__link md-footer__link--next" aria-label="Next: Cost &amp; BoM">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Next
               </span>
               <div class="md-ellipsis">
-                Diagnostics
+                Cost & BoM
               </div>
             </div>
             <div class="md-footer__button md-icon">

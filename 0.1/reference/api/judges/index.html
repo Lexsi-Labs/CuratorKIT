@@ -10,13 +10,13 @@
       
       
       
-        <link rel="canonical" href="https://lexsi-labs.github.io/CuratorKIT/0.1/reference/api/exporters/">
+        <link rel="canonical" href="https://lexsi-labs.github.io/CuratorKIT/0.1/reference/api/judges/">
       
       
-        <link rel="prev" href="../cost/">
+        <link rel="prev" href="../hygiene/">
       
       
-        <link rel="next" href="../diagnostic/">
+        <link rel="next" href="../kg/">
       
       
         
@@ -27,7 +27,7 @@
     
     
       
-        <title>Exporters - CuratorKIT</title>
+        <title>Judges - CuratorKIT</title>
       
     
     
@@ -82,7 +82,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#exporters" class="md-skip">
+        <a href="#judges" class="md-skip">
           Skip to content
         </a>
       
@@ -121,7 +121,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Exporters
+              Judges
             
           </span>
         </div>
@@ -1067,10 +1067,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../judges/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Judges
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -1086,6 +1113,294 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#curatorkit.judges" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        judges
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="judges">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#curatorkit.judges.DeepEvalJudge" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        DeepEvalJudge
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="DeepEvalJudge">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#curatorkit.judges.DeepEvalJudge--parameters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parameters
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#curatorkit.judges.DeepEvalJudge.evaluation_steps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        evaluation_steps
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#curatorkit.judges.DeepEvalRewardGate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        DeepEvalRewardGate
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="DeepEvalRewardGate">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#curatorkit.judges.DeepEvalRewardGate--parameters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parameters
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#curatorkit.judges.GEvalResult" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GEvalResult
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#curatorkit.judges.FActScoreGate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        FActScoreGate
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="FActScoreGate">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#curatorkit.judges.FActScoreGate--parameters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parameters
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#curatorkit.judges.FActScoreJudge" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        FActScoreJudge
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="FActScoreJudge">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#curatorkit.judges.FActScoreJudge--parameters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parameters
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#curatorkit.judges.FActScoreJudge.judge" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        judge
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#curatorkit.judges.FActScoreResult" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        FActScoreResult
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="FActScoreResult">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#curatorkit.judges.FActScoreResult.factscore" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        factscore
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#curatorkit.judges.PrometheusJudge" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PrometheusJudge
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="PrometheusJudge">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#curatorkit.judges.PrometheusJudge--parameters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parameters
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#curatorkit.judges.PrometheusJudge.judge" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        judge
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#curatorkit.judges.PrometheusRewardGate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PrometheusRewardGate
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="PrometheusRewardGate">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#curatorkit.judges.PrometheusRewardGate--parameters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parameters
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#curatorkit.judges.ScoreRubric" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ScoreRubric
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -1179,37 +1494,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Exporters
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../exporters/" class="md-nav__link">
         
   
   
@@ -1225,148 +1513,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#curatorkit.exporters" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        exporters
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="exporters">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#curatorkit.exporters.AlpacaExporter" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        AlpacaExporter
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#curatorkit.exporters.ArgillaExporter" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        ArgillaExporter
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="ArgillaExporter">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#curatorkit.exporters.ArgillaExporter--parameters" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Parameters
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#curatorkit.exporters.CorpusExporter" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        CorpusExporter
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#curatorkit.exporters.DPOExporter" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        DPOExporter
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#curatorkit.exporters.GRPOExporter" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        GRPOExporter
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#curatorkit.exporters.MessagesExporter" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        MessagesExporter
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#curatorkit.exporters.PPOExporter" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        PPOExporter
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#curatorkit.exporters.ShareGPTExporter" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        ShareGPTExporter
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -1670,22 +1816,34 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#curatorkit.exporters" class="md-nav__link">
+  <a href="#curatorkit.judges" class="md-nav__link">
     <span class="md-ellipsis">
       
-        exporters
+        judges
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="exporters">
+    <nav class="md-nav" aria-label="judges">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#curatorkit.exporters.AlpacaExporter" class="md-nav__link">
+  <a href="#curatorkit.judges.DeepEvalJudge" class="md-nav__link">
     <span class="md-ellipsis">
       
-        AlpacaExporter
+        DeepEvalJudge
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="DeepEvalJudge">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#curatorkit.judges.DeepEvalJudge--parameters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parameters
       
     </span>
   </a>
@@ -1693,19 +1851,35 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#curatorkit.exporters.ArgillaExporter" class="md-nav__link">
+  <a href="#curatorkit.judges.DeepEvalJudge.evaluation_steps" class="md-nav__link">
     <span class="md-ellipsis">
       
-        ArgillaExporter
+        evaluation_steps
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="ArgillaExporter">
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#curatorkit.judges.DeepEvalRewardGate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        DeepEvalRewardGate
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="DeepEvalRewardGate">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#curatorkit.exporters.ArgillaExporter--parameters" class="md-nav__link">
+  <a href="#curatorkit.judges.DeepEvalRewardGate--parameters" class="md-nav__link">
     <span class="md-ellipsis">
       
         Parameters
@@ -1721,10 +1895,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#curatorkit.exporters.CorpusExporter" class="md-nav__link">
+  <a href="#curatorkit.judges.GEvalResult" class="md-nav__link">
     <span class="md-ellipsis">
       
-        CorpusExporter
+        GEvalResult
       
     </span>
   </a>
@@ -1732,10 +1906,50 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#curatorkit.exporters.DPOExporter" class="md-nav__link">
+  <a href="#curatorkit.judges.FActScoreGate" class="md-nav__link">
     <span class="md-ellipsis">
       
-        DPOExporter
+        FActScoreGate
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="FActScoreGate">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#curatorkit.judges.FActScoreGate--parameters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parameters
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#curatorkit.judges.FActScoreJudge" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        FActScoreJudge
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="FActScoreJudge">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#curatorkit.judges.FActScoreJudge--parameters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parameters
       
     </span>
   </a>
@@ -1743,10 +1957,66 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#curatorkit.exporters.GRPOExporter" class="md-nav__link">
+  <a href="#curatorkit.judges.FActScoreJudge.judge" class="md-nav__link">
     <span class="md-ellipsis">
       
-        GRPOExporter
+        judge
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#curatorkit.judges.FActScoreResult" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        FActScoreResult
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="FActScoreResult">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#curatorkit.judges.FActScoreResult.factscore" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        factscore
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#curatorkit.judges.PrometheusJudge" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PrometheusJudge
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="PrometheusJudge">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#curatorkit.judges.PrometheusJudge--parameters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parameters
       
     </span>
   </a>
@@ -1754,32 +2024,54 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#curatorkit.exporters.MessagesExporter" class="md-nav__link">
+  <a href="#curatorkit.judges.PrometheusJudge.judge" class="md-nav__link">
     <span class="md-ellipsis">
       
-        MessagesExporter
+        judge
       
     </span>
   </a>
   
 </li>
         
+      </ul>
+    </nav>
+  
+</li>
+        
           <li class="md-nav__item">
-  <a href="#curatorkit.exporters.PPOExporter" class="md-nav__link">
+  <a href="#curatorkit.judges.PrometheusRewardGate" class="md-nav__link">
     <span class="md-ellipsis">
       
-        PPOExporter
+        PrometheusRewardGate
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="PrometheusRewardGate">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#curatorkit.judges.PrometheusRewardGate--parameters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parameters
       
     </span>
   </a>
   
 </li>
         
+      </ul>
+    </nav>
+  
+</li>
+        
           <li class="md-nav__item">
-  <a href="#curatorkit.exporters.ShareGPTExporter" class="md-nav__link">
+  <a href="#curatorkit.judges.ScoreRubric" class="md-nav__link">
     <span class="md-ellipsis">
       
-        ShareGPTExporter
+        ScoreRubric
       
     </span>
   </a>
@@ -1808,7 +2100,7 @@
 
 
   
-    <a href="https://github.com/Lexsi-Labs/CuratorKIT/edit/main/docs/reference/api/exporters.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+    <a href="https://github.com/Lexsi-Labs/CuratorKIT/edit/main/docs/reference/api/judges.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
     </a>
@@ -1816,22 +2108,35 @@
   
 
 
-<h1 id="exporters">Exporters<a class="headerlink" href="#exporters" title="Permanent link">&para;</a></h1>
-<p>Output format writers. Each writes one JSONL file into the output directory.</p>
+<h1 id="judges">Judges<a class="headerlink" href="#judges" title="Permanent link">&para;</a></h1>
+<p>Rubric LLM-as-judge scorers (Prometheus 2, G-Eval / DeepEval, FActScore) and the gates built on them. They call any <code>BaseLLM</code>, so they need the <code>generation</code> extra but no judge-specific package.</p>
 
 
 <div class="doc doc-object doc-module">
 
 
 
-<h2 id="curatorkit.exporters" class="doc doc-heading">
-            <span class="doc doc-object-name doc-module-name">curatorkit.exporters</span>
+<h2 id="curatorkit.judges" class="doc doc-heading">
+            <span class="doc doc-object-name doc-module-name">curatorkit.judges</span>
 
 
-<a href="#curatorkit.exporters" class="headerlink" title="Permanent link">&para;</a></h2>
+<a href="#curatorkit.judges" class="headerlink" title="Permanent link">&para;</a></h2>
 
     <div class="doc doc-contents first">
 
+        <p>Opt-in LLM-as-judge rubrics.</p>
+<p>prometheus.py — Prometheus-2 absolute-grading judge (Kim et al., 2024).
+                  https://arxiv.org/abs/2405.01535</p>
+
+
+<details class="public-api" open>
+  <summary>Public API</summary>
+  <p>from curatorkit.judges import (
+    PrometheusJudge,
+    PrometheusRewardGate,
+    ABSOLUTE_GRADING_RUBRICS,
+)</p>
+</details>
 
 
 
@@ -1855,20 +2160,34 @@
 
 
 
-<h3 id="curatorkit.exporters.AlpacaExporter" class="doc doc-heading">
-            <span class="doc doc-object-name doc-class-name">AlpacaExporter</span>
+<h3 id="curatorkit.judges.DeepEvalJudge" class="doc doc-heading">
+            <span class="doc doc-object-name doc-class-name">DeepEvalJudge</span>
 
 
-<a href="#curatorkit.exporters.AlpacaExporter" class="headerlink" title="Permanent link">&para;</a></h3>
-
+<a href="#curatorkit.judges.DeepEvalJudge" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">DeepEvalJudge</span><span class="p">(</span><span class="n">llm</span><span class="p">:</span> <span class="n">BaseLLM</span><span class="p">,</span> <span class="n">criterion</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">evaluation_steps</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">use_context</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span>
+</code></pre></div>
 
     <div class="doc doc-contents ">
-            <p class="doc doc-class-bases">
-              Bases: <code><a class="autorefs autorefs-internal" title="BaseExporter (curatorkit.interfaces.BaseExporter)" href="../interfaces/#curatorkit.interfaces.BaseExporter">BaseExporter</a></code></p>
 
 
 
-        <p>Export to Alpaca instruction-following format.</p>
+        <p>G-Eval style continuous scorer.</p>
+<h5 id="curatorkit.judges.DeepEvalJudge--parameters">Parameters<a class="headerlink" href="#curatorkit.judges.DeepEvalJudge--parameters" title="Permanent link">&para;</a></h5>
+<p>llm : BaseLLM
+    Evaluator LM. Stronger models give better-calibrated G-Eval scores
+    (the paper uses GPT-4). Weaker models work but with more variance.
+criterion : str
+    The evaluation criterion description. e.g., "factual correctness
+    with respect to the source context".
+evaluation_steps : list[str] | None
+    Pre-canned evaluation steps. If None, the judge generates them
+    from <code>criterion</code> on first use and caches them — this is the
+    G-Eval paper's auto-CoT approach.
+use_context : bool
+    If True, the judge expects each sample to carry a source context
+    (read from <code>sample.input</code> or <code>sample.metadata["source_chunk"]</code>)
+    and includes it in the scoring prompt. Default False.</p>
 
 
 
@@ -1890,6 +2209,26 @@
 
 
 
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="curatorkit.judges.DeepEvalJudge.evaluation_steps" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">evaluation_steps</span>
+
+
+<a href="#curatorkit.judges.DeepEvalJudge.evaluation_steps" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">evaluation_steps</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Return the cached evaluation steps. Generates them on first call.</p>
+
+
+    </div>
+
+</div>
 
 
 
@@ -1903,41 +2242,32 @@
 
 
 
-<h3 id="curatorkit.exporters.ArgillaExporter" class="doc doc-heading">
-            <span class="doc doc-object-name doc-class-name">ArgillaExporter</span>
+<h3 id="curatorkit.judges.DeepEvalRewardGate" class="doc doc-heading">
+            <span class="doc doc-object-name doc-class-name">DeepEvalRewardGate</span>
 
 
-<a href="#curatorkit.exporters.ArgillaExporter" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">ArgillaExporter</span><span class="p">(</span><span class="n">api_url</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">''</span><span class="p">,</span> <span class="n">api_key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">''</span><span class="p">,</span> <span class="n">workspace</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">'argilla'</span><span class="p">,</span> <span class="n">dataset_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">'curatorkit_review'</span><span class="p">,</span> <span class="n">include_rejected</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">rejected_samples</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">RejectedSample</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">write_local_jsonl_fallback</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
+<a href="#curatorkit.judges.DeepEvalRewardGate" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">DeepEvalRewardGate</span><span class="p">(</span><span class="n">judge</span><span class="p">:</span> <span class="n">DeepEvalJudge</span><span class="p">,</span> <span class="n">threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.6</span><span class="p">,</span> <span class="n">context_field</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
             <p class="doc doc-class-bases">
-              Bases: <code><a class="autorefs autorefs-internal" title="BaseExporter (curatorkit.interfaces.BaseExporter)" href="../interfaces/#curatorkit.interfaces.BaseExporter">BaseExporter</a></code></p>
+              Bases: <code><a class="autorefs autorefs-internal" title="BaseGate (curatorkit.interfaces.BaseGate)" href="../interfaces/#curatorkit.interfaces.BaseGate">BaseGate</a></code></p>
 
 
 
-        <p>Push CuratorKIT samples to an Argilla 2.x workspace.</p>
-<h5 id="curatorkit.exporters.ArgillaExporter--parameters">Parameters<a class="headerlink" href="#curatorkit.exporters.ArgillaExporter--parameters" title="Permanent link">&para;</a></h5>
-<p>api_url : str
-    Argilla server URL (e.g., "https://my-argilla.huggingface.cloud").
-api_key : str
-    API token.
-workspace : str
-    Argilla workspace name. Created if it doesn't exist.
-dataset_name : str
-    Argilla dataset name. Created with the standard CuratorKIT schema
-    if it doesn't exist.
-include_rejected : bool
-    Push rejected samples alongside passed (default True).
-    Reviewers can then confirm or override rejection decisions.
-rejected_samples : list[RejectedSample] | None
-    Override the rejected list passed at construction. Useful when the
-    Pipeline result's rejected list lives in a separate object.
-write_local_jsonl_fallback : bool
-    If Argilla isn't installed or the connection fails, write the
-    records to <code>{output_dir}/argilla_records.jsonl</code> so the human-review
-    bundle isn't lost. Default True.</p>
+        <p>BaseGate that scores every sample with DeepEvalJudge and rejects below
+<code>threshold</code> (normalized 0-1).</p>
+<h5 id="curatorkit.judges.DeepEvalRewardGate--parameters">Parameters<a class="headerlink" href="#curatorkit.judges.DeepEvalRewardGate--parameters" title="Permanent link">&para;</a></h5>
+<p>judge : DeepEvalJudge
+    The G-Eval scorer.
+threshold : float
+    Reject if <code>score_normalized</code> &lt; threshold. Default 0.6 ≈ score 6/10.
+context_field : str | None
+    Where to find per-sample context. None → no context (default).
+    "input" reads sample.input. "metadata.source_chunk" reads
+    sample.metadata["source_chunk"]. Only used when the judge's
+    <code>use_context</code> is True.</p>
 
 
 
@@ -1972,24 +2302,23 @@ write_local_jsonl_fallback : bool
 
 
 
-<h3 id="curatorkit.exporters.CorpusExporter" class="doc doc-heading">
-            <span class="doc doc-object-name doc-class-name">CorpusExporter</span>
+<h3 id="curatorkit.judges.GEvalResult" class="doc doc-heading">
+            <span class="doc doc-object-name doc-class-name">GEvalResult</span>
 
 
-<a href="#curatorkit.exporters.CorpusExporter" class="headerlink" title="Permanent link">&para;</a></h3>
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-dataclass"><code>dataclass</code></small>
+  </span>
 
+<a href="#curatorkit.judges.GEvalResult" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">GEvalResult</span><span class="p">(</span><span class="n">score_0_to_10</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">score_normalized</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">rationale</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">criterion</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">evaluation_steps</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(),</span> <span class="n">raw_response</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">''</span><span class="p">)</span>
+</code></pre></div>
 
     <div class="doc doc-contents ">
-            <p class="doc doc-class-bases">
-              Bases: <code><a class="autorefs autorefs-internal" title="BaseExporter (curatorkit.interfaces.BaseExporter)" href="../interfaces/#curatorkit.interfaces.BaseExporter">BaseExporter</a></code></p>
 
 
 
-        <p>Export corpus chunks to corpus.jsonl with full chunk metadata.</p>
-<p>Only task_type "language_modeling" or "source_chunk" is written —
-everything else is skipped, even with non-empty output/input (e.g. any
-SFT/preference/GRPO task_type also has <em>some</em> text in one of those
-fields; that doesn't make it a corpus chunk).</p>
+        <p>One G-Eval-style judgment.</p>
 
 
 
@@ -2024,23 +2353,36 @@ fields; that doesn't make it a corpus chunk).</p>
 
 
 
-<h3 id="curatorkit.exporters.DPOExporter" class="doc doc-heading">
-            <span class="doc doc-object-name doc-class-name">DPOExporter</span>
+<h3 id="curatorkit.judges.FActScoreGate" class="doc doc-heading">
+            <span class="doc doc-object-name doc-class-name">FActScoreGate</span>
 
 
-<a href="#curatorkit.exporters.DPOExporter" class="headerlink" title="Permanent link">&para;</a></h3>
-
+<a href="#curatorkit.judges.FActScoreGate" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">FActScoreGate</span><span class="p">(</span><span class="n">judge</span><span class="p">:</span> <span class="n">FActScoreJudge</span><span class="p">,</span> <span class="n">threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.7</span><span class="p">,</span> <span class="n">context_field</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">'input'</span><span class="p">,</span> <span class="n">response_field</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">'output'</span><span class="p">,</span> <span class="n">contradicted_is_hard_fail</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
+</code></pre></div>
 
     <div class="doc doc-contents ">
             <p class="doc doc-class-bases">
-              Bases: <code><a class="autorefs autorefs-internal" title="BaseExporter (curatorkit.interfaces.BaseExporter)" href="../interfaces/#curatorkit.interfaces.BaseExporter">BaseExporter</a></code></p>
+              Bases: <code><a class="autorefs autorefs-internal" title="BaseGate (curatorkit.interfaces.BaseGate)" href="../interfaces/#curatorkit.interfaces.BaseGate">BaseGate</a></code></p>
 
 
 
-        <p>Export preference data in TRL DPO format.</p>
-<p>Only samples with task_type "preference" or "implicit_preference"
-are written. All others are skipped (not rejected — skipping is
-intentional when exporting a multi-task pipeline subset).</p>
+        <p>Drop-in replacement for HallucinationGate using atomic-fact verification.</p>
+<h5 id="curatorkit.judges.FActScoreGate--parameters">Parameters<a class="headerlink" href="#curatorkit.judges.FActScoreGate--parameters" title="Permanent link">&para;</a></h5>
+<p>judge : FActScoreJudge
+    The decomposer + verifier.
+threshold : float
+    Reject if factscore &lt; threshold. Default 0.7. Set lower for
+    looser filtering, higher for stricter.
+context_field : str
+    Where the source / context lives. "input" (default) or
+    "metadata.source_chunk".
+response_field : str
+    Which response field to decompose. Default "output".
+contradicted_is_hard_fail : bool
+    If True (default), a single CONTRADICTED fact rejects the sample
+    regardless of the overall factscore — a contradiction is strictly
+    worse than an unsupported claim.</p>
 
 
 
@@ -2075,22 +2417,263 @@ intentional when exporting a multi-task pipeline subset).</p>
 
 
 
-<h3 id="curatorkit.exporters.GRPOExporter" class="doc doc-heading">
-            <span class="doc doc-object-name doc-class-name">GRPOExporter</span>
+<h3 id="curatorkit.judges.FActScoreJudge" class="doc doc-heading">
+            <span class="doc doc-object-name doc-class-name">FActScoreJudge</span>
 
 
-<a href="#curatorkit.exporters.GRPOExporter" class="headerlink" title="Permanent link">&para;</a></h3>
+<a href="#curatorkit.judges.FActScoreJudge" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">FActScoreJudge</span><span class="p">(</span><span class="n">llm</span><span class="p">:</span> <span class="n">BaseLLM</span><span class="p">,</span> <span class="n">decompose_temperature</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span> <span class="n">verify_temperature</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">max_facts</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">20</span><span class="p">)</span>
+</code></pre></div>
 
+    <div class="doc doc-contents ">
+
+
+
+        <p>Decompose and verify atomic facts. One judge instance is reusable
+across many samples — it keeps no per-sample state.</p>
+<h5 id="curatorkit.judges.FActScoreJudge--parameters">Parameters<a class="headerlink" href="#curatorkit.judges.FActScoreJudge--parameters" title="Permanent link">&para;</a></h5>
+<p>llm : BaseLLM
+    Backend for both decomposition and verification. The paper uses
+    GPT-4 / ChatGPT for both; smaller models work but noisier facts.
+decompose_temperature : float
+    Temperature for decomposition. Keep low (default 0.1) for stability.
+verify_temperature : float
+    Temperature for verification. Keep at 0 for hard binary judgments.
+max_facts : int
+    Cap on facts per response (avoid runaway costs on very long outputs).
+    Default 20.</p>
+
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="curatorkit.judges.FActScoreJudge.judge" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">judge</span>
+
+
+<a href="#curatorkit.judges.FActScoreJudge.judge" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">judge</span><span class="p">(</span><span class="n">instruction</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">response</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">source</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">FActScoreResult</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Decompose <code>response</code>, verify each fact against <code>source</code>.</p>
+
+
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h3 id="curatorkit.judges.FActScoreResult" class="doc doc-heading">
+            <span class="doc doc-object-name doc-class-name">FActScoreResult</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-dataclass"><code>dataclass</code></small>
+  </span>
+
+<a href="#curatorkit.judges.FActScoreResult" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">FActScoreResult</span><span class="p">(</span><span class="n">facts</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">AtomicFact</span><span class="p">]</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(),</span> <span class="n">n_supported</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">n_unsupported</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">n_contradicted</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">)</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h4 id="curatorkit.judges.FActScoreResult.factscore" class="doc doc-heading">
+            <span class="doc doc-object-name doc-attribute-name">factscore</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+<a href="#curatorkit.judges.FActScoreResult.factscore" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">factscore</span><span class="p">:</span> <span class="nb">float</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Precision of supported facts. 1.0 if no facts (vacuous truth).</p>
+
+    </div>
+
+</div>
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h3 id="curatorkit.judges.PrometheusJudge" class="doc doc-heading">
+            <span class="doc doc-object-name doc-class-name">PrometheusJudge</span>
+
+
+<a href="#curatorkit.judges.PrometheusJudge" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">PrometheusJudge</span><span class="p">(</span><span class="n">llm</span><span class="p">:</span> <span class="n">BaseLLM</span><span class="p">,</span> <span class="n">rubric</span><span class="p">:</span> <span class="n">ScoreRubric</span><span class="p">,</span> <span class="n">reference_answer</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+
+
+        <p>Score a sample with the Prometheus-2 absolute-grading protocol.</p>
+<h5 id="curatorkit.judges.PrometheusJudge--parameters">Parameters<a class="headerlink" href="#curatorkit.judges.PrometheusJudge--parameters" title="Permanent link">&para;</a></h5>
+<p>llm : BaseLLM
+    The evaluator LM. Point at <code>prometheus-eval/prometheus-7b-v2.0</code>
+    through LiteLLM/vLLM/TGI for the canonical experience, or at GPT-4
+    for a strong proxy.
+rubric : ScoreRubric
+    The rubric to evaluate against.
+reference_answer : str | None
+    Optional reference answer that should score 5. Prometheus-2 strongly
+    recommends a reference for stable scoring; if you don't have one,
+    you can still call the judge without it but expect more variance.</p>
+
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="curatorkit.judges.PrometheusJudge.judge" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">judge</span>
+
+
+<a href="#curatorkit.judges.PrometheusJudge.judge" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">judge</span><span class="p">(</span><span class="n">instruction</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">response</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">reference</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">JudgeResult</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Score a single (instruction, response) pair.</p>
+
+
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h3 id="curatorkit.judges.PrometheusRewardGate" class="doc doc-heading">
+            <span class="doc doc-object-name doc-class-name">PrometheusRewardGate</span>
+
+
+<a href="#curatorkit.judges.PrometheusRewardGate" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">PrometheusRewardGate</span><span class="p">(</span><span class="n">judge</span><span class="p">:</span> <span class="n">PrometheusJudge</span><span class="p">,</span> <span class="n">threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span> <span class="n">reference_field</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span>
+</code></pre></div>
 
     <div class="doc doc-contents ">
             <p class="doc doc-class-bases">
-              Bases: <code><a class="autorefs autorefs-internal" title="BaseExporter (curatorkit.interfaces.BaseExporter)" href="../interfaces/#curatorkit.interfaces.BaseExporter">BaseExporter</a></code></p>
+              Bases: <code><a class="autorefs autorefs-internal" title="BaseGate (curatorkit.interfaces.BaseGate)" href="../interfaces/#curatorkit.interfaces.BaseGate">BaseGate</a></code></p>
 
 
 
-        <p>Export to GRPO group rollout format.</p>
-<p>Uses DataSample.responses and DataSample.reward_scores if populated.
-Falls back to empty arrays when no rollouts have been generated yet.</p>
+        <p>BaseGate that scores every sample with PrometheusJudge and rejects below
+<code>threshold</code> (in the normalized 0-1 space).</p>
+<p>Stores <code>score_normalized</code> in <code>DataSample.label</code> for downstream
+consumers (e.g., unpaired-preference training, the diagnostic-loop probe).</p>
+<h5 id="curatorkit.judges.PrometheusRewardGate--parameters">Parameters<a class="headerlink" href="#curatorkit.judges.PrometheusRewardGate--parameters" title="Permanent link">&para;</a></h5>
+<p>judge : PrometheusJudge
+    The scorer.
+threshold : float
+    Reject if <code>score_normalized</code> &lt; threshold. 0.5 ≈ score 3/5; 0.75 ≈ 4/5.
+reference_field : str | None
+    If set, read the reference answer per-sample from this field name
+    (e.g., "metadata.reference"). Otherwise the judge's
+    <code>reference_answer</code> (if any) is used for every sample.</p>
 
 
 
@@ -2125,116 +2708,27 @@ Falls back to empty arrays when no rollouts have been generated yet.</p>
 
 
 
-<h3 id="curatorkit.exporters.MessagesExporter" class="doc doc-heading">
-            <span class="doc doc-object-name doc-class-name">MessagesExporter</span>
+<h3 id="curatorkit.judges.ScoreRubric" class="doc doc-heading">
+            <span class="doc doc-object-name doc-class-name">ScoreRubric</span>
 
 
-<a href="#curatorkit.exporters.MessagesExporter" class="headerlink" title="Permanent link">&para;</a></h3>
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-dataclass"><code>dataclass</code></small>
+  </span>
 
-
-    <div class="doc doc-contents ">
-            <p class="doc doc-class-bases">
-              Bases: <code><a class="autorefs autorefs-internal" title="BaseExporter (curatorkit.interfaces.BaseExporter)" href="../interfaces/#curatorkit.interfaces.BaseExporter">BaseExporter</a></code></p>
-
-
-
-        <p>Export to multi-turn chat <code>messages</code> (role/content) format.</p>
-
-
-
-
-
-
-
-
-
-
-
-<div class="doc doc-children">
-
-
-
-
-
-
-
-
-
-
-
-
-  </div>
-
-    </div>
-
-</div>
-
-<div class="doc doc-object doc-class">
-
-
-
-<h3 id="curatorkit.exporters.PPOExporter" class="doc doc-heading">
-            <span class="doc doc-object-name doc-class-name">PPOExporter</span>
-
-
-<a href="#curatorkit.exporters.PPOExporter" class="headerlink" title="Permanent link">&para;</a></h3>
-
+<a href="#curatorkit.judges.ScoreRubric" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">ScoreRubric</span><span class="p">(</span><span class="n">criterion</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">score_1</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">score_2</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">score_3</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">score_4</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">score_5</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span>
+</code></pre></div>
 
     <div class="doc doc-contents ">
-            <p class="doc doc-class-bases">
-              Bases: <code><a class="autorefs autorefs-internal" title="BaseExporter (curatorkit.interfaces.BaseExporter)" href="../interfaces/#curatorkit.interfaces.BaseExporter">BaseExporter</a></code></p>
 
 
 
-        <p>Export prompts in PPO training format.</p>
-
-
-
-
-
-
-
-
-
-
-
-<div class="doc doc-children">
-
-
-
-
-
-
-
-
-
-
-
-
-  </div>
-
-    </div>
-
-</div>
-
-<div class="doc doc-object doc-class">
-
-
-
-<h3 id="curatorkit.exporters.ShareGPTExporter" class="doc doc-heading">
-            <span class="doc doc-object-name doc-class-name">ShareGPTExporter</span>
-
-
-<a href="#curatorkit.exporters.ShareGPTExporter" class="headerlink" title="Permanent link">&para;</a></h3>
-
-
-    <div class="doc doc-contents ">
-            <p class="doc doc-class-bases">
-              Bases: <code><a class="autorefs autorefs-internal" title="BaseExporter (curatorkit.interfaces.BaseExporter)" href="../interfaces/#curatorkit.interfaces.BaseExporter">BaseExporter</a></code></p>
-
-
-
-        <p>Export to ShareGPT multi-turn conversation (from/value) format.</p>
+        <p>A Prometheus-style absolute-grading rubric.</p>
+<p>The criterion is the dimension being evaluated (e.g., "helpfulness");
+descriptions are the 1..5 quality bands. All five descriptions are
+required — Prometheus-2 needs every Likert level described to anchor
+its judgment.</p>
 
 
 
@@ -2310,7 +2804,7 @@ Falls back to empty arrays when no rollouts have been generated yet.</p>
       <nav class="md-footer__inner md-grid" aria-label="Footer" >
         
           
-          <a href="../cost/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Cost &amp; BoM">
+          <a href="../hygiene/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Hygiene">
             <div class="md-footer__button md-icon">
               
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
@@ -2320,20 +2814,20 @@ Falls back to empty arrays when no rollouts have been generated yet.</p>
                 Previous
               </span>
               <div class="md-ellipsis">
-                Cost & BoM
+                Hygiene
               </div>
             </div>
           </a>
         
         
           
-          <a href="../diagnostic/" class="md-footer__link md-footer__link--next" aria-label="Next: Diagnostics">
+          <a href="../kg/" class="md-footer__link md-footer__link--next" aria-label="Next: Knowledge graph">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Next
               </span>
               <div class="md-ellipsis">
-                Diagnostics
+                Knowledge graph
               </div>
             </div>
             <div class="md-footer__button md-icon">

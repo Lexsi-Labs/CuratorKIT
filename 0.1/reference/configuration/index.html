@@ -104,7 +104,7 @@
   <nav class="md-header__inner md-grid" aria-label="Header">
     <a href="../.." title="CuratorKIT" class="md-header__button md-logo" aria-label="CuratorKIT" data-md-component="logo">
       
-  <img src="../../assets/icon.png" alt="logo">
+  <img src="../../assets/icon-white.png" alt="logo">
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
@@ -385,7 +385,7 @@
   <label class="md-nav__title" for="__drawer">
     <a href="../.." title="CuratorKIT" class="md-nav__button md-logo" aria-label="CuratorKIT" data-md-component="logo">
       
-  <img src="../../assets/icon.png" alt="logo">
+  <img src="../../assets/icon-white.png" alt="logo">
 
     </a>
     CuratorKIT
@@ -581,6 +581,8 @@
       
         
           
+        
+      
         
       
         
@@ -1084,6 +1086,14 @@
       
         
       
+        
+      
+        
+      
+        
+      
+        
+      
     
     
     
@@ -1144,6 +1154,34 @@
     
   
     Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../paper-mapping/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Method references
   
 
     
@@ -1721,7 +1759,7 @@
 <td><code>use_tiktoken</code></td>
 <td><code>bool</code></td>
 <td><code>False</code></td>
-<td>Use tiktoken for token counting instead of whitespace-based estimation</td>
+<td>Use tiktoken for token counting instead of the built-in estimate (whitespace words; one token per character for CJK, Thai and other unspaced scripts)</td>
 </tr>
 <tr>
 <td><code>schema_use_tiktoken</code></td>
@@ -2007,6 +2045,12 @@ for full usage examples.</p>
 <td><code>42</code></td>
 <td>Seed for the pre-split shuffle. Set the same value across runs to get identical train/val/test assignments.</td>
 </tr>
+<tr>
+<td><code>write_hf_readme</code></td>
+<td><code>bool</code></td>
+<td><code>True</code></td>
+<td>Also write <code>README.md</code> with <code>load_dataset</code> configs. An existing <code>README.md</code> that CuratorKIT did not write is never overwritten. Also a YAML top-level key.</td>
+</tr>
 </tbody>
 </table>
 <hr />
@@ -2201,6 +2245,12 @@ for full usage examples.</p>
 <td><code>dict</code></td>
 <td><code>{}</code></td>
 <td>Extra body params for judge model (e.g. disable thinking mode for structured output)</td>
+</tr>
+<tr>
+<td><code>judge_on_error</code></td>
+<td><code>str</code></td>
+<td><code>"reject"</code></td>
+<td>When a judge call fails or returns no parseable score: <code>"reject"</code> rejects the sample as <code>judge_error:&lt;type&gt;</code>; <code>"pass"</code> keeps it (legacy fail-open). The error is recorded in provenance either way.</td>
 </tr>
 </tbody>
 </table>
@@ -2610,7 +2660,7 @@ they're treated as <code>{model: "..."}</code> shorthand and only apply when the
 </tbody>
 </table>
 <blockquote>
-<p><strong>Custom judge prompt templates and scoring</strong>: <code>reward_prompt_template</code>/<code>hallucination_prompt_template</code> replace the entire prompt text, but the gate still parses one specific top-level JSON key out of the judge's response (<code>overall_score</code> / <code>grounding_score</code>) — that key is never computed by CuratorKIT, it's whatever the LLM returns. If your custom template's expected output doesn't ask for that exact key, the gate can't find it and falls back to averaging your <code>reward_dimensions</code> (if present flat in the response) or extracting any number from the raw text, which can behave very differently from what you intended. CuratorKIT warns you twice if this happens: once immediately at gate construction (a cheap check of whether the key literally appears in your template text, before any LLM calls), and once after a run if fallback parsing was actually used. When writing a custom template, always include the required key explicitly in the JSON shape you ask the model for.
+<p><strong>Custom judge prompt templates and scoring</strong>: <code>reward_prompt_template</code>/<code>hallucination_prompt_template</code> replace the entire prompt text, but the gate still parses one specific top-level JSON key out of the judge's response (<code>overall_score</code> / <code>grounding_score</code>) — that key is never computed by CuratorKIT, it's whatever the LLM returns. If your custom template's expected output doesn't ask for that exact key, the gate can't find it and falls back to averaging your <code>reward_dimensions</code> (if present flat in the response) or extracting any number from the raw text, which can behave very differently from what you intended. If the response contains no number at all, the sample is rejected as <code>judge_error:JudgeParseError</code> (see <code>judge_on_error</code>). CuratorKIT warns you twice if this happens: once immediately at gate construction (a cheap check of whether the key literally appears in your template text, before any LLM calls), and once after a run if fallback parsing was actually used. When writing a custom template, always include the required key explicitly in the JSON shape you ask the model for.
 | <code>reward_store_score</code> | <code>bool</code> | <code>True</code> | Write the overall reward score to each sample's <code>label</code> field (used by the reward refiner and downstream filtering) |
 | <code>diversity_threshold</code> | <code>float \| None</code> | <code>None</code> | Enable DiversityGate. Samples with cosine similarity above this to any accepted sample are rejected. Range 0.0–1.0. <code>None</code> = gate disabled. |</p>
 </blockquote>

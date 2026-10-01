@@ -104,7 +104,7 @@
   <nav class="md-header__inner md-grid" aria-label="Header">
     <a href="../.." title="CuratorKIT" class="md-header__button md-logo" aria-label="CuratorKIT" data-md-component="logo">
       
-  <img src="../../assets/icon.png" alt="logo">
+  <img src="../../assets/icon-white.png" alt="logo">
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
@@ -385,7 +385,7 @@
   <label class="md-nav__title" for="__drawer">
     <a href="../.." title="CuratorKIT" class="md-nav__button md-logo" aria-label="CuratorKIT" data-md-component="logo">
       
-  <img src="../../assets/icon.png" alt="logo">
+  <img src="../../assets/icon-white.png" alt="logo">
 
     </a>
     CuratorKIT
@@ -579,6 +579,8 @@
       
         
           
+        
+      
         
       
         
@@ -1222,7 +1224,8 @@ automatically on first parse. <code>curatorkit setup-pdf --check</code> verifies
 <h2 id="what-gets-written-to-the-output-directory">What gets written to the output directory?<a class="headerlink" href="#what-gets-written-to-the-output-directory" title="Permanent link">&para;</a></h2>
 <p>Every run writes <code>manifest.json</code> (config hash, per-stage counts, rejection
 breakdown), <code>rejected.jsonl</code> (each rejected sample with a structured reason),
-<code>dataset_card.md</code>, and <code>checksums.txt</code>, plus one file per requested export format
+<code>dataset_card.md</code>, <code>README.md</code> (the card with <code>configs:</code> YAML for <code>datasets.load_dataset</code>),
+<code>lexsi_provenance.json</code>, and <code>checksums.txt</code>, plus one file per requested export format
 (<code>sft_alpaca.jsonl</code>, <code>dpo.jsonl</code>, …). Exporters <strong>overwrite</strong> files from previous
 runs, so use a fresh <code>output_dir</code> to keep prior outputs. See
 <a href="../../guides/exporters/">exporters</a>.</p>
