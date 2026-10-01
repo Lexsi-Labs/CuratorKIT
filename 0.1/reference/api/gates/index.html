@@ -591,8 +591,6 @@
       
         
       
-        
-      
     
     
     
@@ -719,14 +717,6 @@
       
         
           
-        
-      
-        
-      
-        
-      
-        
-      
         
       
         
@@ -1058,34 +1048,6 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#curatorkit.gates.DecontaminationGate" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        DecontaminationGate
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="DecontaminationGate">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#curatorkit.gates.DecontaminationGate--parameters" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Parameters
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-        
-          <li class="md-nav__item">
   <a href="#curatorkit.gates.DiversityGate" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1279,118 +1241,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../judges/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Judges
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../kg/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Knowledge graph
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../coverage/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Coverage
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../cost/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Cost & BoM
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../exporters/" class="md-nav__link">
         
   
@@ -1560,34 +1410,6 @@
 
               
             
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../paper-mapping/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Method references
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
           </ul>
         </nav>
       
@@ -1720,34 +1542,6 @@
   
     <nav class="md-nav" aria-label="gates">
       <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#curatorkit.gates.DecontaminationGate" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        DecontaminationGate
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="DecontaminationGate">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#curatorkit.gates.DecontaminationGate--parameters" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Parameters
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
         
           <li class="md-nav__item">
   <a href="#curatorkit.gates.DiversityGate" class="md-nav__link">
@@ -1930,71 +1724,6 @@
 
 
 
-
-<div class="doc doc-object doc-class">
-
-
-
-<h3 id="curatorkit.gates.DecontaminationGate" class="doc doc-heading">
-            <span class="doc doc-object-name doc-class-name">DecontaminationGate</span>
-
-
-<a href="#curatorkit.gates.DecontaminationGate" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">DecontaminationGate</span><span class="p">(</span><span class="n">shards</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">]],</span> <span class="n">n</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">13</span><span class="p">,</span> <span class="n">max_ngram_overlap</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">fields</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">text_keys</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="s1">'text'</span><span class="p">,</span> <span class="s1">'question'</span><span class="p">,</span> <span class="s1">'prompt'</span><span class="p">,</span> <span class="s1">'input'</span><span class="p">))</span>
-</code></pre></div>
-
-    <div class="doc doc-contents ">
-            <p class="doc doc-class-bases">
-              Bases: <code><a class="autorefs autorefs-internal" title="BaseGate (curatorkit.interfaces.BaseGate)" href="../interfaces/#curatorkit.interfaces.BaseGate">BaseGate</a></code></p>
-
-
-
-        <p>Reject samples whose text overlaps eval-benchmark n-grams beyond a
-configurable threshold.</p>
-<h5 id="curatorkit.gates.DecontaminationGate--parameters">Parameters<a class="headerlink" href="#curatorkit.gates.DecontaminationGate--parameters" title="Permanent link">&para;</a></h5>
-<p>shards : dict[str, list[str | Path]]
-    {shard_name: [list of files to ingest]}. Each file is either:
-      - .jsonl  → reads each line as JSON and indexes
-                  the value of <code>text_key</code> (default: "text" or
-                  "question" or "prompt", first one present)
-      - .txt    → reads the whole file as one document
-n : int
-    N-gram length. GPT-3 used 13; Llama 3 used 8. Default 13.
-max_ngram_overlap : int
-    Reject if overlap is &gt; this many n-grams against any single shard.
-    Default 1 (any overlap = rejection — matches Llama 3's strict
-    protocol). Increase to allow incidental phrase coincidence.
-fields : list[str]
-    Which DataSample text fields to scan. Default: instruction + output.</p>
-
-
-
-
-
-
-
-
-
-
-
-<div class="doc doc-children">
-
-
-
-
-
-
-
-
-
-
-
-
-  </div>
-
-    </div>
-
-</div>
 
 <div class="doc doc-object doc-class">
 

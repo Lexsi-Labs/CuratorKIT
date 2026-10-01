@@ -589,8 +589,6 @@
       
         
       
-        
-      
     
     
     
@@ -1283,40 +1281,6 @@ not a heading here.</p>
 <li><code>on_judge_error="reject" | "pass"</code> on <code>HallucinationGate</code> and <code>RewardGate</code>
   (<code>CuratorConfig.judge_on_error</code>, YAML <code>on_judge_error</code>).</li>
 <li>README: Cohere Aya quickstart (Cohere API, Ollama, OpenAI-compatible endpoint; Aya as judge).</li>
-<li>Generation tasks, all opt-in through <code>generation_task</code> (config fields default to the papers'
-  settings; see <code>docs/reference/paper-mapping.md</code>): <code>magpie</code> (<code>MagpieTask</code>), <code>persona</code>
-  (<code>PersonaDrivenTask</code>, Persona Hub), <code>self_rewarding</code> (<code>SelfRewardingTask</code>), <code>constitutional</code> /
-  <code>constitutional_preference</code> (Constitutional AI critique-and-revise, SFT or DPO output),
-  <code>best_of_n</code> (<code>BestOfNTask</code>, scorer <code>length</code> | <code>prometheus</code> | <code>deepeval</code> | <code>factscore</code>),
-  <code>joint_bundle</code> (<code>JointBundleTask</code>: linked SFT + DPO + GRPO samples from one pass), and
-  <code>kg_multihop</code> (<code>MultiHopQATask</code> over a saved <code>KnowledgeGraph</code>, <code>kg_path</code>). Tasks whose output
-  task_type depends on their settings (<code>persona</code>, <code>best_of_n</code>, <code>joint_bundle</code>) resolve
-  <code>export_formats</code> from the generated samples.</li>
-<li><code>curatorkit.judges</code>: <code>PrometheusJudge</code> / <code>PrometheusRewardGate</code> (Prometheus 2),
-  <code>DeepEvalJudge</code> / <code>DeepEvalRewardGate</code> (G-Eval), <code>FActScoreJudge</code> / <code>FActScoreGate</code>. Curator
-  wiring: <code>prometheus_threshold</code> + <code>prometheus_rubric</code>, <code>factscore_threshold</code>, all on the judge
-  role LLM. No judge-specific package needed.</li>
-<li><code>DecontaminationGate</code>: n-gram overlap against eval-benchmark shards
-  (<code>decontamination_shards</code>, <code>decontamination_n</code>, <code>decontamination_max_overlap</code>).</li>
-<li>Hygiene: <code>PIIGate</code> (reject or <code>&lt;ENTITY&gt;</code>-redact, Presidio with regex fallback;
-  <code>pii_gate="reject" | "redact"</code>), <code>JailbreakGate</code> (PromptGuard 2 or keyword heuristic;
-  <code>jailbreak_gate</code>), <code>OutputSafetyGate</code> (Llama Guard taxonomy via the judge LLM, regex fallback;
-  <code>output_safety_gate</code>), <code>SafetyComplianceReport</code>. PDF ingest can scrub PII per chunk
-  (<code>PDFReader(pii_scrub="redact" | "drop")</code>, <code>CuratorConfig.pdf_pii_scrub</code>, YAML reader
-  <code>pii_scrub</code>); dropped chunks go to <code>rejected.jsonl</code> as <code>safety_pii_at_ingest:*</code>.</li>
-<li><code>curatorkit.kg</code>: <code>KnowledgeGraph</code> triple store (JSON save/load, k-hop paths), <code>KGExtractor</code>,
-  <code>MultiHopQATask</code>, <code>GraphCoverageAnalyser</code>.</li>
-<li><code>curatorkit.coverage</code>: diversity metrics, <code>CoverageAnalyser</code> (spherical k-means thin-cluster
-  detection), <code>DiversityMonitor</code> (collapse warning), <code>CoverageDirectedGenerator</code>.</li>
-<li><code>curatorkit.cost</code>: <code>CostGateway</code> (per-call token/USD tracking), <code>TokenBudget</code> +
-  <code>BudgetExceeded</code>, <code>CostReport</code>, <code>BillOfMaterials</code> (checksummed outputs, <code>verify()</code>),
-  <code>DryRunCostEstimator</code>. <code>BaseLLM</code> no longer retries exceptions marked <code>__no_retry__ = True</code>
-  (e.g. <code>BudgetExceeded</code>). These are SDK components; they are not yet wired into <code>CuratorConfig</code>.</li>
-<li><code>ArgillaExporter</code> (<code>export_formats=["argilla"]</code>): passed and rejected samples, including the
-  probe's <code>diagnosis</code>, as Argilla 2.x records; writes <code>argilla_records.jsonl</code> when no server is
-  configured.</li>
-<li>Extras: <code>safety</code> (transformers + torch for PromptGuard) and <code>review</code> (argilla). Base install
-  is unchanged.</li>
 <li><code>ignore_for_dedup</code>: regex patterns whose matches are masked out (replaced with a space, then
   whitespace-collapsed) from a sample's text before deduplication compares or embeds it — lets a
   real but unimportant difference (a per-sample UUID, a timestamp, a boilerplate disclaimer) not

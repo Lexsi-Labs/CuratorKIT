@@ -13,7 +13,7 @@
         <link rel="canonical" href="https://lexsi-labs.github.io/CuratorKIT/0.1/reference/api/exporters/">
       
       
-        <link rel="prev" href="../cost/">
+        <link rel="prev" href="../hygiene/">
       
       
         <link rel="next" href="../diagnostic/">
@@ -591,8 +591,6 @@
       
         
       
-        
-      
     
     
     
@@ -719,14 +717,6 @@
       
         
           
-        
-      
-        
-      
-        
-      
-        
-      
         
       
         
@@ -1067,118 +1057,6 @@
                 
   
   
-  
-  
-    <li class="md-nav__item">
-      <a href="../judges/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Judges
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../kg/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Knowledge graph
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../coverage/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Coverage
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../cost/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Cost & BoM
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
     
   
   
@@ -1261,34 +1139,6 @@
       
     </span>
   </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#curatorkit.exporters.ArgillaExporter" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        ArgillaExporter
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="ArgillaExporter">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#curatorkit.exporters.ArgillaExporter--parameters" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Parameters
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
         
@@ -1520,34 +1370,6 @@
 
               
             
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../paper-mapping/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Method references
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
           </ul>
         </nav>
       
@@ -1689,34 +1511,6 @@
       
     </span>
   </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#curatorkit.exporters.ArgillaExporter" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        ArgillaExporter
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="ArgillaExporter">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#curatorkit.exporters.ArgillaExporter--parameters" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Parameters
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
         
@@ -1869,75 +1663,6 @@
 
 
         <p>Export to Alpaca instruction-following format.</p>
-
-
-
-
-
-
-
-
-
-
-
-<div class="doc doc-children">
-
-
-
-
-
-
-
-
-
-
-
-
-  </div>
-
-    </div>
-
-</div>
-
-<div class="doc doc-object doc-class">
-
-
-
-<h3 id="curatorkit.exporters.ArgillaExporter" class="doc doc-heading">
-            <span class="doc doc-object-name doc-class-name">ArgillaExporter</span>
-
-
-<a href="#curatorkit.exporters.ArgillaExporter" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">ArgillaExporter</span><span class="p">(</span><span class="n">api_url</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">''</span><span class="p">,</span> <span class="n">api_key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">''</span><span class="p">,</span> <span class="n">workspace</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">'argilla'</span><span class="p">,</span> <span class="n">dataset_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">'curatorkit_review'</span><span class="p">,</span> <span class="n">include_rejected</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">rejected_samples</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">RejectedSample</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">write_local_jsonl_fallback</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
-</code></pre></div>
-
-    <div class="doc doc-contents ">
-            <p class="doc doc-class-bases">
-              Bases: <code><a class="autorefs autorefs-internal" title="BaseExporter (curatorkit.interfaces.BaseExporter)" href="../interfaces/#curatorkit.interfaces.BaseExporter">BaseExporter</a></code></p>
-
-
-
-        <p>Push CuratorKIT samples to an Argilla 2.x workspace.</p>
-<h5 id="curatorkit.exporters.ArgillaExporter--parameters">Parameters<a class="headerlink" href="#curatorkit.exporters.ArgillaExporter--parameters" title="Permanent link">&para;</a></h5>
-<p>api_url : str
-    Argilla server URL (e.g., "https://my-argilla.huggingface.cloud").
-api_key : str
-    API token.
-workspace : str
-    Argilla workspace name. Created if it doesn't exist.
-dataset_name : str
-    Argilla dataset name. Created with the standard CuratorKIT schema
-    if it doesn't exist.
-include_rejected : bool
-    Push rejected samples alongside passed (default True).
-    Reviewers can then confirm or override rejection decisions.
-rejected_samples : list[RejectedSample] | None
-    Override the rejected list passed at construction. Useful when the
-    Pipeline result's rejected list lives in a separate object.
-write_local_jsonl_fallback : bool
-    If Argilla isn't installed or the connection fails, write the
-    records to <code>{output_dir}/argilla_records.jsonl</code> so the human-review
-    bundle isn't lost. Default True.</p>
 
 
 
@@ -2310,7 +2035,7 @@ Falls back to empty arrays when no rollouts have been generated yet.</p>
       <nav class="md-footer__inner md-grid" aria-label="Footer" >
         
           
-          <a href="../cost/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Cost &amp; BoM">
+          <a href="../hygiene/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Hygiene">
             <div class="md-footer__button md-icon">
               
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
@@ -2320,7 +2045,7 @@ Falls back to empty arrays when no rollouts have been generated yet.</p>
                 Previous
               </span>
               <div class="md-ellipsis">
-                Cost & BoM
+                Hygiene
               </div>
             </div>
           </a>
