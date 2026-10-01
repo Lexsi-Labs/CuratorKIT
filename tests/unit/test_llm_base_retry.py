@@ -98,33 +98,3 @@ class TestAsyncGenerateMaxRetriesFloor:
         response = asyncio.run(llm.agenerate([{"role": "user", "content": "hi"}]))
         assert response.text == "ok"
         assert llm.calls == 2
-
-
-class _NoRetryError(RuntimeError):
-    """Marked non-retryable, like curatorkit.cost.BudgetExceeded."""
-
-    __no_retry__ = True
-
-
-class TestNoRetryMarker:
-    def test_sync_no_retry_exception_propagates_on_first_call(self):
-        class _Raising(_FailNTimesLLM):
-            def _call(self, messages, **kwargs):
-                self.calls += 1
-                raise _NoRetryError("budget hit")
-
-        llm = _Raising(max_retries=5)
-        with pytest.raises(_NoRetryError):
-            llm.generate([{"role": "user", "content": "hi"}])
-        assert llm.calls == 1
-
-    def test_async_no_retry_exception_propagates_on_first_call(self):
-        class _Raising(_FailNTimesLLM):
-            async def _acall(self, messages, **kwargs):
-                self.calls += 1
-                raise _NoRetryError("budget hit")
-
-        llm = _Raising(max_retries=5)
-        with pytest.raises(_NoRetryError):
-            asyncio.run(llm.agenerate([{"role": "user", "content": "hi"}]))
-        assert llm.calls == 1

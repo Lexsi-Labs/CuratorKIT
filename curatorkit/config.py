@@ -108,8 +108,6 @@ class ReaderConfig(BaseModel):
     extract_tables: bool = False
     ocr: bool = False
     min_section_tokens: int = 30
-    pii_scrub: Literal["off", "redact", "drop"] = "off"  # PII scan per chunk at ingest
-    pii_entities: list[str] | None = None  # None = PIIGate defaults
 
     # ---- PDF output mode (non-"chunk" modes trigger LLM generation) ----
     output_mode: Literal["chunk", "qa", "preference", "grpo", "multiturn"] = "chunk"

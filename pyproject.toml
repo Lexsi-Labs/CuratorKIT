@@ -142,17 +142,6 @@ hygiene-stanza = [
     "presidio-analyzer[stanza]>=2.2",
 ]
 
-# Prompt-injection / jailbreak detection with Meta PromptGuard 2 (JailbreakGate).
-# Without it JailbreakGate falls back to a keyword heuristic.
-safety = [
-    "transformers>=5.15,<6",
-    "torch>=2.3",
-]
-
-# Push curated / rejected samples to an Argilla 2.x server for human review
-# (ArgillaExporter). Without it the exporter writes argilla_records.jsonl.
-review = ["argilla>=2.0"]
-
 # Everything: connectors + generation + embedding + hygiene.
 # Excludes PDF (heavy model stack) and TRL (heavy torch/transformers stack) —
 # install those separately if needed.

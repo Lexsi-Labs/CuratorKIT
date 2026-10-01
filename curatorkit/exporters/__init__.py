@@ -1,5 +1,4 @@
 from curatorkit.exporters.alpaca import AlpacaExporter
-from curatorkit.exporters.argilla import ArgillaExporter
 from curatorkit.exporters.corpus import CorpusExporter
 from curatorkit.exporters.dpo import DPOExporter
 from curatorkit.exporters.grpo import GRPOExporter
@@ -22,7 +21,6 @@ EXPORTERS = {
 __all__ = [
     "EXPORTERS",
     "AlpacaExporter",
-    "ArgillaExporter",
     "CorpusExporter",
     "DPOExporter",
     "GRPOExporter",

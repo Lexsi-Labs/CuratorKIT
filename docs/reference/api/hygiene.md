@@ -1,9 +1,7 @@
 # Hygiene
 
-Secrets detection, PII pseudonymisation and gating, toxicity, jailbreak and output-safety
-filtering. Presidio, Detoxify and detect-secrets come from the
-`hygiene` extra; PromptGuard (JailbreakGate) from the `safety` extra. PIIGate, JailbreakGate
-and OutputSafetyGate fall back to regex/keyword heuristics when their model is not available.
+Secrets detection, PII pseudonymisation, and toxicity filtering. All require the
+`hygiene` extra.
 
 ::: curatorkit.hygiene
       options:
