@@ -25,7 +25,7 @@
   <a href="#quickstart">Quickstart</a> ·
   <a href="#tutorials">Tutorials</a> ·
   <a href="#ecosystem">Ecosystem</a> ·
-  <a href="CONTRIBUTING.md">Contributing</a>
+  <a href="https://github.com/Lexsi-Labs/CuratorKIT/blob/main/CONTRIBUTING.md">Contributing</a>
 </p>
 
 ---

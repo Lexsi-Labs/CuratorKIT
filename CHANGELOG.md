@@ -6,13 +6,15 @@ All notable changes to CuratorKIT are documented here. The format follows
 
 ## Unreleased
 
-> **On the version numbers below.** The released version is **0.1.15** -- the
-> latest on PyPI -- and `curatorkit.__version__` and `CITATION.cff` both declare it.
-> The `Unreleased (draft "...")` sections below were planned against version numbers
-> that were **never published**; nothing with those versions exists on PyPI. They
-> are kept as the record of what the work was. To know what a given
-> `pip install curatorkit` contains, use `curatorkit.__version__` or the PyPI page,
-> not a heading here.
+> **On the version numbers below.** `curatorkit.__version__` and `CITATION.cff`
+> both declare **0.1.21**, the version the release pipeline publishes next; the
+> latest on PyPI is **0.1.20**. The tree had drifted -- it sat at 0.1.15 while
+> PyPI served 0.1.20, so `curatorkit.__version__` misidentified every wheel built
+> from it. The `Unreleased (draft "...")` sections below were planned against
+> version numbers that were **never published**; nothing with those versions
+> exists on PyPI. They are kept as the record of what the work was. To know what a
+> given `pip install curatorkit` contains, use `curatorkit.__version__` or the
+> PyPI page, not a heading here.
 
 ### Changed
 - `sft_sharegpt.jsonl` keeps the ShareGPT `conversations` / `from` / `value` layout, but no longer
