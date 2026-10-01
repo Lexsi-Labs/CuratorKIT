@@ -7,7 +7,8 @@ hide:
 
 <div class="ck-hero" markdown>
 
-<img class="ck-hero-mark" src="assets/icon.png" alt="">
+<img class="ck-hero-mark ck-lexsi-on-light" src="assets/icon.png" alt="">
+<img class="ck-hero-mark ck-lexsi-on-dark" src="assets/icon-white.png" alt="">
 
 <h1 class="ck-hero-title">Post-training data, <em>curated with proof</em>.</h1>
 
@@ -124,8 +125,9 @@ flowchart LR
     [`examples/quickstart/`](https://github.com/Lexsi-Labs/CuratorKIT/tree/main/examples/quickstart);
     the schema is in the [CLI reference](reference/cli.md).
 
-Every run writes `manifest.json`, `rejected.jsonl`, `dataset_card.md`, and
-`checksums.txt` alongside the export files.
+Every run writes `manifest.json`, `rejected.jsonl`, `dataset_card.md`,
+`lexsi_provenance.json`, and `checksums.txt` alongside the export files, plus a
+`README.md` that makes the folder loadable with `datasets.load_dataset(dir, "<config>")`.
 
 ## Where next
 

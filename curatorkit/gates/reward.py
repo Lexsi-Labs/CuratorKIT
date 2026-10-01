@@ -23,13 +23,18 @@ from datetime import UTC, datetime
 from tqdm import tqdm
 from tqdm.asyncio import tqdm as atqdm
 
+from curatorkit.gates._judge import (
+    check_on_judge_error,
+    judge_error_result,
+    warn_judge_errors,
+)
 from curatorkit.gates._score_parsing import extract_score, template_mentions_key
 from curatorkit.interfaces import BaseGate
 from curatorkit.llm.base import BaseLLM
 from curatorkit.schema import DataSample, ProvenanceRecord, RejectedSample
 from curatorkit.utils.prompt_validation import validate_prompt_template
 
-STEP_VERSION = "1.0.0"
+STEP_VERSION = "1.1.0"
 
 _PREFERENCE_TASK_TYPES = {"preference", "implicit_preference"}
 
@@ -98,6 +103,11 @@ class RewardGate(BaseGate):
         Custom reward evaluation prompt.
     store_score_in_label : bool
         If True, store the overall score in DataSample.label.
+    on_judge_error : str
+        What to do when the judge call fails or its output has no parseable
+        score. "reject" (default) rejects the sample with reason
+        'judge_error:<ExceptionType>'; "pass" keeps the legacy fail-open
+        behaviour. The error is recorded in provenance either way.
     """
 
     def __init__(
@@ -108,6 +118,7 @@ class RewardGate(BaseGate):
         prompt_template: str | None = None,
         store_score_in_label: bool = True,
         concurrency: int = 16,
+        on_judge_error: str = "reject",
     ) -> None:
         self.llm = llm
         self.threshold = threshold
@@ -115,6 +126,7 @@ class RewardGate(BaseGate):
         self.prompt_template = prompt_template
         self.store_score_in_label = store_score_in_label
         self.concurrency = concurrency
+        self.on_judge_error = check_on_judge_error(on_judge_error)
         self._fallback_count = 0
         self._scored_count = 0
 
@@ -150,6 +162,7 @@ class RewardGate(BaseGate):
                 "threshold": self.threshold,
                 "dimensions": sorted(self.dimensions),
                 "llm_model": self.llm.model,
+                "on_judge_error": self.on_judge_error,
             },
             sort_keys=True,
         )
@@ -228,16 +241,15 @@ class RewardGate(BaseGate):
         try:
             score, dim_scores, details = self._evaluate_quality(instruction, response_text)
         except Exception as e:
-            sample.append_provenance(
-                ProvenanceRecord(
-                    step_name="RewardGate",
-                    step_version=STEP_VERSION,
-                    timestamp=ts,
-                    config_hash=cfg_hash,
-                    notes={"error": str(e), "passed_on_error": True},
-                )
+            return judge_error_result(
+                sample,
+                e,
+                on_judge_error=self.on_judge_error,
+                step_name="RewardGate",
+                step_version=STEP_VERSION,
+                cfg_hash=cfg_hash,
+                ts=ts,
             )
-            return sample, None
 
         if score >= self.threshold:
             if self.store_score_in_label:
@@ -299,16 +311,15 @@ class RewardGate(BaseGate):
             chosen_score, chosen_dims, _ = self._evaluate_quality(instruction, sample.chosen)
             rejected_score, rejected_dims, _ = self._evaluate_quality(instruction, sample.rejected)
         except Exception as e:
-            sample.append_provenance(
-                ProvenanceRecord(
-                    step_name="RewardGate",
-                    step_version=STEP_VERSION,
-                    timestamp=ts,
-                    config_hash=cfg_hash,
-                    notes={"error": str(e), "passed_on_error": True},
-                )
+            return judge_error_result(
+                sample,
+                e,
+                on_judge_error=self.on_judge_error,
+                step_name="RewardGate",
+                step_version=STEP_VERSION,
+                cfg_hash=cfg_hash,
+                ts=ts,
             )
-            return sample, None
 
         chosen_ok = chosen_score >= self.threshold
         rejected_ok = rejected_score < self.threshold
@@ -406,6 +417,7 @@ class RewardGate(BaseGate):
             if r is not None:
                 rejected.append(r)
 
+        warn_judge_errors("RewardGate", passed, rejected)
         self._warn_if_fallback_heavy()
         return passed, rejected
 
@@ -545,16 +557,15 @@ class RewardGate(BaseGate):
                     instruction, response_text
                 )
             except Exception as e:
-                sample.append_provenance(
-                    ProvenanceRecord(
-                        step_name="RewardGate",
-                        step_version=STEP_VERSION,
-                        timestamp=ts,
-                        config_hash=cfg_hash,
-                        notes={"error": str(e), "passed_on_error": True},
-                    )
+                return judge_error_result(
+                    sample,
+                    e,
+                    on_judge_error=self.on_judge_error,
+                    step_name="RewardGate",
+                    step_version=STEP_VERSION,
+                    cfg_hash=cfg_hash,
+                    ts=ts,
                 )
-                return sample, None
 
             if score >= self.threshold:
                 if self.store_score_in_label:
@@ -611,16 +622,15 @@ class RewardGate(BaseGate):
                 self._evaluate_quality_async(instruction, sample.rejected),
             )
         except Exception as e:
-            sample.append_provenance(
-                ProvenanceRecord(
-                    step_name="RewardGate",
-                    step_version=STEP_VERSION,
-                    timestamp=ts,
-                    config_hash=cfg_hash,
-                    notes={"error": str(e), "passed_on_error": True},
-                )
+            return judge_error_result(
+                sample,
+                e,
+                on_judge_error=self.on_judge_error,
+                step_name="RewardGate",
+                step_version=STEP_VERSION,
+                cfg_hash=cfg_hash,
+                ts=ts,
             )
-            return sample, None
 
         chosen_ok = chosen_score >= self.threshold
         rejected_ok = rejected_score < self.threshold
@@ -692,5 +702,6 @@ class RewardGate(BaseGate):
 
         passed = [p for p, r in results if p is not None]
         rejected = [r for p, r in results if r is not None]
+        warn_judge_errors("RewardGate", passed, rejected)
         self._warn_if_fallback_heavy()
         return passed, rejected

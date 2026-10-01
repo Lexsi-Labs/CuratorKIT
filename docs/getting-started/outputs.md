@@ -6,7 +6,8 @@ per requested export format:
 ```
 output/
   sft_alpaca.jsonl          SFT data in Alpaca format
-  sft_sharegpt.jsonl        SFT data in ShareGPT conversation format
+  sft_sharegpt.jsonl        SFT data in ShareGPT format (from/value)
+  sft_messages.jsonl        SFT data as chat messages (role/content), for TRL
   dpo.jsonl                 DPO preference pairs (only when preference task used)
   grpo.jsonl                GRPO rollouts (only when grpo task used)
   ppo.jsonl                 PPO prompts (only when ppo exporter included)
@@ -14,6 +15,8 @@ output/
   rejected.jsonl            Every rejected sample with a structured reason string
   manifest.json             Pipeline config hash, stage counts, rejection breakdown
   dataset_card.md           Human-readable run summary
+  README.md                 Same card with configs YAML: load_dataset("output/", "dpo") works
+  lexsi_provenance.json     Lineage record: version, inputs, generator/judge models
   checksums.txt             SHA-256 for all output files
   diagnostic_summary.json   Failure mode counts, recovery rate (when probe active)
 ```

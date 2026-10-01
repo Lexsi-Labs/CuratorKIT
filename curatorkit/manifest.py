@@ -21,6 +21,11 @@ manifest.json top-level keys:
   wall_clock_seconds      float
   tool_versions           {curatorkit: "<package version>", python: "..."}
   diversity_stats         reserved; currently null
+  provenance              the lexsi.provenance/1 object, also written to lexsi_provenance.json
+
+The dataset card is written twice: dataset_card.md, and README.md with YAML
+`configs:` front-matter so `datasets.load_dataset(output_dir, "<config>")` loads
+each export (config = file stem, split = split directory, or "train").
 """
 
 from __future__ import annotations
@@ -28,13 +33,89 @@ from __future__ import annotations
 import hashlib
 import json
 import sys
+import warnings
 from collections import Counter
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 from curatorkit import __version__ as _CURATORKIT_VERSION
+from curatorkit.exporters import EXPORTERS
+from curatorkit.interfaces import BaseGate
 from curatorkit.pipeline import PipelineResult
 from curatorkit.schema import DataSample
+
+PROVENANCE_FILE = "lexsi_provenance.json"
+
+# Every README.md curatorkit writes starts with this front matter; a README.md
+# without it is the user's own and is never overwritten.
+_README_MARKER = "---\ntags:\n- curatorkit\n"
+
+
+def build_provenance(
+    method: str,
+    inputs: list[dict[str, Any]] | None = None,
+    params: dict[str, Any] | None = None,
+    base_model: str | None = None,
+) -> dict[str, Any]:
+    """The lexsi.provenance/1 object shared across the Lexsi stack."""
+    return {
+        "schema": "lexsi.provenance/1",
+        "library": "curatorkit",
+        "version": _CURATORKIT_VERSION,
+        "git_sha": None,
+        "created_at": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "base_model": base_model,
+        "method": method,
+        "inputs": inputs or [],
+        "params": params or {},
+    }
+
+
+def read_provenance(path: Any) -> dict[str, Any] | None:
+    """lexsi_provenance.json of a local dataset dir (or a file's dir); None if absent."""
+    p = Path(str(path))
+    try:
+        return json.loads(((p if p.is_dir() else p.parent) / PROVENANCE_FILE).read_text("utf-8"))
+    except (OSError, ValueError):
+        return None
+
+
+def dataset_input(ref: Any, config: str | None = None) -> dict[str, Any]:
+    """One `inputs[]` entry, carrying the parent's provenance when it has one."""
+    return {"kind": "dataset", "ref": str(ref), "config": config, "provenance": read_provenance(ref)}
+
+
+def step_models(steps: list) -> dict[str, str | None]:
+    """Model ids of the LLMs the built pipeline steps actually use: gates with an
+    LLM are judges, other steps with one are generators; GRPO has a scoring LLM."""
+    models: dict[str, str | None] = {
+        "generator_model": None,
+        "judge_model": None,
+        "grpo_scoring_model": None,
+    }
+    for step in steps:
+        for attr, key in (
+            ("llm", "judge_model" if isinstance(step, BaseGate) else "generator_model"),
+            ("scoring_llm", "grpo_scoring_model"),
+        ):
+            llm = getattr(step, attr, None)
+            if llm is not None and models[key] is None:
+                models[key] = getattr(llm, "model", None)
+    return models
+
+
+def export_data_files(root: Path, filename: str) -> dict[str, Path]:
+    """{split: path} for one export file: each split directory holding it, else root file as "train"."""
+    root = Path(root)
+    files = {
+        d.name: d / filename
+        for d in sorted(root.iterdir())
+        if d.is_dir() and (d / filename).is_file()
+    }
+    if not files and (root / filename).is_file():
+        files = {"train": root / filename}
+    return files
 
 
 def _file_sha256(path: Path) -> str:
@@ -120,10 +201,14 @@ class ProvenanceManifest:
         result: PipelineResult,
         pipeline_config_hash: str = "unknown",
         output_dir: Path | None = None,
+        provenance: dict[str, Any] | None = None,
     ) -> None:
         self.result = result
         self.pipeline_config_hash = pipeline_config_hash
         self.output_dir = output_dir or Path("output")
+        self.provenance = provenance or build_provenance(
+            "curate", params={"pipeline_config_hash": pipeline_config_hash}
+        )
 
     def build(self) -> dict[str, object]:
         all_samples = self.result.passed + list(self.result.rejected)
@@ -161,6 +246,7 @@ class ProvenanceManifest:
             "diagnostic_files": (
                 ["diagnostic_summary.json"] if diagnostic_stats is not None else []
             ),
+            "provenance": self.provenance,
         }
 
     def write(self) -> Path:
@@ -169,6 +255,8 @@ class ProvenanceManifest:
         manifest_path = self.output_dir / "manifest.json"
         with open(manifest_path, "w", encoding="utf-8") as f:
             json.dump(manifest, f, indent=2, default=str)
+        with open(self.output_dir / PROVENANCE_FILE, "w", encoding="utf-8") as f:
+            json.dump(self.provenance, f, indent=2, default=str)
         return manifest_path
 
     def write_rejected_sidecar(self) -> Path:
@@ -204,12 +292,93 @@ class DatasetCardGenerator:
         manifest: dict[str, object],
         output_dir: Path,
         pipeline_name: str = "curatorkit_pipeline",
+        write_readme: bool = True,
     ) -> Path:
+        """Write dataset_card.md and, unless write_readme=False, README.md (the
+        same card with `load_dataset` configs). An existing README.md that
+        curatorkit did not write is left untouched, with a warning."""
         card_path = output_dir / "dataset_card.md"
         content = self._render(manifest, pipeline_name)
         with open(card_path, "w", encoding="utf-8") as f:
             f.write(content)
+        readme_path = output_dir / "README.md"
+        if write_readme and self._readme_is_ours(readme_path):
+            configs = self._configs(output_dir)
+            with open(readme_path, "w", encoding="utf-8") as f:
+                f.write(self._front_matter(configs) + content + self._config_table(configs))
+        elif write_readme:
+            warnings.warn(
+                f"{readme_path} exists and was not written by curatorkit; leaving it "
+                "untouched, so load_dataset(output_dir, <config>) will not see the export "
+                "configs. Use a dedicated output_dir to get a loadable dataset folder.",
+                UserWarning,
+                stacklevel=2,
+            )
         return card_path
+
+    @staticmethod
+    def _readme_is_ours(path: Path) -> bool:
+        """True when README.md is absent or was written by a previous curatorkit run."""
+        try:
+            with open(path, encoding="utf-8") as f:  # universal newlines: CRLF reads as \n
+                head = f.read(len(_README_MARKER))
+        except FileNotFoundError:
+            return True
+        except (OSError, UnicodeDecodeError):
+            return False
+        return head == _README_MARKER
+
+    @staticmethod
+    def _configs(output_dir: Path) -> list[tuple[str, dict[str, tuple[str, int]], dict, str]]:
+        """(config_name, {split: (relative path, rows)}, columns, sha256) per non-empty export."""
+        configs = []
+        for cls in EXPORTERS.values():
+            files, digest = {}, hashlib.sha256()
+            for split, path in export_data_files(output_dir, cls.filename).items():
+                data = path.read_bytes()
+                rows = sum(1 for line in data.splitlines() if line.strip())
+                if rows:
+                    files[split] = (path.relative_to(output_dir).as_posix(), rows)
+                    digest.update(split.encode() + b"\0" + data)
+            if files:
+                configs.append((Path(cls.filename).stem, files, cls.columns, digest.hexdigest()))
+        return configs
+
+    @staticmethod
+    def _front_matter(configs: list) -> str:
+        # Hand-written YAML (no pyyaml dependency). Only the files listed here are
+        # data; manifest.json, rejected.jsonl and lexsi_provenance.json never become splits.
+        lines = ["---", "tags:", "- curatorkit"] + (["configs:"] if configs else [])
+        for i, (name, files, _, sha) in enumerate(configs):
+            lines += [f"- config_name: {name}"] + (["  default: true"] if i == 0 else [])
+            # datasets keys its cache on this YAML, not on the data files' contents, so
+            # without the hash a re-run into the same folder loads the previous run's rows.
+            # Guarded by test_rerun_into_same_folder_is_not_served_from_cache: if a
+            # datasets release changes its cache key, that test says so.
+            lines.append(f"  description: curatorkit {name} export, sha256 {sha}")
+            lines.append("  data_files:")
+            for split, (path, _) in files.items():
+                lines += [f"  - split: {split}", f"    path: {path}"]
+        return "\n".join(lines + ["---", "", ""])
+
+    @staticmethod
+    def _config_table(configs: list) -> str:
+        if not configs:
+            return ""
+        out = [
+            "",
+            "## Configs",
+            "",
+            'Load one with `datasets.load_dataset("<this folder or Hub repo>", "<config>")`.',
+            "",
+            "| Config | Splits (rows) | Columns |",
+            "|--------|---------------|---------|",
+        ]
+        for name, files, columns, _ in configs:
+            splits = ", ".join(f"{s} ({n})" for s, (_, n) in files.items())
+            cols = "<br>".join(f"`{c}`: {t}" for c, t in columns.items())
+            out.append(f"| `{name}` | {splits} | {cols} |")
+        return "\n".join(out) + "\n"
 
     def _render(self, m: dict[str, object], name: str) -> str:
         stage_counts = m.get("stage_counts", {})

@@ -158,6 +158,10 @@ class BaseLLM(ABC):
                 response.latency_seconds = time.monotonic() - t0
                 return response
             except Exception as e:
+                # Exceptions marked `__no_retry__ = True` (e.g. BudgetExceeded)
+                # propagate at once so the caller can halt cleanly.
+                if getattr(e, "__no_retry__", False):
+                    raise
                 last_error = e
                 if attempt < total_attempts:
                     # Exponential backoff: 1s, 2s, 4s...
@@ -198,6 +202,8 @@ class BaseLLM(ABC):
                 response.latency_seconds = time.monotonic() - t0
                 return response
             except Exception as e:
+                if getattr(e, "__no_retry__", False):
+                    raise
                 last_error = e
                 if attempt < total_attempts:
                     await asyncio.sleep(min(2 ** (attempt - 1), 30) * random.uniform(0.5, 1.5))

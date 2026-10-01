@@ -16,7 +16,7 @@ single source of truth for this, used in three places that must all agree:
      shaped. This also stops silent partial data loss: conversational
      samples are no longer accepted by alpaca (which would otherwise keep
      only the first turn and drop the rest with no indication anything was
-     lost) — only sharegpt is compatible with conversational, so a
+     lost) — only sharegpt/messages are compatible with conversational, so a
      conversational sample handed to alpaca is skipped and warned about
      instead of silently truncated.
   2. resolve_export_formats(): picks CuratorConfig.export_formats
@@ -40,11 +40,11 @@ from __future__ import annotations
 # types — unpaired_preference, prompt_only — that don't come from a
 # generation task).
 TASK_TYPE_EXPORT_FORMATS: dict[str, list[str]] = {
-    "instruction_following": ["alpaca", "sharegpt"],
-    "conversational": ["sharegpt"],
+    "instruction_following": ["alpaca", "sharegpt", "messages"],
+    "conversational": ["sharegpt", "messages"],
     "preference": ["dpo"],
     "implicit_preference": ["dpo"],
-    "unpaired_preference": ["alpaca", "sharegpt"],
+    "unpaired_preference": ["alpaca", "sharegpt", "messages"],
     "grpo": ["grpo"],
     "prompt_only": ["ppo"],
     "language_modeling": ["corpus"],
@@ -66,13 +66,21 @@ GENERATION_TASK_OUTPUT_TYPE: dict[str, str] = {
     "cot": "instruction_following",
     "adversarial_preference": "preference",
     "adversarial_qa": "instruction_following",
+    "magpie": "instruction_following",
+    "kg_multihop": "instruction_following",
+    "self_rewarding": "preference",
+    "constitutional": "instruction_following",
+    "constitutional_preference": "preference",
+    # Not listed (task_type depends on settings, so it is identified from the
+    # generated samples instead): persona (per style), best_of_n (per top_k),
+    # joint_bundle (SFT + DPO + GRPO in one pass).
 }
 
 # Fallback when neither generation_task nor any observed sample task_type is
 # available yet (e.g. Curator.dry_run() printing a plan before any reader
 # has actually run). Matches the pre-alignment default so dry_run's printed
 # plan doesn't change for the common case.
-DEFAULT_EXPORT_FORMATS: list[str] = ["alpaca", "sharegpt", "dpo"]
+DEFAULT_EXPORT_FORMATS: list[str] = ["alpaca", "sharegpt", "messages", "dpo"]
 
 
 def compatible_formats_for(task_type: str) -> list[str]:
@@ -122,6 +130,10 @@ def resolve_export_formats(
     return list(DEFAULT_EXPORT_FORMATS)
 
 
+# Formats that take any task_type (a review bundle, not a trainer input): never
+# auto-selected, and never flagged as misaligned when chosen explicitly.
+TASK_TYPE_AGNOSTIC_FORMATS: frozenset[str] = frozenset({"argilla"})
+
 def misaligned_formats(generation_task: str, export_formats: list[str]) -> list[str]:
     """Formats in export_formats not designed for generation_task's output
     task_type. Used only to power a warning — callers still honor the
@@ -130,4 +142,8 @@ def misaligned_formats(generation_task: str, export_formats: list[str]) -> list[
     if task_type is None:
         return []
     compatible = set(compatible_formats_for(task_type))
-    return [fmt for fmt in export_formats if fmt.lower() not in compatible]
+    return [
+        fmt
+        for fmt in export_formats
+        if fmt.lower() not in compatible and fmt.lower() not in TASK_TYPE_AGNOSTIC_FORMATS
+    ]

@@ -1,6 +1,9 @@
 <p align="center">
   <a href="https://github.com/Lexsi-Labs/CuratorKIT">
-    <img src="docs/assets/logo.png" alt="CuratorKIT" width="480">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="docs/assets/logo-white.png">
+      <img src="docs/assets/logo.png" alt="CuratorKIT" width="480">
+    </picture>
   </a>
 </p>
 
@@ -11,7 +14,7 @@
 </p>
 
 <p align="center">
-  <a href="https://pypi.org/project/curatorkit/"><img src="https://img.shields.io/badge/pypi-v0.1.0-0a8868" alt="PyPI v0.1.0"></a>
+  <a href="https://pypi.org/project/curatorkit/"><img src="https://img.shields.io/pypi/v/curatorkit?color=0a8868" alt="PyPI version"></a>
   <a href="https://www.python.org/"><img src="https://img.shields.io/badge/python-3.11%2B-blue" alt="Python 3.11+"></a>
   <a href="https://github.com/Lexsi-Labs/CuratorKIT/blob/main/LICENSE.md"><img src="https://img.shields.io/badge/license-LSAL%20v1.1-orange" alt="License: LSAL v1.1 (source-available)"></a>
   <a href="https://lexsi-labs.github.io/CuratorKIT/"><img src="https://img.shields.io/badge/docs-available-brightgreen" alt="Documentation"></a>
@@ -41,8 +44,8 @@ CuratorKIT treats dataset construction as a pipeline with quality gates, not a s
 - **Data hygiene.** Secrets detection, PII pseudonymization (Presidio), and toxicity filtering as pipeline stages.
 - **Any source.** JSONL, JSON, CSV, Parquet, HuggingFace datasets, and PDFs with layout-aware parsing. Multi-source runs with per-source field mapping.
 - **Eight generation tasks.** QA, preference pairs, GRPO rollouts, multi-turn, Evol-Instruct, chain-of-thought, and adversarial variants, on any LiteLLM-compatible API or local Ollama/vLLM.
-- **Trainer-ready exports.** Alpaca, ShareGPT, DPO, GRPO, and PPO formats with train/val/test splits, consumed directly by TRL and [AlignTune](https://github.com/Lexsi-Labs/aligntune).
-- **Provenance by default.** Every run writes `manifest.json`, `rejected.jsonl` with structured reasons, `dataset_card.md`, and SHA-256 `checksums.txt`.
+- **Trainer-ready exports.** Alpaca, ShareGPT, chat messages, DPO, GRPO, and PPO formats with train/val/test splits, consumed directly by TRL and [AlignTune](https://github.com/Lexsi-Labs/aligntune).
+- **Provenance by default.** Every run writes `manifest.json`, `rejected.jsonl` with structured reasons, `dataset_card.md`, `lexsi_provenance.json`, and SHA-256 `checksums.txt`.
 
 ## How it works
 
@@ -52,7 +55,7 @@ flowchart LR
     B --> C["Hygiene<br/>secrets · PII · toxicity"]
     C --> D["Generate<br/>QA · DPO · GRPO · CoT"]
     D --> E{"Quality gates<br/>hallucination · reward · diversity"}
-    E -->|pass| F["Export<br/>Alpaca · ShareGPT · DPO · GRPO · PPO"]
+    E -->|pass| F["Export<br/>Alpaca · ShareGPT · Messages · DPO · GRPO · PPO"]
     E -->|reject| G["Adaptive recovery<br/>diagnose · repair · re-gate"]
     G -->|recovered| E
     G -->|unrecoverable| H["rejected.jsonl<br/>+ diagnostics"]
@@ -131,7 +134,43 @@ result = Curator(CuratorConfig(
 curatorkit run examples/quickstart/pipeline.yaml --output-dir output/
 ```
 
-Every run writes `manifest.json`, `rejected.jsonl`, `dataset_card.md`, and `checksums.txt` alongside the export files. The [quickstart example](examples/quickstart/) runs end to end without an API key.
+Every run writes `manifest.json`, `rejected.jsonl`, `dataset_card.md`, `lexsi_provenance.json`, and `checksums.txt` alongside the export files. The [quickstart example](examples/quickstart/) runs end to end without an API key.
+
+The output folder is also a Hugging Face dataset: its `README.md` maps each export to a config (`sft_alpaca`, `sft_sharegpt`, `sft_messages`, `dpo`, `grpo`, `ppo`, `corpus`) with one split per `output_split` directory, or `train`:
+
+```python
+from datasets import load_dataset
+chat = load_dataset("output/qa", "sft_messages")  # DatasetDict: train (+ validation, ... with output_split)
+```
+
+### Cohere Aya as generator or judge
+
+Any LiteLLM model string works, so Aya can generate the data, judge it, or both. Three ways to reach it:
+
+```python
+from curatorkit import Curator, CuratorConfig
+
+result = Curator(CuratorConfig(
+    dataset                 = "handbook.pdf",
+    # 1. Cohere API (export COHERE_API_KEY=...)
+    llm_model               = "cohere_chat/c4ai-aya-expanse-32b",
+    # 2. Ollama:  llm_model = "ollama/aya-expanse"
+    # 3. A local vLLM / `transformers serve` endpoint (OpenAI-compatible):
+    #    llm_model = "openai/CohereLabs/aya-expanse-8b", llm_api_base = "http://localhost:8000/v1"
+    judge_llm_model         = "cohere_chat/c4ai-aya-expanse-8b",   # optional; defaults to llm_model
+    generation_task         = "qa",
+    hallucination_threshold = 0.7,
+    reward_threshold        = 0.7,
+    min_tokens              = 3,          # short multilingual rows; CJK/Thai count per character
+    output_dir              = "output/",
+)).run()
+
+result.push_to_hub("your-org/aya-qa", export_file="sft_alpaca.jsonl")   # private by default; needs [hf]
+```
+
+- **Tiny Aya** (e.g. [`CohereLabs/tiny-aya-global`](https://huggingface.co/CohereLabs/tiny-aya-global)) is **gated** on the Hugging Face Hub: request access on the model page and log in with `hf auth login` before serving it with route 3. It is not in the Ollama library.
+- Aya Vision served through route 3 needs a chat template that accepts list-type `content`; CuratorKIT sends text only.
+- Small judges often fail to return JSON. A failed judge call or an unparseable score **rejects** the sample (`judge_error:<type>` in `rejected.jsonl`). Set `judge_on_error="pass"` to keep such samples instead.
 
 ## What it generates
 
@@ -153,13 +192,43 @@ Every run writes `manifest.json`, `rejected.jsonl`, `dataset_card.md`, and `chec
 | `manifest.json` | ✓ | Config hash, per-stage counts, rejection breakdown |
 | `rejected.jsonl` | ✓ | All rejected samples with structured reason strings |
 | `dataset_card.md` | ✓ | Human-readable run summary |
+| `README.md` | ✓* | The same card with `configs:` YAML, so `load_dataset(output_dir, "<config>")` works |
+| `lexsi_provenance.json` | ✓ | Library, version, inputs, and generator/judge model ids (also `manifest["provenance"]`) |
 | `checksums.txt` | ✓ | SHA-256 for all output files |
-| `sft_alpaca.jsonl` | optional | Alpaca-format SFT data |
-| `sft_sharegpt.jsonl` | optional | ShareGPT conversation format |
+| `sft_alpaca.jsonl` | optional | Alpaca-format SFT data (`instruction`, `input`, `output`) |
+| `sft_sharegpt.jsonl` | optional | ShareGPT `conversations` (from/value) |
+| `sft_messages.jsonl` | optional | Chat `messages` (role/content), as TRL's `SFTTrainer` expects |
 | `dpo.jsonl` | optional | DPO preference pairs |
 | `grpo.jsonl` | optional | GRPO group rollouts |
 | `ppo.jsonl` | optional | PPO prompt-only format |
 | `diagnostic_summary.json` | optional | Failure mode counts, recovery rate (when probe active) |
+
+\* An existing `README.md` that CuratorKIT did not write is left untouched (with a warning), and `write_hf_readme=False` skips it. Use a dedicated `output_dir` to get a loadable folder.
+
+## Handing off to AlignTune / SafeTune / AuditKIT
+
+Pass the output folder and a config name; no conversion step. Use `output_split={"train": 0.9, "validation": 0.1}` to get a validation split.
+
+```python
+# AlignTune (Track 1): SFT on the chat messages, or DPO on the preference pairs
+from aligntune.core.backend_factory import create_sft_trainer
+create_sft_trainer(model_name="CohereLabs/aya-expanse-8b", dataset_name="output/", config_name="sft_messages", backend="trl").train()
+```
+
+```python
+# SafeTune (Track 2): the curated set is the fine-tuning data for a harden method
+from datasets import load_dataset
+from safetune.runner import harden
+harden.SafeGradTrainer(model, tokenizer).train(load_dataset("output/", "sft_messages", split="train"), safety_dataset=safety_dataset)
+```
+
+```python
+# AuditKIT: evaluate on the held-out split
+from auditkit.loaders import load_hf
+samples = load_hf("output/", name="sft_alpaca", split="validation", input_col="instruction", target_col="output")
+```
+
+Each library records `lexsi_provenance.json` from this folder in its own outputs, so the lineage follows the model through the track.
 
 ## Documentation
 
@@ -194,13 +263,12 @@ Full descriptions and prerequisites are in the [tutorials index](https://lexsi-l
 
 ## Contributing
 
-The connector, generator, gate, and exporter layers are designed as plugin points. Read the [contributing guide](CONTRIBUTING.md) and the [architecture reference](docs/reference/architecture.md), then open an issue or PR. Questions go to [GitHub Discussions](https://github.com/Lexsi-Labs/CuratorKIT/discussions).
+The connector, generator, gate, and exporter layers are designed as plugin points. Read the [contributing guide](CONTRIBUTING.md) and the [architecture reference](docs/reference/architecture.md), then open an issue or PR. Questions go to [GitHub Issues](https://github.com/Lexsi-Labs/CuratorKIT/issues).
 
 ## Support
 
 - **Documentation**: [lexsi-labs.github.io/CuratorKIT](https://lexsi-labs.github.io/CuratorKIT/)
 - **GitHub Issues**: [github.com/Lexsi-Labs/CuratorKIT/issues](https://github.com/Lexsi-Labs/CuratorKIT/issues)
-- **Discussions**: [github.com/Lexsi-Labs/CuratorKIT/discussions](https://github.com/Lexsi-Labs/CuratorKIT/discussions)
 - **Email**: [pratinav.seth@lexsi.ai](mailto:pratinav.seth@lexsi.ai)
 
 ## Citation

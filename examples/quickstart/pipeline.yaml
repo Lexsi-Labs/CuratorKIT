@@ -52,3 +52,4 @@ normalizers:
 exporters:
   - type: alpaca     # sft_alpaca.jsonl   (instruction / input / output)
   - type: sharegpt   # sft_sharegpt.jsonl (conversations: human / gpt turns)
+  # - type: messages # sft_messages.jsonl (messages: role/content, for TRL)

@@ -48,8 +48,7 @@ change.
 
 ## Where to ask
 
-Questions go to [GitHub Discussions](https://github.com/Lexsi-Labs/CuratorKIT/discussions);
-bugs to [Issues](https://github.com/Lexsi-Labs/CuratorKIT/issues). Security issues are
+Questions and bugs go to [Issues](https://github.com/Lexsi-Labs/CuratorKIT/issues). Security issues are
 never filed publicly; see
 [SECURITY.md](https://github.com/Lexsi-Labs/CuratorKIT/blob/main/SECURITY.md).
 Participation is governed by the

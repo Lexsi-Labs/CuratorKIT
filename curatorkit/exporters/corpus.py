@@ -57,8 +57,16 @@ class CorpusExporter(BaseExporter):
     fields; that doesn't make it a corpus chunk).
     """
 
+    filename = "corpus.jsonl"
+    columns = {
+        "text": "string",
+        "source_file, source_uri, heading, content_type, task_type, table_html": "string",
+        "page, chunk_index": "int or null",
+        "table_bbox": "list of number",
+    }
+
     def export(self, samples: list[DataSample], output_dir: Path) -> None:
-        output_path = output_dir / "corpus.jsonl"
+        output_path = output_dir / self.filename
         skipped = 0
         exported = 0
 

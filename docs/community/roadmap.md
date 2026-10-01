@@ -25,7 +25,6 @@ Directions under active consideration, in no particular order:
   documented [curate-then-train workflow](../guides/train-with-aligntune.md), such as
   one-call handoff without a Hub round-trip
 
-Priorities are driven by usage. Propose or upvote items in
-[GitHub Discussions](https://github.com/Lexsi-Labs/CuratorKIT/discussions); concrete
-proposals are welcome as [feature requests](https://github.com/Lexsi-Labs/CuratorKIT/issues).
+Priorities are driven by usage. Propose or upvote items as
+[feature requests](https://github.com/Lexsi-Labs/CuratorKIT/issues).
 No dates are committed here; the [changelog](changelog.md) records what ships.

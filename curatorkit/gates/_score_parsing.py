@@ -21,6 +21,10 @@ from __future__ import annotations
 import re
 
 
+class JudgeParseError(ValueError):
+    """The judge replied, but no score could be parsed from its output."""
+
+
 def template_mentions_key(prompt_template: str | None, primary_key: str) -> bool:
     """Cheap static check: does a custom template's text ask for `primary_key`
     anywhere? Used to warn at gate construction time — before any LLM calls
@@ -52,7 +56,11 @@ def extract_score(
       3. Any numeric value found in `raw_text` via regex (covers prose
          responses, or JSON that parsed but contains no recognizable key) —
          scaled down from a 0-10 scale if the number is > 1.0.
-      4. `0.5` — a neutral default when nothing numeric can be found at all.
+
+    Raises `JudgeParseError` when nothing numeric can be found at all. The
+    gates turn that into a `judge_error:JudgeParseError` reject (or a pass
+    with `on_judge_error="pass"`), so an unparseable judge never scores a
+    neutral 0.5 that clears a low threshold.
     """
     if isinstance(parsed, dict) and primary_key in parsed:
         try:
@@ -79,4 +87,4 @@ def extract_score(
             score = score / 10.0
         return max(0.0, min(1.0, score)), True
 
-    return 0.5, True
+    raise JudgeParseError(f"unparseable judge output: {raw_text[:200]!r}")

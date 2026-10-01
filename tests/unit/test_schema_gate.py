@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import pytest
+
 from curatorkit.gates.schema import SchemaGate
 from curatorkit.schema import DataSample
 
@@ -95,3 +97,24 @@ class TestSchemaGateSidecarContract:
         passed, rejected = gate.run(samples)
         assert len(passed) + len(rejected) == 5
         assert len(rejected) == 5
+
+
+class TestSchemaGateUnspacedScripts:
+    """Scripts without spaces between words must not collapse to 1-2 tokens."""
+
+    @pytest.mark.parametrize("instruction,output", [
+        ("什么是机器学习？", "机器学习是人工智能的一个分支。"),              # Chinese
+        ("機械学習とは何ですか？", "人工知能の一分野です。"),                  # Japanese
+        ("머신러닝이란 무엇인가요?", "인공지능의 한 분야입니다."),            # Korean
+        ("การเรียนรู้ของเครื่องคืออะไร", "เป็นสาขาหนึ่งของปัญญาประดิษฐ์"),   # Thai
+    ])
+    def test_default_min_tokens_passes(self, instruction, output):
+        passed, rejected = SchemaGate().run([make_sample(instruction=instruction, output=output)])
+        assert len(passed) == 1, rejected[0].rejection_reason if rejected else None
+
+    def test_counter(self):
+        from curatorkit.utils.tokens import count_tokens
+        assert count_tokens("hello world") == 2
+        assert count_tokens("hello 世界") == 3
+        assert count_tokens("机器学习") == 4
+        assert count_tokens("") == 0

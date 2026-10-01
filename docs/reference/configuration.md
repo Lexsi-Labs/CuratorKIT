@@ -39,7 +39,7 @@ from curatorkit import Curator, CuratorConfig
 |-----------|------|---------|-------------|
 | `min_tokens` | `int` | `10` | Minimum token count. Samples below this are rejected by SchemaGate. |
 | `max_tokens` | `int` | `2048` | Maximum token count. Samples above this are rejected by SchemaGate. |
-| `use_tiktoken` | `bool` | `False` | Use tiktoken for token counting instead of whitespace-based estimation |
+| `use_tiktoken` | `bool` | `False` | Use tiktoken for token counting instead of the built-in estimate (whitespace words; one token per character for CJK, Thai and other unspaced scripts) |
 | `schema_use_tiktoken` | `bool` | `False` | Use tiktoken specifically for SchemaGate (overrides `use_tiktoken` for gate only) |
 | `schema_enforce_task_types` | `list[str]` | `[]` | Only pass samples with these `task_type` values. Empty = pass all. |
 | `schema_gate` | `bool` | `True` | Enable SchemaGate. Set `False` to skip all schema checks. |
@@ -117,6 +117,7 @@ for full usage examples.
 | `export_formats` | `list[str] \| None` | `None` (auto) | Which exporters to run. Options: `"alpaca"`, `"sharegpt"`, `"dpo"`, `"grpo"`, `"ppo"`, `"corpus"`. `None` auto-aligns to whichever task_type `generation_task` produces, or (with no `generation_task`) to whatever task_type the readers actually emit — see [Exporters → Compatibility](../guides/exporters.md#compatibility-matrix). Set explicitly to override. |
 | `output_split` | `dict[str, float] \| None` | `None` | Split accepted samples into subdirectories. E.g. `{"train": 0.8, "val": 0.1, "test": 0.1}`. Must sum to 1.0. |
 | `output_split_seed` | `int` | `42` | Seed for the pre-split shuffle. Set the same value across runs to get identical train/val/test assignments. |
+| `write_hf_readme` | `bool` | `True` | Also write `README.md` with `load_dataset` configs. An existing `README.md` that CuratorKIT did not write is never overwritten. Also a YAML top-level key. |
 
 ---
 
@@ -170,6 +171,7 @@ Used by HallucinationGate and RewardGate. Defaults to the generator LLM when not
 | `judge_llm_timeout` | `float` | `120.0` | Judge request timeout in seconds |
 | `judge_llm_max_retries` | `int` | `3` | Retry attempts for judge requests |
 | `judge_llm_extra_body` | `dict` | `{}` | Extra body params for judge model (e.g. disable thinking mode for structured output) |
+| `judge_on_error` | `str` | `"reject"` | When a judge call fails or returns no parseable score: `"reject"` rejects the sample as `judge_error:<type>`; `"pass"` keeps it (legacy fail-open). The error is recorded in provenance either way. |
 
 ---
 
@@ -343,7 +345,7 @@ All default to `None` (built-in template used). `multiturn_mode` defaults to `"t
 | `reward_dimensions` | `list[str]` | `["helpfulness", "honesty", "instruction_following"]` | Built-in scoring axes. Valid values: `"helpfulness"`, `"honesty"`, `"instruction_following"`, `"truthfulness"`, `"depth"`, `"creativity"`, `"coherence"`. |
 | `reward_prompt_template` | `str \| None` | `None` | Replace the entire reward judge prompt with a custom rubric. Required variables: `{instruction}`, `{response}`. Expected output JSON **must include `"overall_score": 0.XX`** — that exact key is what the gate parses to decide pass/fail; see the note below. |
 
-> **Custom judge prompt templates and scoring**: `reward_prompt_template`/`hallucination_prompt_template` replace the entire prompt text, but the gate still parses one specific top-level JSON key out of the judge's response (`overall_score` / `grounding_score`) — that key is never computed by CuratorKIT, it's whatever the LLM returns. If your custom template's expected output doesn't ask for that exact key, the gate can't find it and falls back to averaging your `reward_dimensions` (if present flat in the response) or extracting any number from the raw text, which can behave very differently from what you intended. CuratorKIT warns you twice if this happens: once immediately at gate construction (a cheap check of whether the key literally appears in your template text, before any LLM calls), and once after a run if fallback parsing was actually used. When writing a custom template, always include the required key explicitly in the JSON shape you ask the model for.
+> **Custom judge prompt templates and scoring**: `reward_prompt_template`/`hallucination_prompt_template` replace the entire prompt text, but the gate still parses one specific top-level JSON key out of the judge's response (`overall_score` / `grounding_score`) — that key is never computed by CuratorKIT, it's whatever the LLM returns. If your custom template's expected output doesn't ask for that exact key, the gate can't find it and falls back to averaging your `reward_dimensions` (if present flat in the response) or extracting any number from the raw text, which can behave very differently from what you intended. If the response contains no number at all, the sample is rejected as `judge_error:JudgeParseError` (see `judge_on_error`). CuratorKIT warns you twice if this happens: once immediately at gate construction (a cheap check of whether the key literally appears in your template text, before any LLM calls), and once after a run if fallback parsing was actually used. When writing a custom template, always include the required key explicitly in the JSON shape you ask the model for.
 | `reward_store_score` | `bool` | `True` | Write the overall reward score to each sample's `label` field (used by the reward refiner and downstream filtering) |
 | `diversity_threshold` | `float \| None` | `None` | Enable DiversityGate. Samples with cosine similarity above this to any accepted sample are rejected. Range 0.0–1.0. `None` = gate disabled. |
 

@@ -62,9 +62,11 @@ The run exits 0 and writes:
 ```
 out/
   sft_alpaca.jsonl     # 8 samples, Alpaca format (instruction/input/output)
-  sft_sharegpt.jsonl   # 8 samples, ShareGPT conversation format
+  sft_sharegpt.jsonl   # 8 samples, ShareGPT conversations (from/value)
   manifest.json        # Full provenance manifest with per-stage counts
   dataset_card.md      # Human-readable dataset card
+  README.md            # Same card with configs YAML (load_dataset("out/", "sft_alpaca"))
+  lexsi_provenance.json  # Lineage record: version, inputs, models
   rejected.jsonl       # 5 rejected samples, each with a structured reason
   checksums.txt        # SHA-256 checksums for the output files
 ```

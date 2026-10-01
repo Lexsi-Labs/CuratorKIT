@@ -4,7 +4,8 @@ AlpacaExporter — serialize DataSamples to Alpaca JSONL format.
 Output: {output_dir}/sft_alpaca.jsonl
 Each line: {"instruction": "...", "input": "...", "output": "..."}
 
-This is the primary SFT format. TRL's SFTTrainer accepts this directly.
+TRL's SFTTrainer does not take this layout as-is; train on sft_messages
+(MessagesExporter) instead, or map instruction/input/output to prompt/completion.
 
 Only task_types curatorkit.exporters.compatibility lists as alpaca-compatible
 (instruction_following, unpaired_preference) are written. Everything else is
@@ -29,8 +30,11 @@ _FORMAT = "alpaca"
 class AlpacaExporter(BaseExporter):
     """Export to Alpaca instruction-following format."""
 
+    filename = "sft_alpaca.jsonl"
+    columns = {"instruction": "string", "input": "string (empty when there is no input)", "output": "string"}
+
     def export(self, samples: list[DataSample], output_dir: Path) -> None:
-        output_path = output_dir / "sft_alpaca.jsonl"
+        output_path = output_dir / self.filename
         skipped = 0
         exported = 0
         empty = 0

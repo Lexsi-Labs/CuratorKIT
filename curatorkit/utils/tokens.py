@@ -9,10 +9,32 @@ typical English text (within ~15%).
 
 from __future__ import annotations
 
+import re
+
+# Scripts written without spaces between words: each character counts as one token.
+# ponytail: fixed code-point ranges (Thai, Lao, Myanmar, Khmer, kana, CJK, Hangul);
+# a real word segmenter or tiktoken is more accurate if thresholds need precision.
+_UNSPACED_CHAR = re.compile(
+    "[\u0e00-\u0eff"          # Thai, Lao
+    "\u1000-\u109f"           # Myanmar
+    "\u1780-\u17ff"           # Khmer
+    "\u3040-\u30ff"           # Hiragana, Katakana
+    "\u3400-\u4dbf"           # CJK Extension A
+    "\u4e00-\u9fff"           # CJK Unified Ideographs
+    "\uac00-\ud7af"           # Hangul syllables
+    "\uf900-\ufaff"           # CJK Compatibility Ideographs
+    "\U00020000-\U0003134f]"  # CJK Extensions B-G
+)
+
 
 def count_tokens_whitespace(text: str) -> int:
-    """Split on whitespace and return the count. O(n) time, zero dependencies."""
-    return len(text.split())
+    """Count whitespace-separated words, counting each CJK/Thai/Khmer/etc.
+    character as its own token. O(n) time, zero dependencies.
+    """
+    n_unspaced = len(_UNSPACED_CHAR.findall(text))
+    if not n_unspaced:
+        return len(text.split())
+    return n_unspaced + len(_UNSPACED_CHAR.sub(" ", text).split())
 
 
 def count_tokens_tiktoken(text: str, encoding: str = "cl100k_base") -> int:

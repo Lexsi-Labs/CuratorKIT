@@ -17,6 +17,7 @@ CuratorConfig(
 |------------|------------|----------------|
 | `alpaca` | `sft_alpaca.jsonl` | `{"instruction": "...", "input": "...", "output": "..."}` |
 | `sharegpt` | `sft_sharegpt.jsonl` | `{"conversations": [{"from": "human", "value": "..."}, {"from": "gpt", "value": "..."}]}` |
+| `messages` | `sft_messages.jsonl` | `{"messages": [{"role": "user", "content": "..."}, {"role": "assistant", "content": "..."}]}` |
 | `dpo` | `dpo.jsonl` | `{"prompt": "...", "chosen": "...", "rejected": "..."}` |
 | `grpo` | `grpo.jsonl` | `{"prompt": "...", "responses": [...], "rewards": [...]}` |
 | `ppo` | `ppo.jsonl` | `{"prompt": "..."}` |
@@ -32,17 +33,17 @@ Every exporter enforces this table as a hard per-sample gate: a sample whose tas
 
 - **DPO / GRPO / PPO / Corpus** skip a sample when its task_type isn't in the accepted set below, *or* when a field it still needs is empty even for an accepted task_type (`chosen`/`rejected`; `instruction`; `instruction`; `output`-or-`input`, respectively) — one summary warning with the count and the task_type(s) seen.
 - **GRPO** additionally never warns on empty `responses`/`rewards` alone within task_type `"grpo"` — that's the documented, intentional case of exporting seed prompts before `GRPORolloutTask` has run.
-- **Alpaca / ShareGPT** also gate on task_type now (so, notably, a `conversational` sample is no longer silently truncated to its first turn by Alpaca — it's skipped, with a warning pointing at `"sharegpt"` instead). Within an accepted task_type, a genuinely empty `instruction`/`output` still gets written (it's a real, if broken, sample) but warns separately.
+- **Alpaca / ShareGPT / Messages** also gate on task_type now (so, notably, a `conversational` sample is no longer silently truncated to its first turn by Alpaca — it's skipped, with a warning pointing at `"sharegpt"` / `"messages"` instead). Within an accepted task_type, a genuinely empty `instruction`/`output` still gets written (it's a real, if broken, sample) but warns separately.
 
-| task_type | alpaca | sharegpt | dpo | grpo | ppo | corpus |
-|------|:------:|:--------:|:---:|:----:|:---:|:------:|
-| `instruction_following` (qa, evol, cot, adversarial_qa) | ✓ | ✓ | — | — | — | — |
-| `conversational` (multiturn) | — | ✓ | — | — | — | — |
-| `preference`, `implicit_preference` (preference, adversarial_preference) | — | — | ✓ | — | — | — |
-| `unpaired_preference` (connector) | ✓ | ✓ | — | — | — | — |
-| `grpo` (grpo task) | — | — | — | ✓ | — | — |
-| `prompt_only` (connector) | — | — | — | — | ✓ | — |
-| `language_modeling` / `source_chunk` (PDF chunks, pretrain text) | — | — | — | — | — | ✓ |
+| task_type | alpaca | sharegpt | messages | dpo | grpo | ppo | corpus |
+|------|:------:|:--------:|:--------:|:---:|:----:|:---:|:------:|
+| `instruction_following` (qa, evol, cot, adversarial_qa) | ✓ | ✓ | ✓ | — | — | — | — |
+| `conversational` (multiturn) | — | ✓ | ✓ | — | — | — | — |
+| `preference`, `implicit_preference` (preference, adversarial_preference) | — | — | — | ✓ | — | — | — |
+| `unpaired_preference` (connector) | ✓ | ✓ | ✓ | — | — | — | — |
+| `grpo` (grpo task) | — | — | — | — | ✓ | — | — |
+| `prompt_only` (connector) | — | — | — | — | — | ✓ | — |
+| `language_modeling` / `source_chunk` (PDF chunks, pretrain text) | — | — | — | — | — | — | ✓ |
 
 This table is `curatorkit.exporters.compatibility.TASK_TYPE_EXPORT_FORMATS` — the same table `export_formats=None` (the default) uses to pick formats automatically:
 
@@ -67,20 +68,31 @@ Standard three-field SFT format compatible with most fine-tuning frameworks.
 
 ### ShareGPT (`sft_sharegpt.jsonl`)
 
-Conversation format. For multi-turn samples, the full turn list is encoded from `metadata['turns']`:
+ShareGPT `conversations` with `from`/`value` (`human`, `gpt`, and `system` for a system prompt). The turns are the same ones the `messages` exporter writes: a system prompt becomes a leading `system` turn, a non-empty `input` is appended to the first `human` turn, and multi-turn samples carry the rest of `metadata['turns']` (role/content turns are converted to from/value):
 
 ```json
 {
   "conversations": [
     {"from": "human", "value": "What does the study reveal about..."},
-    {"from": "gpt",   "value": "The study reveals that..."},
-    {"from": "human", "value": "Can you elaborate on the methodology?"},
-    {"from": "gpt",   "value": "The methodology involved..."}
+    {"from": "gpt",   "value": "The study reveals that..."}
   ]
 }
 ```
 
-For non-multi-turn samples, produces a two-turn conversation (human + gpt).
+### Messages (`sft_messages.jsonl`)
+
+Chat `messages` with `role`/`content`, the conversational layout TRL's `SFTTrainer` and tokenizer chat templates take directly. Use this file (config `sft_messages`) for TRL, AlignTune and SafeTune:
+
+```json
+{
+  "messages": [
+    {"role": "user",      "content": "What does the study reveal about..."},
+    {"role": "assistant", "content": "The study reveals that..."},
+    {"role": "user",      "content": "Can you elaborate on the methodology?"},
+    {"role": "assistant", "content": "The methodology involved..."}
+  ]
+}
+```
 
 ### DPO (`dpo.jsonl`)
 
@@ -167,12 +179,29 @@ output/
   manifest.json             Pipeline config hash, stage counts, rejection breakdown
   rejected.jsonl            All rejected samples with structured reasons
   dataset_card.md           Human-readable run summary
+  README.md                 Same card with `configs:` YAML (Hugging Face dataset folder; see below)
+  lexsi_provenance.json     lexsi.provenance/1 lineage record (also manifest["provenance"])
   checksums.txt             SHA-256 for all output files
   diagnostic_summary.json   Failure mode counts, recovery stats (when probe active)
   [format files]            Only the formats you listed in export_formats
 ```
 
 `manifest.json` and `rejected.jsonl` are always written and cannot be disabled. They are the primary audit trail for the run.
+
+### Loading the folder with `datasets`
+
+`README.md` declares one config per non-empty export file; the config name is the file stem and each `output_split` directory is a split (unsplit runs give `train`). Only the listed files are data, so `manifest.json`, `rejected.jsonl` and `lexsi_provenance.json` never show up as splits.
+
+```python
+from datasets import load_dataset
+load_dataset("output/", "sft_messages")   # messages (role/content)
+load_dataset("output/", "dpo")            # prompt / chosen / rejected
+load_dataset("output/")                   # the first config listed
+```
+
+`CuratorResult.push_to_hub(repo_id, export_file=...)` uses the same config and split names on the Hub.
+
+Use a dedicated `output_dir`. A `README.md` already there that CuratorKIT did not write (say, a repository's own README) is never overwritten: the run warns, skips it, and the folder is then not loadable by config name. Set `write_hf_readme=False` (`CuratorConfig` or YAML) to never write `README.md`.
 
 ---
 

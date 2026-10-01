@@ -142,6 +142,17 @@ hygiene-stanza = [
     "presidio-analyzer[stanza]>=2.2",
 ]
 
+# Prompt-injection / jailbreak detection with Meta PromptGuard 2 (JailbreakGate).
+# Without it JailbreakGate falls back to a keyword heuristic.
+safety = [
+    "transformers>=5.15,<6",
+    "torch>=2.3",
+]
+
+# Push curated / rejected samples to an Argilla 2.x server for human review
+# (ArgillaExporter). Without it the exporter writes argilla_records.jsonl.
+review = ["argilla>=2.0"]
+
 # Everything: connectors + generation + embedding + hygiene.
 # Excludes PDF (heavy model stack) and TRL (heavy torch/transformers stack) —
 # install those separately if needed.
@@ -191,7 +202,7 @@ dev = [
 # TRL integration test dependencies
 trl = [
     "trl>=0.21",
-    "transformers>=5.0",
+    "transformers>=5.15,<6",
     "torch>=2.3",
     "datasets>=3.0",
 ]
@@ -212,9 +223,8 @@ curatorkit = ["py.typed"]
 [tool.ruff]
 target-version = "py311"
 line-length = 100
-# notebooks are tutorials; internal/ is research material kept on this branch
-# but stripped from the public export (RELEASING.md)
-extend-exclude = ["notebooks", "internal"]
+# notebooks are tutorials
+extend-exclude = ["notebooks"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "UP"]

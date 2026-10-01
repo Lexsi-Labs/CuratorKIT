@@ -31,8 +31,11 @@ _FORMAT = "ppo"
 class PPOExporter(BaseExporter):
     """Export prompts in PPO training format."""
 
+    filename = "ppo.jsonl"
+    columns = {"prompt": "string"}
+
     def export(self, samples: list[DataSample], output_dir: Path) -> None:
-        output_path = output_dir / "ppo.jsonl"
+        output_path = output_dir / self.filename
         skipped = 0
         exported = 0
 

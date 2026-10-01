@@ -108,6 +108,8 @@ class ReaderConfig(BaseModel):
     extract_tables: bool = False
     ocr: bool = False
     min_section_tokens: int = 30
+    pii_scrub: Literal["off", "redact", "drop"] = "off"  # PII scan per chunk at ingest
+    pii_entities: list[str] | None = None  # None = PIIGate defaults
 
     # ---- PDF output mode (non-"chunk" modes trigger LLM generation) ----
     output_mode: Literal["chunk", "qa", "preference", "grpo", "multiturn"] = "chunk"
@@ -315,6 +317,9 @@ class GateConfig(BaseModel):
     reward_llm: LLMOverrideConfig | None = None  # full sampling-param override
     reward_prompt_template: str | None = None
 
+    # ---- Hallucination + reward gates: judge call fails / output unparseable ----
+    on_judge_error: Literal["reject", "pass"] = "reject"
+
     # ---- Reward refiner (post-gate recovery) ----
     enable_reward_refiner: bool = False
     refiner_llm: LLMOverrideConfig | None = None
@@ -429,12 +434,12 @@ class NormalizerConfig(BaseModel):
 class ExporterConfig(BaseModel):
     """One output format in the pipeline YAML (`exporters:` list).
 
-    `type` selects the exporter: "alpaca", "sharegpt", "grpo", "ppo",
+    `type` selects the exporter: "alpaca", "sharegpt", "messages", "grpo", "ppo",
     "dpo", or "corpus". Each exporter writes accepted samples to its own
     JSONL file in the output directory.
     """
 
-    type: Literal["alpaca", "sharegpt", "grpo", "ppo", "dpo", "corpus"]
+    type: Literal["alpaca", "sharegpt", "messages", "grpo", "ppo", "dpo", "corpus"]
 
 
 class PipelineConfig(BaseModel):
@@ -469,6 +474,8 @@ class PipelineConfig(BaseModel):
     # Example: {train: 0.8, val: 0.1, test: 0.1}
     output_split: dict[str, float] | None = None
     output_split_seed: int = 42  # seed for the pre-split shuffle
+    # Also write README.md with load_dataset configs; a user's own README.md is never overwritten.
+    write_hf_readme: bool = True
 
     # ---- Global LLM config ----
     llm: LLMConfig | None = None

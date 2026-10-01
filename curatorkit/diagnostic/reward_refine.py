@@ -20,6 +20,7 @@ import uuid
 from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime
 
+from curatorkit.gates._judge import JUDGE_ERROR_PREFIX
 from curatorkit.interfaces import BaseGate, BaseNormalizer
 from curatorkit.llm.base import BaseLLM
 from curatorkit.schema import DataSample, ProvenanceRecord, RejectedSample
@@ -150,8 +151,10 @@ class RewardRefiner(BaseNormalizer):
 
         # Step 1: generate all refined candidates concurrently
         def _generate(sample: RejectedSample) -> DataSample | None:
-            # Rejected-too-good pairs cannot be fixed by refining chosen — skip.
-            if "rejected_above_threshold" in (sample.rejection_reason or ""):
+            # Rejected-too-good pairs cannot be fixed by refining chosen, and a
+            # judge_error reject would be re-judged by the same failing judge — skip.
+            reason = sample.rejection_reason or ""
+            if "rejected_above_threshold" in reason or reason.startswith(JUDGE_ERROR_PREFIX):
                 return None
             try:
                 axis, weakness = self._get_failure_axis(sample)

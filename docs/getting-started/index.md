@@ -64,6 +64,8 @@ output/
   manifest.json        config hash, per-stage counts, rejection breakdown
   rejected.jsonl       every rejected sample with a structured reason
   dataset_card.md      human-readable run summary
+  README.md            the same card with configs YAML, for datasets.load_dataset
+  lexsi_provenance.json  lineage record (version, inputs, models)
   checksums.txt        SHA-256 for all output files
 ```
 

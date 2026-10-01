@@ -36,8 +36,11 @@ class GRPOExporter(BaseExporter):
     Falls back to empty arrays when no rollouts have been generated yet.
     """
 
+    filename = "grpo.jsonl"
+    columns = {"prompt": "string", "responses": "list of string", "rewards": "list of float"}
+
     def export(self, samples: list[DataSample], output_dir: Path) -> None:
-        output_path = output_dir / "grpo.jsonl"
+        output_path = output_dir / self.filename
         skipped = 0
         exported = 0
 
