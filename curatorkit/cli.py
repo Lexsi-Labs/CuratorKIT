@@ -110,7 +110,14 @@ def run(
     steps, reward_refiner = _build_steps(config, verbose, include_exporters=not splitting)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    from curatorkit.manifest import DatasetCardGenerator, ProvenanceManifest
+    from curatorkit.exporters import EXPORTERS
+    from curatorkit.manifest import (
+        DatasetCardGenerator,
+        ProvenanceManifest,
+        build_provenance,
+        dataset_input,
+        step_models,
+    )
     from curatorkit.pipeline import Pipeline
 
     # Attach a PipelineDiagnostics accumulator if the diagnostic probe is enabled
@@ -156,13 +163,6 @@ def run(
         import math
         import random as _random
 
-        from curatorkit.exporters.alpaca import AlpacaExporter
-        from curatorkit.exporters.corpus import CorpusExporter
-        from curatorkit.exporters.dpo import DPOExporter
-        from curatorkit.exporters.grpo import GRPOExporter
-        from curatorkit.exporters.ppo import PPOExporter
-        from curatorkit.exporters.sharegpt import ShareGPTExporter
-
         split_def = config.output_split
         total_frac = sum(split_def.values())
         if abs(total_frac - 1.0) > 1e-6:
@@ -172,14 +172,6 @@ def run(
             )
             raise typer.Exit(1)
 
-        _exporter_cls = {
-            "alpaca": AlpacaExporter,
-            "corpus": CorpusExporter,
-            "sharegpt": ShareGPTExporter,
-            "dpo": DPOExporter,
-            "grpo": GRPOExporter,
-            "ppo": PPOExporter,
-        }
         shuffled = list(result.passed)
         _random.Random(getattr(config, "output_split_seed", 42)).shuffle(shuffled)
         n = len(shuffled)
@@ -191,36 +183,43 @@ def run(
             split_dir = output_dir / split_name
             split_dir.mkdir(parents=True, exist_ok=True)
             for e in config.exporters:
-                cls = _exporter_cls.get(e.type)
+                cls = EXPORTERS.get(e.type)
                 if cls:
                     cls().export(split_samples, split_dir)
             if verbose:
                 typer.echo(f"  {split_name}: {len(split_samples):,} samples → {split_dir}/")
             start = end
 
+    provenance = build_provenance(
+        method=",".join(g.type for g in config.generators) or "curate",
+        inputs=[dataset_input(r.path, r.hf_subset) for r in config.readers if r.path],
+        params={
+            **step_models(steps),
+            "export_formats": [e.type for e in config.exporters],
+            "output_split": config.output_split,
+            "pipeline_config_hash": config_hash,
+        },
+    )
     manifest_builder = ProvenanceManifest(
         result=result,
         pipeline_config_hash=config_hash,
         output_dir=output_dir,
+        provenance=provenance,
     )
     manifest_path = manifest_builder.write()
     sidecar_path = manifest_builder.write_rejected_sidecar()
-    output_files = [manifest_path, sidecar_path] + [
-        output_dir / f
-        for f in [
-            "sft_alpaca.jsonl",
-            "sft_sharegpt.jsonl",
-            "grpo.jsonl",
-            "ppo.jsonl",
-            "dpo.jsonl",
-        ]
-        if (output_dir / f).exists()
+    output_files = [manifest_path, sidecar_path, output_dir / "lexsi_provenance.json"] + [
+        output_dir / cls.filename
+        for cls in EXPORTERS.values()
+        if (output_dir / cls.filename).exists()
     ]
     checksums_path = manifest_builder.write_checksums(output_files)
 
     manifest_data = manifest_builder.build()
     card_gen = DatasetCardGenerator()
-    card_path = card_gen.generate(manifest_data, output_dir, pipeline_name=config.name)
+    card_path = card_gen.generate(
+        manifest_data, output_dir, pipeline_name=config.name, write_readme=config.write_hf_readme
+    )
 
     if verbose:
         typer.echo(f"Passed:   {len(result.passed)}")
@@ -231,6 +230,8 @@ def run(
     typer.echo(f"  manifest.json   — {manifest_path}")
     typer.echo(f"  rejected.jsonl  — {sidecar_path}")
     typer.echo(f"  dataset_card.md — {card_path}")
+    if config.write_hf_readme:
+        typer.echo(f"  README.md       — {output_dir / 'README.md'} (load_dataset config card)")
     typer.echo(f"  checksums.txt   — {checksums_path}")
     if result.diagnostics is not None:
         typer.echo(f"  diagnostic_summary.json — {output_dir / 'diagnostic_summary.json'}")
@@ -444,11 +445,7 @@ def _build_steps(config: object, verbose: bool, include_exporters: bool = True) 
     from curatorkit.connectors.json_reader import JSONReader
     from curatorkit.connectors.jsonl import JSONLReader
     from curatorkit.connectors.parquet_reader import ParquetReader
-    from curatorkit.exporters.alpaca import AlpacaExporter
-    from curatorkit.exporters.dpo import DPOExporter
-    from curatorkit.exporters.grpo import GRPOExporter
-    from curatorkit.exporters.ppo import PPOExporter
-    from curatorkit.exporters.sharegpt import ShareGPTExporter
+    from curatorkit.exporters import EXPORTERS
     from curatorkit.gates.schema import SchemaGate
     from curatorkit.normalizers.clean import TextCleaner
     from curatorkit.normalizers.dedup import ExactDeduplicator, MinHashDeduplicator
@@ -522,6 +519,8 @@ def _build_steps(config: object, verbose: bool, include_exporters: bool = True) 
                     llm_temperature=llm_cfg.temperature if llm_cfg else 0.7,
                     llm_max_tokens=llm_cfg.max_tokens if llm_cfg else 1024,
                     llm_api_key=llm_cfg.api_key if llm_cfg else None,
+                    pii_scrub=r.pii_scrub,
+                    pii_entities=r.pii_entities,
                 )
             )
 
@@ -764,6 +763,7 @@ def _build_steps(config: object, verbose: bool, include_exporters: bool = True) 
                 prompt_template=g.hallucination_prompt_template,
                 skip_if_no_context=g.skip_if_no_context,
                 concurrency=_resolve_concurrency(_hall_override, config, role="judging", default=16),
+                on_judge_error=g.on_judge_error,
             )
             # ── Attach diagnostic probe if configured ───────────────────
             if config.diagnostic is not None and config.diagnostic.enable_probe:
@@ -799,6 +799,7 @@ def _build_steps(config: object, verbose: bool, include_exporters: bool = True) 
                 prompt_template=g.reward_prompt_template,
                 store_score_in_label=g.store_score_in_label,
                 concurrency=_resolve_concurrency(_reward_override, config, role="judging", default=16),
+                on_judge_error=g.on_judge_error,
             )
             if g.enable_reward_refiner:
                 from curatorkit.diagnostic.reward_refine import RewardRefiner
@@ -859,20 +860,8 @@ def _build_steps(config: object, verbose: bool, include_exporters: bool = True) 
     # ---- Exporters (skipped when output_split is set — handled post-pipeline) ----
     if include_exporters:
         for e in config.exporters:
-            if e.type == "alpaca":
-                steps.append(AlpacaExporter())
-            elif e.type == "corpus":
-                from curatorkit.exporters.corpus import CorpusExporter as _CE
-
-                steps.append(_CE())
-            elif e.type == "sharegpt":
-                steps.append(ShareGPTExporter())
-            elif e.type == "grpo":
-                steps.append(GRPOExporter())
-            elif e.type == "ppo":
-                steps.append(PPOExporter())
-            elif e.type == "dpo":
-                steps.append(DPOExporter())
+            if e.type in EXPORTERS:
+                steps.append(EXPORTERS[e.type]())
 
     return steps, reward_refiner
 

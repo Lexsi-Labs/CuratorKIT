@@ -18,7 +18,11 @@ import warnings
 
 import pytest
 
-from curatorkit.gates._score_parsing import extract_score, template_mentions_key
+from curatorkit.gates._score_parsing import (
+    JudgeParseError,
+    extract_score,
+    template_mentions_key,
+)
 from curatorkit.llm.base import BaseLLM, LLMResponse
 from curatorkit.schema import DataSample
 
@@ -42,10 +46,10 @@ class TestExtractScore:
         assert score == pytest.approx(0.8)
         assert used_fallback is True
 
-    def test_nothing_found_defaults_to_neutral_half(self):
-        score, used_fallback = extract_score(None, "This response is quite good.", "overall_score")
-        assert score == 0.5
-        assert used_fallback is True
+    def test_nothing_found_raises_instead_of_neutral_half(self):
+        # Was a neutral 0.5, which passed every sample at threshold <= 0.5.
+        with pytest.raises(JudgeParseError):
+            extract_score(None, "This response is quite good.", "overall_score")
 
     def test_score_clamped_to_0_1_range(self):
         score, _ = extract_score({"overall_score": 1.7}, "{}", "overall_score")

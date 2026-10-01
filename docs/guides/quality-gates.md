@@ -196,6 +196,7 @@ result.stage_counts["DiversityGate"]
 | `dpo_pair_failed:chosen_below_threshold:{score}` | Reward | Enable refiner; chosen response too weak |
 | `dpo_pair_failed:rejected_above_threshold:{score}` | Reward | Generation contrast too small; fix in generation config |
 | `diversity_gate:too_similar:{similarity}` | Diversity | Raise `diversity_threshold` or reduce `num_questions` |
+| `judge_error:{ExceptionType}` | Hallucination, Reward | Judge call failed or returned no parseable score. Check the judge key/endpoint, raise `judge_llm_max_tokens`, or use a stronger judge. `judge_on_error="pass"` keeps these samples instead. Not sent to the probe or refiner. |
 
 ---
 

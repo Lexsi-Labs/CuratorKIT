@@ -28,9 +28,10 @@ This writes `output/curated/train/sft_alpaca.jsonl` and
 
 ## 2. Publish the dataset
 
-AlignTune's trainers take a dataset name, so load the exported JSONL with the
-`datasets` library and push it to the HuggingFace Hub. The auto-generated
-`dataset_card.md` is a ready-made README for the dataset repository.
+The output folder is already a Hugging Face dataset folder (its `README.md`
+declares one config per export file), so `load_dataset("output/curated", "sft_alpaca")`
+works as-is. `result.push_to_hub("your-org/handbook-qa-curated")` publishes one
+export with the same split names. To do it by hand:
 
 ```python
 from datasets import load_dataset

@@ -9,7 +9,7 @@ copyright: >
 
 theme:
   name: material
-  logo: assets/icon.png
+  logo: assets/icon-white.png   # header bar is dark ink in both schemes
   favicon: assets/favicon.png
   font:
     text: Schibsted Grotesk
@@ -121,12 +121,17 @@ nav:
           - Gates: reference/api/gates.md
           - Normalizers: reference/api/normalizers.md
           - Hygiene: reference/api/hygiene.md
+          - Judges: reference/api/judges.md
+          - Knowledge graph: reference/api/kg.md
+          - Coverage: reference/api/coverage.md
+          - Cost & BoM: reference/api/cost.md
           - Exporters: reference/api/exporters.md
           - Diagnostics: reference/api/diagnostic.md
           - LLM backends: reference/api/llm.md
           - Pipeline & YAML config: reference/api/pipeline.md
           - Manifest & dataset card: reference/api/manifest.md
       - Architecture: reference/architecture.md
+      - Method references: reference/paper-mapping.md
   - Tutorials: tutorials/index.md
   - Community:
       - FAQ: community/faq.md

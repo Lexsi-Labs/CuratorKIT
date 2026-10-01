@@ -52,6 +52,11 @@ class PDFChunker:
         overlap_tokens: Tokens from end of chunk N prepended to chunk N+1.
         extract_tables: If True, include table content as chunks instead
                         of emitting stubs.
+        pii_scrub: 'off' | 'redact' | 'drop'. Scan each chunk for PII at
+                   ingest (PIIGate detector) so PII never reaches an LLM:
+                   'redact' replaces spans with <ENTITY_TYPE>, 'drop' turns
+                   the chunk into a RejectedSample.
+        pii_entities: Entity types to scan for. None = PIIGate defaults.
     """
 
     def __init__(
@@ -61,12 +66,40 @@ class PDFChunker:
         overlap_tokens: int = 50,
         extract_tables: bool = False,
         min_section_tokens: int = 30,
+        pii_scrub: str = "off",
+        pii_entities: list[str] | None = None,
     ) -> None:
+        if pii_scrub not in ("off", "redact", "drop"):
+            raise ValueError(f"pii_scrub must be 'off' | 'redact' | 'drop', got {pii_scrub!r}")
         self.strategy = strategy
         self.max_tokens = max_tokens
         self.overlap_tokens = overlap_tokens
         self.extract_tables = extract_tables
         self.min_section_tokens = min_section_tokens
+        self.pii_scrub = pii_scrub
+        self.pii_entities = pii_entities
+        self._pii_gate: Any = None  # built on first use
+
+    def _scrub_chunk_text(self, text: str) -> tuple[str, dict[str, int], bool]:
+        """Apply pii_scrub to one chunk's text.
+
+        Returns (possibly redacted text, {entity_type: count}, drop_flag).
+        """
+        if self.pii_scrub == "off" or not text:
+            return text, {}, False
+        if self._pii_gate is None:
+            from curatorkit.hygiene.pii_gate import PIIGate
+
+            self._pii_gate = PIIGate(mode="redact", entities=self.pii_entities)
+        matches = self._pii_gate._scan_text(text)
+        if not matches:
+            return text, {}, False
+        counts: dict[str, int] = {}
+        for m in matches:
+            counts[m.entity_type] = counts.get(m.entity_type, 0) + 1
+        if self.pii_scrub == "drop":
+            return text, counts, True
+        return self._pii_gate._redact_text(text, matches), counts, False
 
     def chunk(self, blocks: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """Return a list of chunk dicts with keys: text, page, heading, chunk_index."""
@@ -329,6 +362,8 @@ class PDFReader(BaseReader):
         llm_temperature: float = 0.7,
         llm_max_tokens: int = 1024,
         llm_api_key: str | None = None,
+        pii_scrub: str = "off",
+        pii_entities: list[str] | None = None,
     ) -> None:
         self.path = Path(path)
         self.chunk_strategy = chunk_strategy
@@ -349,6 +384,8 @@ class PDFReader(BaseReader):
             overlap_tokens=chunk_overlap_tokens,
             extract_tables=extract_tables,
             min_section_tokens=min_section_tokens,
+            pii_scrub=pii_scrub,
+            pii_entities=pii_entities,
         )
 
         # Validate output_mode requires LLM
@@ -392,7 +429,9 @@ class PDFReader(BaseReader):
                 "extract_tables": self.extract_tables,
                 "output_mode": self.output_mode,
                 "llm_model": self.llm_model,
-            },
+            }
+            # only when on, so hashes of existing (unscrubbed) runs are unchanged
+            | ({"pii_scrub": self.chunker.pii_scrub, "pii_entities": self.chunker.pii_entities} if self.chunker.pii_scrub != "off" else {}),
             sort_keys=True,
         )
         return hashlib.sha256(payload.encode()).hexdigest()[:16]
@@ -435,6 +474,27 @@ class PDFReader(BaseReader):
             text = chunk.get("text", "").strip()
             if not text:
                 continue
+
+            # ── PII scrub at ingest (pii_scrub="redact" | "drop") ────────
+            pii_counts: dict[str, int] = {}
+            if self.chunker.pii_scrub != "off":
+                text, pii_counts, drop = self.chunker._scrub_chunk_text(text)
+                if drop:
+                    # Recorded as a rejection, not silently lost.
+                    rejected.append(
+                        RejectedSample(
+                            source_uri=str(self.path),
+                            instruction="",
+                            rejection_reason=f"safety_pii_at_ingest:{','.join(sorted(pii_counts))}",
+                            rejecting_step="PDFReader",
+                            metadata={
+                                "page": chunk.get("page"),
+                                "chunk_index": chunk_idx,
+                                "pii_entities": pii_counts,
+                            },
+                        )
+                    )
+                    continue
 
             # ── Table chunk (extract_tables=True) ────────────────────────
             is_table = chunk.get("_is_table", False)
@@ -488,6 +548,7 @@ class PDFReader(BaseReader):
                         "ocr": self.ocr,
                         "is_table": is_table,
                         "output_mode": self.output_mode,
+                        **({"pii_redacted": pii_counts} if pii_counts else {}),
                     },
                 )
             )

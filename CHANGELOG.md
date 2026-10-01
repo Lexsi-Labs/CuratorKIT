@@ -14,7 +14,71 @@ All notable changes to CuratorKIT are documented here. The format follows
 > `pip install curatorkit` contains, use `curatorkit.__version__` or the PyPI page,
 > not a heading here.
 
+### Changed
+- `sft_sharegpt.jsonl` keeps the ShareGPT `conversations` / `from` / `value` layout, but no longer
+  drops data: `metadata["system_prompt"]` becomes a leading `system` turn, a non-empty `input` is
+  appended to the first `human` turn, and later turns given as role/content are converted to
+  from/value instead of being copied through as-is.
+
 ### Added
+- `messages` exporter (`sft_messages.jsonl`): the same turns as chat `messages`
+  (`[{"role", "content"}, ...]`), the layout TRL's `SFTTrainer` and tokenizer chat templates take
+  directly. Auto-resolved `export_formats` include it wherever `sharegpt` is chosen.
+- The export folder is a Hugging Face dataset folder: every run also writes `README.md`, the
+  dataset card with YAML `configs:` (one config per non-empty export file, one split per
+  `output_split` directory, `train` otherwise), so `datasets.load_dataset(output_dir, "dpo")`
+  loads any export and `manifest.json` / `rejected.jsonl` / `lexsi_provenance.json` are never
+  read as data. Each config's `description` carries the sha256 of its files, because `datasets`
+  caches a local folder by its README and would otherwise serve a previous run's rows after a
+  re-run into the same folder. A `README.md` curatorkit did not write is never overwritten (the
+  run warns and skips it); `write_hf_readme=False` (`CuratorConfig`, YAML) skips it always.
+- `lexsi_provenance.json` (`lexsi.provenance/1`) in every output folder, also embedded as
+  `manifest["provenance"]`: version, method, inputs (with a parent folder's own provenance
+  embedded), and the generator / judge / GRPO-scoring model ids that ran. Written by both
+  `Curator.run` and `curatorkit run`.
+- `curatorkit.exporters.EXPORTERS` (format name → exporter class, each with `filename` and
+  `columns`), used by the Curator, the CLI and the dataset card.
+- README: handing an output folder to AlignTune, SafeTune and AuditKIT.
+- `CuratorResult.push_to_hub(repo_id, export_file="sft_alpaca.jsonl", private=True, ...)` pushes
+  one export to the Hugging Face Hub as a dataset, one Hub split per `output_split` directory
+  (needs the `hf` extra).
+- `on_judge_error="reject" | "pass"` on `HallucinationGate` and `RewardGate`
+  (`CuratorConfig.judge_on_error`, YAML `on_judge_error`).
+- README: Cohere Aya quickstart (Cohere API, Ollama, OpenAI-compatible endpoint; Aya as judge).
+- Generation tasks, all opt-in through `generation_task` (config fields default to the papers'
+  settings; see `docs/reference/paper-mapping.md`): `magpie` (`MagpieTask`), `persona`
+  (`PersonaDrivenTask`, Persona Hub), `self_rewarding` (`SelfRewardingTask`), `constitutional` /
+  `constitutional_preference` (Constitutional AI critique-and-revise, SFT or DPO output),
+  `best_of_n` (`BestOfNTask`, scorer `length` | `prometheus` | `deepeval` | `factscore`),
+  `joint_bundle` (`JointBundleTask`: linked SFT + DPO + GRPO samples from one pass), and
+  `kg_multihop` (`MultiHopQATask` over a saved `KnowledgeGraph`, `kg_path`). Tasks whose output
+  task_type depends on their settings (`persona`, `best_of_n`, `joint_bundle`) resolve
+  `export_formats` from the generated samples.
+- `curatorkit.judges`: `PrometheusJudge` / `PrometheusRewardGate` (Prometheus 2),
+  `DeepEvalJudge` / `DeepEvalRewardGate` (G-Eval), `FActScoreJudge` / `FActScoreGate`. Curator
+  wiring: `prometheus_threshold` + `prometheus_rubric`, `factscore_threshold`, all on the judge
+  role LLM. No judge-specific package needed.
+- `DecontaminationGate`: n-gram overlap against eval-benchmark shards
+  (`decontamination_shards`, `decontamination_n`, `decontamination_max_overlap`).
+- Hygiene: `PIIGate` (reject or `<ENTITY>`-redact, Presidio with regex fallback;
+  `pii_gate="reject" | "redact"`), `JailbreakGate` (PromptGuard 2 or keyword heuristic;
+  `jailbreak_gate`), `OutputSafetyGate` (Llama Guard taxonomy via the judge LLM, regex fallback;
+  `output_safety_gate`), `SafetyComplianceReport`. PDF ingest can scrub PII per chunk
+  (`PDFReader(pii_scrub="redact" | "drop")`, `CuratorConfig.pdf_pii_scrub`, YAML reader
+  `pii_scrub`); dropped chunks go to `rejected.jsonl` as `safety_pii_at_ingest:*`.
+- `curatorkit.kg`: `KnowledgeGraph` triple store (JSON save/load, k-hop paths), `KGExtractor`,
+  `MultiHopQATask`, `GraphCoverageAnalyser`.
+- `curatorkit.coverage`: diversity metrics, `CoverageAnalyser` (spherical k-means thin-cluster
+  detection), `DiversityMonitor` (collapse warning), `CoverageDirectedGenerator`.
+- `curatorkit.cost`: `CostGateway` (per-call token/USD tracking), `TokenBudget` +
+  `BudgetExceeded`, `CostReport`, `BillOfMaterials` (checksummed outputs, `verify()`),
+  `DryRunCostEstimator`. `BaseLLM` no longer retries exceptions marked `__no_retry__ = True`
+  (e.g. `BudgetExceeded`). These are SDK components; they are not yet wired into `CuratorConfig`.
+- `ArgillaExporter` (`export_formats=["argilla"]`): passed and rejected samples, including the
+  probe's `diagnosis`, as Argilla 2.x records; writes `argilla_records.jsonl` when no server is
+  configured.
+- Extras: `safety` (transformers + torch for PromptGuard) and `review` (argilla). Base install
+  is unchanged.
 - `ignore_for_dedup`: regex patterns whose matches are masked out (replaced with a space, then
   whitespace-collapsed) from a sample's text before deduplication compares or embeds it — lets a
   real but unimportant difference (a per-sample UUID, a timestamp, a boilerplate disclaimer) not
@@ -62,6 +126,17 @@ All notable changes to CuratorKIT are documented here. The format follows
   of exporting seed prompts before `GRPORolloutTask` has run.
 
 ### Fixed
+- The judge gates fail closed. A judge call that raised (bad key, HTTP 500, timeout) used to pass
+  the sample, and judge output with no number in it scored a neutral 0.5 that cleared any
+  threshold <= 0.5. Both now reject the sample as `judge_error:<ExceptionType>` and record the
+  error in provenance; each run warns with the count. `DiagnosticProbe` and `RewardRefiner` skip
+  these rejects. `HallucinationGate` / `RewardGate` `STEP_VERSION` is now 1.1.0.
+- Token counting counts each Han, kana, Hangul, Thai, Lao, Khmer or Myanmar character as a token,
+  so complete Chinese, Japanese, Korean and Thai rows are no longer rejected by the default
+  `min_tokens=10`. SchemaGate's preference-length comparison uses the same counter.
+- README: the PyPI badge showed a fixed `v0.1.0`; it now reads the live version. GitHub
+  Discussions links (404) now point to Issues.
+- The `trl` extra requires `transformers>=5.15,<6`.
 - `PreferenceGenerationTask`'s `two_pass` mode (both `run()` and `run_async()`) crashed the whole
   curation run — instead of cleanly rejecting the one affected sample — whenever chosen/rejected
   generation failed for a sample (empty completion, or corpus-mode parse/incomplete failure). The
@@ -159,8 +234,7 @@ All notable changes to CuratorKIT are documented here. The format follows
 
 ## Unreleased (draft "1.0.0" — never published)
 
-The work below was planned against a 1.0.0 target that was never released. The
-2026-06-12 date it used to carry was a planning date, not a release date.
+First public release.
 
 ### Added
 - Data hygiene gates: `SecretsGate` (credential/API-key detection), `ToxicityGate`

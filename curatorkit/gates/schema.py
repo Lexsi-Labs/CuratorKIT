@@ -248,8 +248,8 @@ class SchemaGate(BaseGate):
         """
         if task in _PREFERENCE_TYPES:
             # Count the prompt + the longer completion
-            chosen_len = len((sample.chosen or "").split())
-            rejected_len = len((sample.rejected or "").split())
+            chosen_len = count_tokens(sample.chosen or "")
+            rejected_len = count_tokens(sample.rejected or "")
             longer = sample.chosen if chosen_len >= rejected_len else sample.rejected
             return f"{sample.instruction} {longer}".strip()
 

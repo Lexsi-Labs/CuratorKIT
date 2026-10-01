@@ -31,6 +31,7 @@ from datetime import UTC, datetime
 from tqdm import tqdm
 
 from curatorkit.diagnostic.failure_modes import PROMPT_TEMPLATES, FailureDiagnosis, FailureMode
+from curatorkit.gates._judge import JUDGE_ERROR_PREFIX
 from curatorkit.interfaces import BaseGate
 from curatorkit.llm.base import BaseLLM
 from curatorkit.schema import DataSample, ProvenanceRecord, RejectedSample
@@ -105,6 +106,15 @@ class DiagnosticProbe:
                 evidence=[],
                 probe_calls=0,
                 notes={"skip_reason": "rejected_above_threshold"},
+            )
+        # The judge itself failed: re-generating and re-judging against the same
+        # failing judge only burns calls, so don't probe.
+        if (rejected.rejection_reason or "").startswith(JUDGE_ERROR_PREFIX):
+            return FailureDiagnosis.from_mode(
+                FailureMode.UNKNOWN,
+                evidence=[],
+                probe_calls=0,
+                notes={"skip_reason": "judge_error"},
             )
         try:
             return self._run_probes(rejected)

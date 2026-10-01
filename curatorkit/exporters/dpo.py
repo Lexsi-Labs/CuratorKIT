@@ -50,8 +50,15 @@ class DPOExporter(BaseExporter):
     intentional when exporting a multi-task pipeline subset).
     """
 
+    filename = "dpo.jsonl"
+    columns = {
+        "prompt": "string, or list of {role, content}",
+        "chosen": "string, or list of {role, content}",
+        "rejected": "string, or list of {role, content}",
+    }
+
     def export(self, samples: list[DataSample], output_dir: Path) -> None:
-        output_path = output_dir / "dpo.jsonl"
+        output_path = output_dir / self.filename
         exported = 0
         skipped = 0
 

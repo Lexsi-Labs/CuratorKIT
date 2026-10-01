@@ -504,6 +504,7 @@ Checksums (`checksums.txt`) cover both `*.jsonl` and `*.json` output files.
 |----------|-------------|--------|
 | `AlpacaExporter` | `sft_alpaca.jsonl` | `{instruction, input, output}` |
 | `ShareGPTExporter` | `sft_sharegpt.jsonl` | `{conversations: [{from, value}]}` |
+| `MessagesExporter` | `sft_messages.jsonl` | `{messages: [{role, content}]}` |
 | `DPOExporter` | `dpo.jsonl` | `{prompt, chosen, rejected}` |
 | `GRPOExporter` | `grpo.jsonl` | `{prompt, responses, rewards}` |
 | `PPOExporter` | `ppo.jsonl` | `{prompt}` |
@@ -674,8 +675,11 @@ exporters:
 | `rejected.jsonl` | yes | All `RejectedSample` objects (includes `diagnosis` when probe active) |
 | `checksums.txt` | yes | SHA-256 for all `.jsonl` and `.json` output files |
 | `dataset_card.md` | yes | Human-readable pipeline summary |
+| `README.md` | yes | Dataset card with `configs:` YAML for `datasets.load_dataset(dir, config)` |
+| `lexsi_provenance.json` | yes | `lexsi.provenance/1` lineage record, also `manifest["provenance"]` |
 | `sft_alpaca.jsonl` | if exported | Alpaca-format SFT data |
-| `sft_sharegpt.jsonl` | if exported | ShareGPT-format SFT data |
+| `sft_sharegpt.jsonl` | if exported | ShareGPT `conversations` SFT data |
+| `sft_messages.jsonl` | if exported | Chat `messages` SFT data |
 | `dpo.jsonl` | if exported | DPO preference data |
 | `grpo.jsonl` | if exported | GRPO rollout data |
 | `ppo.jsonl` | if exported | PPO prompt data |

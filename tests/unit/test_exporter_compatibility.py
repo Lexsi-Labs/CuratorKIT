@@ -25,11 +25,12 @@ class TestCompatibleFormatsFor:
 
 class TestResolveExportFormats:
     def test_generation_task_resolves_before_reading_data(self):
-        # qa -> instruction_following -> alpaca/sharegpt, regardless of
+        # qa -> instruction_following -> alpaca/sharegpt/messages, regardless of
         # what observed_task_types says (generation_task takes priority).
         assert resolve_export_formats("qa", observed_task_types={"grpo"}) == [
             "alpaca",
             "sharegpt",
+            "messages",
         ]
 
     def test_grpo_generation_task(self):
@@ -46,7 +47,7 @@ class TestResolveExportFormats:
         formats = resolve_export_formats(
             None, observed_task_types={"instruction_following", "preference"}
         )
-        assert set(formats) == {"alpaca", "sharegpt", "dpo"}
+        assert set(formats) == {"alpaca", "sharegpt", "messages", "dpo"}
 
     def test_falls_back_to_default_when_nothing_known(self):
         assert resolve_export_formats(None, observed_task_types=None) == DEFAULT_EXPORT_FORMATS

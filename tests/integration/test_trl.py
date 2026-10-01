@@ -211,14 +211,14 @@ def test_trl_sfttrainer_accepts_alpaca_output():
             per_device_train_batch_size=2,
             logging_steps=1,
             report_to="none",
-            max_seq_length=128,
+            max_length=128,
         )
 
         trainer = SFTTrainer(
             model=model,
             args=training_args,
             train_dataset=hf_dataset,
-            tokenizer=tokenizer,
+            processing_class=tokenizer,
         )
 
         # This must complete without a format exception

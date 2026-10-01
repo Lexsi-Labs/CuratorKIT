@@ -26,13 +26,18 @@ from datetime import UTC, datetime
 from tqdm import tqdm
 from tqdm.asyncio import tqdm as atqdm
 
+from curatorkit.gates._judge import (
+    check_on_judge_error,
+    judge_error_result,
+    warn_judge_errors,
+)
 from curatorkit.gates._score_parsing import extract_score, template_mentions_key
 from curatorkit.interfaces import BaseGate
 from curatorkit.llm.base import BaseLLM
 from curatorkit.schema import DataSample, ProvenanceRecord, RejectedSample
 from curatorkit.utils.prompt_validation import validate_prompt_template
 
-STEP_VERSION = "1.0.0"
+STEP_VERSION = "1.1.0"
 
 _DEFAULT_GROUNDING_PROMPT = """You are an expert fact-checker. Evaluate whether the given answer is fully supported by the source text.
 
@@ -84,6 +89,11 @@ class HallucinationGate(BaseGate):
     skip_if_no_context : bool
         If True, samples without source context pass through.
         If False, samples without source context are rejected.
+    on_judge_error : str
+        What to do when the judge call fails or its output has no parseable
+        score. "reject" (default) rejects the sample with reason
+        'judge_error:<ExceptionType>'; "pass" keeps the legacy fail-open
+        behaviour. The error is recorded in provenance either way.
     """
 
     def __init__(
@@ -93,12 +103,14 @@ class HallucinationGate(BaseGate):
         prompt_template: str | None = None,
         skip_if_no_context: bool = True,
         concurrency: int = 16,
+        on_judge_error: str = "reject",
     ) -> None:
         self.llm = llm
         self.threshold = threshold
         self.prompt_template = prompt_template or _DEFAULT_GROUNDING_PROMPT
         self.skip_if_no_context = skip_if_no_context
         self.concurrency = concurrency
+        self.on_judge_error = check_on_judge_error(on_judge_error)
         self._fallback_count = 0
         self._scored_count = 0
 
@@ -125,6 +137,7 @@ class HallucinationGate(BaseGate):
             {
                 "threshold": self.threshold,
                 "llm_model": self.llm.model,
+                "on_judge_error": self.on_judge_error,
                 "skip_if_no_context": self.skip_if_no_context,
             },
             sort_keys=True,
@@ -212,16 +225,15 @@ class HallucinationGate(BaseGate):
         try:
             score, verdict, details = self._evaluate_grounding(source_context, question, answer)
         except Exception as e:
-            sample.append_provenance(
-                ProvenanceRecord(
-                    step_name="HallucinationGate",
-                    step_version=STEP_VERSION,
-                    timestamp=ts,
-                    config_hash=cfg_hash,
-                    notes={"error": str(e), "passed_on_error": True},
-                )
+            return judge_error_result(
+                sample,
+                e,
+                on_judge_error=self.on_judge_error,
+                step_name="HallucinationGate",
+                step_version=STEP_VERSION,
+                cfg_hash=cfg_hash,
+                ts=ts,
             )
-            return sample, None
 
         if score >= self.threshold:
             sample.append_provenance(
@@ -310,6 +322,7 @@ class HallucinationGate(BaseGate):
             if r is not None:
                 rejected.append(r)
 
+        warn_judge_errors("HallucinationGate", passed, rejected)
         self._warn_if_fallback_heavy()
         return passed, rejected
 
@@ -447,16 +460,15 @@ class HallucinationGate(BaseGate):
                     source_context, question, answer
                 )
             except Exception as e:
-                sample.append_provenance(
-                    ProvenanceRecord(
-                        step_name="HallucinationGate",
-                        step_version=STEP_VERSION,
-                        timestamp=ts,
-                        config_hash=cfg_hash,
-                        notes={"error": str(e), "passed_on_error": True},
-                    )
+                return judge_error_result(
+                    sample,
+                    e,
+                    on_judge_error=self.on_judge_error,
+                    step_name="HallucinationGate",
+                    step_version=STEP_VERSION,
+                    cfg_hash=cfg_hash,
+                    ts=ts,
                 )
-                return sample, None
 
             if score >= self.threshold:
                 sample.append_provenance(
@@ -516,5 +528,6 @@ class HallucinationGate(BaseGate):
 
         passed = [p for p, r in results if p is not None]
         rejected = [r for p, r in results if r is not None]
+        warn_judge_errors("HallucinationGate", passed, rejected)
         self._warn_if_fallback_heavy()
         return passed, rejected

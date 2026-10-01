@@ -21,7 +21,13 @@ env:
 jobs:
   plan:
     name: Inspect release state
-    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true
+    # Public repo only. This workflow is inherited from public, so it also runs
+    # here on every merge -- where it must not: the release job below checks out
+    # main, rewrites the two authoritative version files, and pushes the commit
+    # and tag back, then publishes to PyPI. On the internal repo that would bump
+    # the version and cut a release that never ships. Skipping `plan` skips
+    # `release`, which is gated on its output. Guarded the same way in AuditKIT.
+    if: github.repository == 'Lexsi-Labs/CuratorKIT' && (github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true)
     runs-on: ubuntu-latest
     outputs:
       action: ${{ steps.plan.outputs.action }}

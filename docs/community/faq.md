@@ -49,7 +49,8 @@ automatically on first parse. `curatorkit setup-pdf --check` verifies the instal
 
 Every run writes `manifest.json` (config hash, per-stage counts, rejection
 breakdown), `rejected.jsonl` (each rejected sample with a structured reason),
-`dataset_card.md`, and `checksums.txt`, plus one file per requested export format
+`dataset_card.md`, `README.md` (the card with `configs:` YAML for `datasets.load_dataset`),
+`lexsi_provenance.json`, and `checksums.txt`, plus one file per requested export format
 (`sft_alpaca.jsonl`, `dpo.jsonl`, …). Exporters **overwrite** files from previous
 runs, so use a fresh `output_dir` to keep prior outputs. See
 [exporters](../guides/exporters.md).

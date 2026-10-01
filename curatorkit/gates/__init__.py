@@ -1,3 +1,4 @@
+from curatorkit.gates.decontamination import DecontaminationGate
 from curatorkit.gates.diversity import DiversityGate
 from curatorkit.gates.hallucination import HallucinationGate
 from curatorkit.gates.reward import RewardGate
@@ -8,4 +9,5 @@ __all__ = [
     "HallucinationGate",
     "RewardGate",
     "DiversityGate",
+    "DecontaminationGate",
 ]
