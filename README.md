@@ -269,7 +269,9 @@ The connector, generator, gate, and exporter layers are designed as plugin point
 
 - **Documentation**: [lexsi-labs.github.io/CuratorKIT](https://lexsi-labs.github.io/CuratorKIT/)
 - **GitHub Issues**: [github.com/Lexsi-Labs/CuratorKIT/issues](https://github.com/Lexsi-Labs/CuratorKIT/issues)
+- **Discussions**: [github.com/Lexsi-Labs/CuratorKIT/discussions](https://github.com/Lexsi-Labs/CuratorKIT/discussions)
 - **Email**: [pratinav.seth@lexsi.ai](mailto:pratinav.seth@lexsi.ai)
+- **Discord**: [Discord Lexsi Labs](https://discord.gg/ckVbEJGW)
 
 ## Citation
 
