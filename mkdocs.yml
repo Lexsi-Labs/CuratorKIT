@@ -62,6 +62,9 @@ extra:
     - icon: fontawesome/brands/github
       link: https://github.com/Lexsi-Labs
       name: Lexsi Labs on GitHub
+    - icon: fontawesome/brands/discord
+      link: https://discord.gg/ckVbEJGW
+      name: CuratorKIT on Discord
     - icon: fontawesome/brands/x-twitter
       link: https://x.com/Lexsi_labs
       name: Lexsi Labs on X
