@@ -415,6 +415,8 @@ class NormalizerConfig(BaseModel):
     embedding_text_field: str = "auto"
     embedding_device: str | None = None  # "cuda" | "cpu" | "mps" | None (auto)
     embedding_batch_size: int = 64
+    embedding_namespace: str | None = None  # separate index under embedding_index_dir/<namespace>
+    embedding_on_unreadable_index: Literal["raise", "rebuild"] = "raise"
 
     # ---- PIIPseudonymizer (data hygiene) ----
     pii_entity_types: list[str] = Field(default_factory=list)

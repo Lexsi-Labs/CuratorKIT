@@ -180,6 +180,16 @@ class CuratorConfig:
     embedding_dedup     Enable cross-run embedding dedup. Default False.
     embedding_index_dir Directory for persistent index. Default "output/embedding_index".
     embedding_threshold Similarity threshold. Default 0.92.
+    embedding_index_namespace   Keep a separate index under
+                        embedding_index_dir/<namespace>, so unrelated datasets
+                        or tasks don't dedup against each other. Default None.
+    embedding_commit_on_success Only add this run's samples to the index once
+                        the run has finished (after export). A failed run adds
+                        nothing. Default True.
+    embedding_on_unreadable_index  "raise" (default) fails the run when an
+                        existing index can't be read, leaving it untouched;
+                        "rebuild" moves it aside and starts a fresh one.
+    embedding_reset_index       Delete the index (in its namespace) before the run.
 
     dedup_ignore_patterns  Regex patterns whose matches are masked out of the
                            text before dedup comparison (exact/minhash) or
@@ -387,6 +397,9 @@ class CuratorConfig:
     embedding_index_dir: str = "output/embedding_index"
     embedding_dedup_threshold: float = 0.92
     embedding_reset_index: bool = False
+    embedding_index_namespace: str | None = None  # separate index under embedding_index_dir/<namespace>
+    embedding_commit_on_success: bool = True  # add this run's entries only once the run succeeds
+    embedding_on_unreadable_index: str = "raise"  # "raise" | "rebuild" (move unreadable index aside)
 
     # ── PDF extraction ───────────────────────────────────────────────────────
     pdf_output_mode: str = "chunk"  # chunk | qa | preference | grpo | multiturn
@@ -700,6 +713,7 @@ class Curator:
         self.config = config
         self._diagnostics = None
         self._reward_refiner = None
+        self._embedding_dedup = None
 
     def _apply_reward_refiner(self, result) -> None:
         """Run RewardRefiner recovery on RewardGate rejects, in place on `result`.
@@ -733,6 +747,7 @@ class Curator:
             }
             return
         recovered, still_rejected = self._reward_refiner.refine(reward_rejects)
+        recovered, dedup_removed = self._dedup_recovered(recovered)
         result.passed.extend(recovered)
         # Replace the original reward rejects with still-rejected ones
         result.rejected = [
@@ -744,6 +759,8 @@ class Curator:
             "probe_recovered": len(recovered),
             "rejected_count": len(reward_rejects),
         }
+        if self._embedding_dedup is not None:
+            result.stage_counts["RewardRefiner"]["embedding_dedup_removed"] = dedup_removed
 
     # ─────────────────────────────────────────────────────────────────────────
     # export_formats resolution — see curatorkit.exporters.compatibility
@@ -853,6 +870,7 @@ class Curator:
         splitting = bool(self.config.output_split)
         steps = self._build_steps(include_exporters=not splitting)
         self._wire_checkpoint(steps, ckpt)
+        self._prepare_embedding_dedup(ckpt)
         output_dir = Path(self.config.output_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -873,6 +891,9 @@ class Curator:
         if result.diagnostics is not None:
             result.diagnostics.write_summary(output_dir / "diagnostic_summary.json")
 
+        # Last: the run has succeeded, so its accepted samples may join the shared index.
+        self._commit_embedding_dedup(result)
+
         return CuratorResult(
             passed=result.passed,
             rejected=result.rejected,
@@ -890,6 +911,7 @@ class Curator:
         splitting = bool(self.config.output_split)
         steps = self._build_steps(include_exporters=not splitting)
         self._wire_checkpoint(steps, ckpt)
+        self._prepare_embedding_dedup(ckpt)
         output_dir = Path(self.config.output_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -908,6 +930,9 @@ class Curator:
         if result.diagnostics is not None:
             result.diagnostics.write_summary(output_dir / "diagnostic_summary.json")
 
+        # Last: the run has succeeded, so its accepted samples may join the shared index.
+        self._commit_embedding_dedup(result)
+
         return CuratorResult(
             passed=result.passed,
             rejected=result.rejected,
@@ -916,6 +941,62 @@ class Curator:
             wall_clock_seconds=result.wall_clock_seconds,
             diagnostics=result.diagnostics,
         )
+
+    # ═════════════════════════════════════════════════════════════════════════
+    # Cross-run embedding dedup helpers
+    # ═════════════════════════════════════════════════════════════════════════
+
+    def _embedding_pending_dir(self) -> Path:
+        """Where entries staged by embedding_commit_on_success wait for the run to finish.
+
+        Lives inside the checkpoint directory when checkpointing is on, so a
+        resumed run (whose dedup stage is restored from the checkpoint rather
+        than re-run) still finds and commits them.
+        """
+        if self.config.enable_checkpoint:
+            base = (
+                Path(self.config.checkpoint_dir)
+                if self.config.checkpoint_dir
+                else Path(self.config.output_dir) / ".checkpoints"
+            )
+            return base / "embedding_index_pending"
+        return Path(self.config.output_dir) / ".embedding_index_pending"
+
+    def _prepare_embedding_dedup(self, ckpt) -> None:
+        """Run-start housekeeping for the cross-run dedup step.
+
+        Applies embedding_reset_index, and drops entries staged by an earlier
+        attempt unless this run resumes it from a checkpoint — a fresh run must
+        never commit what a failed one left behind.
+        """
+        dedup = self._embedding_dedup
+        if dedup is None:
+            return
+        if self.config.embedding_reset_index:
+            dedup.reset()
+        resuming = ckpt is not None and bool(ckpt._manifest.get("completed_stages"))
+        if not resuming:
+            dedup.discard_pending()
+
+    def _commit_embedding_dedup(self, result) -> None:
+        """Add this run's staged entries to the shared index — called last, once the run succeeded."""
+        dedup = self._embedding_dedup
+        if dedup is None or not dedup.defer_commit:
+            return
+        added = dedup.commit_pending()
+        counts = result.stage_counts.setdefault("EmbeddingDeduplicator", {})
+        counts["index_committed"] = added
+
+    def _dedup_recovered(self, recovered: list) -> tuple[list, int]:
+        """Pass samples recovered after the pipeline through cross-run dedup too.
+
+        They never went through the pipeline's EmbeddingDeduplicator step, so
+        without this they would bypass the index and never be added to it.
+        """
+        if self._embedding_dedup is None or not recovered:
+            return recovered, 0
+        kept = self._embedding_dedup.run(list(recovered))
+        return kept, len(recovered) - len(kept)
 
     # ═════════════════════════════════════════════════════════════════════════
     # Checkpoint helpers
@@ -1208,25 +1289,26 @@ class Curator:
         # ═════════════════════════════════════════════════════════════════════
         # Cross-run embedding dedup
         # ═════════════════════════════════════════════════════════════════════
+        self._embedding_dedup = None
         if cfg.embedding_dedup:
             from curatorkit.normalizers.embedding_dedup import EmbeddingDeduplicator
 
-            if cfg.embedding_reset_index:
-                import shutil
-
-                index_path = Path(cfg.embedding_index_dir)
-                if index_path.exists():
-                    shutil.rmtree(index_path)
-            steps.append(
-                EmbeddingDeduplicator(
-                    index_dir=cfg.embedding_index_dir,
-                    model=cfg.embedding_dedup_model or cfg.embedding_model,
-                    threshold=cfg.embedding_dedup_threshold,
-                    device=cfg.embedding_device,
-                    batch_size=cfg.embedding_batch_size,
-                    ignore_for_dedup=cfg.dedup_ignore_patterns or None,
-                )
+            # embedding_reset_index is applied in _prepare_embedding_dedup() at run
+            # start, not here — _build_steps() also backs dry_run(), which must not
+            # delete anything.
+            self._embedding_dedup = EmbeddingDeduplicator(
+                index_dir=cfg.embedding_index_dir,
+                model=cfg.embedding_dedup_model or cfg.embedding_model,
+                threshold=cfg.embedding_dedup_threshold,
+                device=cfg.embedding_device,
+                batch_size=cfg.embedding_batch_size,
+                ignore_for_dedup=cfg.dedup_ignore_patterns or None,
+                namespace=cfg.embedding_index_namespace,
+                defer_commit=cfg.embedding_commit_on_success,
+                pending_dir=self._embedding_pending_dir(),
+                on_unreadable_index=cfg.embedding_on_unreadable_index,
             )
+            steps.append(self._embedding_dedup)
 
         # ── Resampling ──────────────────────────────────────────────────────
         if cfg.resample and cfg.target_distribution:

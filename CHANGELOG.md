@@ -16,6 +16,29 @@ All notable changes to CuratorKIT are documented here. The format follows
 > given `pip install curatorkit` contains, use `curatorkit.__version__` or the
 > PyPI page, not a heading here.
 
+### Fixed
+- Cross-run embedding dedup (`EmbeddingDeduplicator`) no longer loses or corrupts its persisted index:
+  - An index that exists but can't be read consistently raises `EmbeddingIndexError` instead of
+    silently starting fresh and overwriting it. `on_unreadable_index="rebuild"` (CuratorConfig:
+    `embedding_on_unreadable_index`) opts into a fresh start after moving the old files aside.
+  - The index records the embedding model and dimension in a new `index_meta.json` manifest; reusing
+    it with a different model or dimension raises `EmbeddingIndexMismatchError` instead of crashing
+    mid-search or comparing incompatible vectors. Pre-manifest indexes still load (with a warning) and
+    are migrated on their next save.
+  - Saves are atomic: each one writes a new `gen-NNNNNN/` directory and swaps the manifest last; the
+    previous generation is kept for rollback.
+  - Saves take a lock, re-read the index and append only new entries, so concurrent runs don't drop
+    each other's entries and committing the same entries twice is a no-op.
+  - An index written with numpy is read when faiss-cpu is installed later (and vice versa), instead of
+    being ignored and having its metadata overwritten.
+- `Curator` adds a run's samples to the index only after the run succeeds (`embedding_commit_on_success`,
+  default `True`): a failed run no longer pollutes the index, and a retry no longer rejects its own
+  samples as duplicates of the failed attempt. Staged entries live in the checkpoint directory, so a
+  run resumed from a checkpoint still commits them.
+- Samples recovered by the reward refiner now pass through cross-run dedup and are added to the index;
+  before, they bypassed it.
+- `embedding_reset_index` is applied when a run starts, so `Curator.dry_run()` no longer deletes the index.
+
 ### Changed
 - `sft_sharegpt.jsonl` keeps the ShareGPT `conversations` / `from` / `value` layout, but no longer
   drops data: `metadata["system_prompt"]` becomes a leading `system` turn, a non-empty `input` is
@@ -23,6 +46,11 @@ All notable changes to CuratorKIT are documented here. The format follows
   from/value instead of being copied through as-is.
 
 ### Added
+- `embedding_index_namespace` (CuratorConfig) / `embedding_namespace` (YAML) keep a separate index under
+  `embedding_index_dir/<namespace>`.
+- `EmbeddingDeduplicator`: `namespace`, `defer_commit`, `pending_dir`, `on_unreadable_index`,
+  `keep_generations`; methods `commit_pending()`, `discard_pending()`, `pending_count()`, `stats()`,
+  `reset()`.
 - `messages` exporter (`sft_messages.jsonl`): the same turns as chat `messages`
   (`[{"role", "content"}, ...]`), the layout TRL's `SFTTrainer` and tokenizer chat templates take
   directly. Auto-resolved `export_formats` include it wherever `sharegpt` is chosen.

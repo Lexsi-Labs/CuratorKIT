@@ -380,14 +380,18 @@ All default to `None` (built-in template used). `multiturn_mode` defaults to `"t
 
 ## Cross-run embedding dedup
 
-Persists an FAISS index across runs to reject samples already seen in previous runs.
+Persists an embedding index across runs to reject samples already seen in previous runs.
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
 | `embedding_dedup` | `bool` | `False` | Enable cross-run embedding dedup |
-| `embedding_index_dir` | `str` | `"output/embedding_index"` | Directory where the FAISS index is stored and loaded |
+| `embedding_index_dir` | `str` | `"output/embedding_index"` | Directory where the index is stored and loaded |
 | `embedding_dedup_threshold` | `float` | `0.92` | Cosine similarity threshold. Samples above this are rejected as near-duplicates of previously indexed samples. |
-| `embedding_reset_index` | `bool` | `False` | Delete and rebuild the index at the start of this run |
+| `embedding_dedup_model` | `str \| None` | `None` | Embedding model for the index. `None` falls back to `embedding_model`. The index records the model that built it; reusing it with a different model raises `EmbeddingIndexMismatchError`. |
+| `embedding_index_namespace` | `str \| None` | `None` | Keep a separate index under `embedding_index_dir/<namespace>`, so unrelated datasets or tasks don't dedup against each other |
+| `embedding_commit_on_success` | `bool` | `True` | Add this run's samples to the index only once the run has finished (after export). A failed run adds nothing; with checkpointing on, a resumed run still commits what the interrupted attempt staged. |
+| `embedding_on_unreadable_index` | `str` | `"raise"` | `"raise"` fails the run when an existing index can't be read consistently, leaving it untouched. `"rebuild"` moves it to `unreadable-<timestamp>/` and starts a fresh index. |
+| `embedding_reset_index` | `bool` | `False` | Delete the index (within its namespace) at the start of this run |
 
 ---
 

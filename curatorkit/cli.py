@@ -96,15 +96,14 @@ def run(
 
     # Optional reset of any embedding-dedup persistent indices before run
     if reset_index:
-        import shutil
+        from curatorkit.normalizers.embedding_dedup import EmbeddingDeduplicator
 
         for n in config.normalizers:
             if n.type == "embedding_dedup":
-                idx = Path(n.embedding_index_dir)
-                if idx.exists():
-                    if verbose:
-                        typer.echo(f"Resetting embedding index: {idx}")
-                    shutil.rmtree(idx)
+                target = EmbeddingDeduplicator(index_dir=n.embedding_index_dir, namespace=n.embedding_namespace)
+                if verbose:
+                    typer.echo(f"Resetting embedding index: {target.index_dir}")
+                target.reset()
 
     splitting = bool(getattr(config, "output_split", None))
     steps, reward_refiner = _build_steps(config, verbose, include_exporters=not splitting)
@@ -841,6 +840,8 @@ def _build_steps(config: object, verbose: bool, include_exporters: bool = True) 
                     device=n.embedding_device,
                     batch_size=n.embedding_batch_size,
                     ignore_for_dedup=n.ignore_for_dedup or None,
+                    namespace=n.embedding_namespace,
+                    on_unreadable_index=n.embedding_on_unreadable_index,
                 )
             )
 

@@ -239,7 +239,7 @@ All readers accept:
 | `exact_dedup` | — |
 | `minhash_dedup` | `minhash_threshold`, `minhash_ngram`, `minhash_num_perm` |
 | `text_cleaner` | `transforms` dict, `clean_fields` list |
-| `embedding_dedup` | `embedding_index_dir`, `embedding_model`, `embedding_threshold` |
+| `embedding_dedup` | `embedding_index_dir`, `embedding_model`, `embedding_threshold`, `embedding_namespace`, `embedding_on_unreadable_index` |
 | `stratified_sampler` | `category_field`, `target_distribution`, `sampler_seed` |
 
 ### Generator types

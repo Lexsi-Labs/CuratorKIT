@@ -158,12 +158,23 @@ Separate from DiversityGate — this persists an embedding index across multiple
 
 ```python
 CuratorConfig(
-    embedding_dedup           = True,
-    embedding_index_dir       = "output/embedding_index",
-    embedding_dedup_threshold = 0.92,
-    embedding_reset_index     = False,   # True = start fresh
+    embedding_dedup             = True,
+    embedding_index_dir         = "output/embedding_index",
+    embedding_index_namespace   = "contracts-qa",  # optional: separate index per dataset/task
+    embedding_dedup_threshold   = 0.92,
+    embedding_commit_on_success = True,    # failed runs never add to the index
+    embedding_reset_index       = False,   # True = start fresh
 )
 ```
+
+The index is safe to share between runs:
+
+- **Only successful runs add to it.** Samples are staged during the run and committed after export.
+- **Concurrent runs don't overwrite each other.** Each update takes a lock, re-reads the index and appends only new entries.
+- **It never silently starts over.** An index that can't be read raises `EmbeddingIndexError` (or, with `embedding_on_unreadable_index="rebuild"`, is moved aside first).
+- **It remembers its model.** Reusing it with a different embedding model or dimension raises `EmbeddingIndexMismatchError` instead of comparing incompatible vectors.
+
+`EmbeddingDeduplicator(...).stats()` reports its size, model and version; `.reset()` clears it.
 
 ---
 

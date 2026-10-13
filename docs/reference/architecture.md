@@ -253,7 +253,11 @@ Embedding-based near-duplicate filter. Uses `sentence-transformers` to encode ea
 
 `curatorkit/normalizers/embedding_dedup.py` — `EmbeddingDeduplicator`
 
-Extends within-batch deduplication with a **persistent embedding index** that survives across pipeline runs. The index is stored as `embeddings.npy` + `metadata.json` in `embedding_index_dir`.
+Extends within-batch deduplication with a **persistent embedding index** that survives across pipeline runs. In `embedding_index_dir` (or `embedding_index_dir/<namespace>`), `index_meta.json` records the model, dimension, entry count, storage and version, and points at the current `gen-NNNNNN/` directory holding the vectors (`index.faiss` or `embeddings.npy`) and `metadata.json`. A save writes a new generation and swaps the manifest last, so it is atomic; the previous generation is kept for rollback.
+
+- **Safe concurrent updates:** each save takes a lock file, re-reads the index and appends only entries it doesn't already hold (by `sample_id`), so concurrent runs don't drop each other's entries and repeated commits are no-ops.
+- **No silent fresh start:** an index that exists but can't be read consistently raises `EmbeddingIndexError`; one built with a different model or dimension raises `EmbeddingIndexMismatchError`.
+- **Deferred commit:** with `defer_commit=True` (what `Curator` uses when `embedding_commit_on_success=True`), accepted entries are staged and only added by `commit_pending()` after the run succeeds.
 
 - **Cross-run dedup:** new samples are checked against the full index before being checked against each other.
 - **Within-run dedup:** samples in the current batch that pass the index check are still deduplicated against each other.
