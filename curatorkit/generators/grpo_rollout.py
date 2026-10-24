@@ -144,6 +144,18 @@ class GRPORolloutTask(BaseGenerationTask):
         """Not used directly — run() handles multi-response generation."""
         return []
 
+    def _get_source_context(self, sample: DataSample) -> str:
+        """Source passage for the rollout prompt.
+
+        An instruction row's `output` is its gold answer, not a passage: the base
+        fallback to `output` would put the answer in the prompt the policy is
+        sampled from, so every rollout would copy it and the rewards would be
+        meaningless. Only `input` is context for such a row.
+        """
+        if sample.instruction and sample.task_type != "language_modeling":
+            return sample.input
+        return super()._get_source_context(sample)
+
     def _get_temperatures(self) -> list[float]:
         """Return per-rollout temperatures.
 
