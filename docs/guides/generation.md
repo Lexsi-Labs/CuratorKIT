@@ -115,6 +115,8 @@ CuratorConfig(
 
 **Output fields:** `instruction=prompt`, `input=source_text`, `responses=[...]`, `reward_scores=[...]`
 
+**Scoring failures reject the sample.** If the scoring endpoint is unreachable, or its reply contains no parseable score, the whole rollout group is rejected with `scoring_failed:<ErrorType>:<detail>` (in `rejected.jsonl`) instead of receiving a made-up reward, matching how the judge gates fail closed.
+
 ---
 
 ### `multiturn` — Multi-turn conversations

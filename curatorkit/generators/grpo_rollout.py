@@ -24,6 +24,7 @@ import uuid
 
 from tqdm import tqdm
 
+from curatorkit.gates._score_parsing import JudgeParseError, extract_score
 from curatorkit.generators.base import BaseGenerationTask
 from curatorkit.llm.base import BaseLLM, LLMResponse
 from curatorkit.schema import DataSample, RejectedSample
@@ -54,6 +55,10 @@ Response: {response}
 
 Respond with ONLY a JSON object:
 {{"score": 0.XX, "reasoning": "brief justification"}}"""
+
+
+class ScoringError(RuntimeError):
+    """A rollout response could not be scored (scorer unreachable or unparseable output)."""
 
 
 class GRPORolloutTask(BaseGenerationTask):
@@ -163,28 +168,46 @@ class GRPORolloutTask(BaseGenerationTask):
         step = (high - low) / (n - 1)
         return [round(low + i * step, 2) for i in range(n)]
 
+    @staticmethod
+    def _parse_score(text: str) -> float:
+        """Parse the scorer's reply; raises ScoringError instead of inventing a score."""
+        text = re.sub(r"```(?:json)?\s*", "", text.strip())
+        text = re.sub(r"```\s*$", "", text)
+        try:
+            parsed = json.loads(text)
+        except json.JSONDecodeError:
+            parsed = None
+        try:
+            return extract_score(parsed, text, "score")[0]
+        except JudgeParseError as e:
+            raise ScoringError(str(e)) from e
+
+    @staticmethod
+    def _rejection_reason(error: Exception) -> str:
+        if isinstance(error, ScoringError):
+            return f"scoring_failed:{type(error.__cause__ or error).__name__}:{error}"
+        return f"generation_failed:{type(error).__name__}:{error}"
+
     def _score_single(self, instruction: str, response_text: str) -> float:
-        """Score a single response using the scoring LLM."""
+        """Score a single response using the scoring LLM.
+
+        Fails closed like the judge gates: a scorer error or unparseable reply raises
+        ScoringError, so the rollout group is rejected rather than getting a made-up
+        reward (constant rewards give GRPO zero advantage and no learning signal).
+        """
         prompt = self.scoring_prompt.format(
             instruction=instruction,
             response=response_text,
         )
-
         try:
             resp = self.scoring_llm.generate(
                 [{"role": "user", "content": prompt}],
                 temperature=self.scoring_llm.temperature,
                 max_tokens=self.scoring_llm.max_tokens,
             )
-            text = resp.text.strip()
-            text = re.sub(r"```(?:json)?\s*", "", text)
-            text = re.sub(r"```\s*$", "", text)
-
-            parsed = json.loads(text)
-            score = float(parsed.get("score", 0.5))
-            return max(0.0, min(1.0, score))
-        except (json.JSONDecodeError, ValueError, KeyError, RuntimeError):
-            return 0.5
+        except RuntimeError as e:
+            raise ScoringError(str(e)) from e
+        return self._parse_score(resp.text)
 
     def run(self, samples: list[DataSample]) -> list[DataSample]:
         """
@@ -267,7 +290,7 @@ class GRPORolloutTask(BaseGenerationTask):
                 self._rejected.append(
                     RejectedSample(
                         **sample.model_dump(),
-                        rejection_reason=f"generation_failed:{type(e).__name__}:{e}",
+                        rejection_reason=self._rejection_reason(e),
                         rejecting_step=self.task_name,
                     )
                 )
@@ -283,15 +306,9 @@ class GRPORolloutTask(BaseGenerationTask):
                 temperature=self.scoring_llm.temperature,
                 max_tokens=self.scoring_llm.max_tokens,
             )
-            text = resp.text.strip()
-            text = re.sub(r"```(?:json)?\s*", "", text)
-            text = re.sub(r"```\s*$", "", text)
-
-            parsed = json.loads(text)
-            score = float(parsed.get("score", 0.5))
-            return max(0.0, min(1.0, score))
-        except (json.JSONDecodeError, ValueError, KeyError, RuntimeError):
-            return 0.5
+        except RuntimeError as e:
+            raise ScoringError(str(e)) from e
+        return self._parse_score(resp.text)
 
     async def run_async(self, samples: list[DataSample]) -> list[DataSample]:
         """
@@ -371,7 +388,7 @@ class GRPORolloutTask(BaseGenerationTask):
                     self._rejected.append(
                         RejectedSample(
                             **sample.model_dump(),
-                            rejection_reason=f"generation_failed:{type(e).__name__}:{e}",
+                            rejection_reason=self._rejection_reason(e),
                             rejecting_step=self.task_name,
                         )
                     )
