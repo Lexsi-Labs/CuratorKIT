@@ -110,6 +110,13 @@ class GRPORolloutTask(BaseGenerationTask):
         if scoring_prompt:
             self._validate_template(scoring_prompt, ["instruction", "response"], "scoring_prompt")
 
+    @staticmethod
+    def _reference(sample: DataSample) -> str:
+        """Gold answer carried through to the rollout sample, so a verifiable-reward
+        trainer can score responses against it. A language_modeling chunk's
+        `output` is the source text, not an answer, so it is not a reference."""
+        return "" if sample.task_type == "language_modeling" else sample.output
+
     def _build_messages(self, sample: DataSample) -> list[dict[str, str]]:
         """Build messages for a single response generation."""
         source_context = self._get_source_context(sample)
@@ -239,6 +246,7 @@ class GRPORolloutTask(BaseGenerationTask):
                         source_uri=sample.source_uri,
                         instruction=instruction,
                         input=source_context,
+                        output=self._reference(sample),
                         responses=responses,
                         reward_scores=scores,
                         task_type="grpo",
@@ -344,6 +352,7 @@ class GRPORolloutTask(BaseGenerationTask):
                         source_uri=sample.source_uri,
                         instruction=instruction,
                         input=source_context,
+                        output=self._reference(sample),
                         responses=responses,
                         reward_scores=scores,
                         task_type="grpo",
