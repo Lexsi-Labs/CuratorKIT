@@ -277,6 +277,9 @@ class HallucinationGate(BaseGate):
             return None, rej
 
     def run(self, samples: list[DataSample]) -> tuple[list[DataSample], list[RejectedSample]]:
+        if not samples:
+            return [], []
+
         passed: list[DataSample] = []
         rejected: list[RejectedSample] = []
         cfg_hash = self._config_hash()
