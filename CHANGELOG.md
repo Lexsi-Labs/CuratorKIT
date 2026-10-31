@@ -94,6 +94,10 @@ All notable changes to CuratorKIT are documented here. The format follows
   of exporting seed prompts before `GRPORolloutTask` has run.
 
 ### Fixed
+- `PIIPseudonymizer` replaces overlapping Presidio spans once, as the widest span's type. It used
+  to replace each span in turn, so a date found inside an IBAN or card number shifted the offsets
+  and left digits of the original value in the output. `entities_replaced` counts a merged group
+  once. `PIIPseudonymizer` `STEP_VERSION` is now 1.1.0.
 - The judge gates fail closed. A judge call that raised (bad key, HTTP 500, timeout) used to pass
   the sample, and judge output with no number in it scored a neutral 0.5 that cleared any
   threshold <= 0.5. Both now reject the sample as `judge_error:<ExceptionType>` and record the

@@ -56,7 +56,7 @@ from typing import Any
 from curatorkit.interfaces import BaseNormalizer
 from curatorkit.schema import DataSample, ProvenanceRecord
 
-STEP_VERSION = "1.0.0"
+STEP_VERSION = "1.1.0"
 
 ENTITY_TYPES_DEFAULT: list[str] = [
     "PERSON",
@@ -433,18 +433,27 @@ class PIIPseudonymizer(BaseNormalizer):
         if not results:
             return text, {}
 
-        results_desc = sorted(results, key=lambda r: r.start, reverse=True)
+        # Presidio keeps overlapping spans of different types (a date inside an
+        # IBAN). Replace each overlapping group once, as its widest span's type.
+        spans: list[tuple[int, int, str]] = []
+        for result in sorted(results, key=lambda r: (r.start, -r.end, -r.score)):
+            if spans and result.start < spans[-1][1]:
+                start, end, entity_type = spans[-1]
+                spans[-1] = (start, max(end, result.end), entity_type)
+            else:
+                spans.append((result.start, result.end, result.entity_type))
+
         chars = list(text)
         type_counts: dict[str, int] = {}
 
-        for result in results_desc:
-            original = text[result.start : result.end]
-            cache_key = f"{result.entity_type}:{original}"
+        for start, end, entity_type in reversed(spans):
+            original = text[start:end]
+            cache_key = f"{entity_type}:{original}"
             if cache_key not in entity_map:
-                entity_map[cache_key] = _fake_for_type(result.entity_type, faker)
+                entity_map[cache_key] = _fake_for_type(entity_type, faker)
             replacement = entity_map[cache_key]
-            chars[result.start : result.end] = list(replacement)
-            type_counts[result.entity_type] = type_counts.get(result.entity_type, 0) + 1
+            chars[start:end] = list(replacement)
+            type_counts[entity_type] = type_counts.get(entity_type, 0) + 1
 
         return "".join(chars), type_counts
 
