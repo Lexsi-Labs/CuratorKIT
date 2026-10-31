@@ -144,3 +144,27 @@ def test_probe_and_refiner_skip_judge_errors(tmp_path):
     refiner = RewardRefiner(generator_llm=generator, reward_gate=gate)
     recovered, still = refiner.refine(res.rejected)
     assert recovered == [] and still == res.rejected
+
+
+@pytest.mark.parametrize("gate_cls", [RewardGate, HallucinationGate])
+def test_empty_batch(gate_cls):
+    assert gate_cls(llm=FakeJudge()).run([]) == ([], [])
+
+
+@pytest.mark.parametrize("gate_cls", [RewardGate, HallucinationGate])
+def test_pipeline_survives_every_sample_rejected_upstream(gate_cls, tmp_path):
+    from curatorkit.connectors.base import BaseReader
+    from curatorkit.gates.schema import SchemaGate
+    from curatorkit.pipeline import Pipeline
+
+    class ShortSample(BaseReader):
+        def read(self):
+            return [DataSample(source_uri="t", instruction="a", output="b")], []
+
+    pipe = Pipeline(
+        [ShortSample(), SchemaGate(min_tokens=3), gate_cls(llm=FakeJudge())],
+        output_dir=tmp_path,
+    )
+    res = pipe.run()
+    assert res.passed == []
+    assert len(res.rejected) == 1

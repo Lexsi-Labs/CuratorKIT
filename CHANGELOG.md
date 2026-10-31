@@ -103,6 +103,9 @@ All notable changes to CuratorKIT are documented here. The format follows
   threshold <= 0.5. Both now reject the sample as `judge_error:<ExceptionType>` and record the
   error in provenance; each run warns with the count. `DiagnosticProbe` and `RewardRefiner` skip
   these rejects. `HallucinationGate` / `RewardGate` `STEP_VERSION` is now 1.1.0.
+- `RewardGate.run` and `HallucinationGate.run` return `([], [])` for an empty batch instead of
+  raising `ValueError: range() arg 3 must not be zero`, so a pipeline whose earlier step rejects
+  every sample finishes and keeps its rejects.
 - Token counting counts each Han, kana, Hangul, Thai, Lao, Khmer or Myanmar character as a token,
   so complete Chinese, Japanese, Korean and Thai rows are no longer rejected by the default
   `min_tokens=10`. SchemaGate's preference-length comparison uses the same counter.
