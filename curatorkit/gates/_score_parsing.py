@@ -18,11 +18,21 @@ SFT exporters for empty rows.
 
 from __future__ import annotations
 
+import math
 import re
+from typing import Any
 
 
 class JudgeParseError(ValueError):
     """The judge replied, but no score could be parsed from its output."""
+
+
+def _finite(value: Any) -> float:
+    """float(value), rejecting NaN and infinity: `min(1.0, nan)` clamps NaN to a perfect score."""
+    score = float(value)
+    if not math.isfinite(score):
+        raise ValueError(f"non-finite score: {value!r}")
+    return score
 
 
 def template_mentions_key(prompt_template: str | None, primary_key: str) -> bool:
@@ -64,7 +74,7 @@ def extract_score(
     """
     if isinstance(parsed, dict) and primary_key in parsed:
         try:
-            return max(0.0, min(1.0, float(parsed[primary_key]))), False
+            return max(0.0, min(1.0, _finite(parsed[primary_key]))), False
         except (TypeError, ValueError):
             pass
 
@@ -73,7 +83,7 @@ def extract_score(
         for dim in dimension_keys:
             if dim in parsed:
                 try:
-                    found.append(float(parsed[dim]))
+                    found.append(_finite(parsed[dim]))
                 except (TypeError, ValueError):
                     continue
         if found:

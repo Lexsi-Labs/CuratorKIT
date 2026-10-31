@@ -55,6 +55,20 @@ class TestExtractScore:
         score, _ = extract_score({"overall_score": 1.7}, "{}", "overall_score")
         assert score == 1.0
 
+    @pytest.mark.parametrize("value", [float("nan"), "NaN", float("inf"), float("-inf")])
+    def test_non_finite_score_is_unparseable(self, value):
+        # max(0.0, min(1.0, nan)) is 1.0, so NaN used to pass every threshold.
+        with pytest.raises(JudgeParseError):
+            extract_score({"overall_score": value}, "no digits", "overall_score")
+
+    def test_non_finite_dimension_is_skipped(self):
+        parsed = {"truthfulness": float("nan"), "creativity": 0.6}
+        score, used_fallback = extract_score(
+            parsed, "{}", "overall_score", dimension_keys=("truthfulness", "creativity")
+        )
+        assert score == pytest.approx(0.6)
+        assert used_fallback is True
+
 
 class TestTemplateMentionsKey:
     def test_none_template_always_true(self):

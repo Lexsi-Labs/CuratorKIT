@@ -109,6 +109,9 @@ All notable changes to CuratorKIT are documented here. The format follows
 - Token counting counts each Han, kana, Hangul, Thai, Lao, Khmer or Myanmar character as a token,
   so complete Chinese, Japanese, Korean and Thai rows are no longer rejected by the default
   `min_tokens=10`. SchemaGate's preference-length comparison uses the same counter.
+- A judge score of `NaN` or `Infinity` no longer passes. `json.loads` accepts both and the 0-1 clamp
+  turned them into 1.0, so `{"overall_score": NaN}` cleared any threshold. They now count as
+  unparseable, like any other value that is not a number.
 - README: the PyPI badge showed a fixed `v0.1.0`; it now reads the live version. GitHub
   Discussions links (404) now point to Issues.
 - The `trl` extra requires `transformers>=5.15,<6`.

@@ -46,6 +46,7 @@ GATES = [
 JUDGES = {
     "raises": FakeJudge(exc=TimeoutError("judge down")),
     "unparseable": FakeJudge(text="I cannot rate this answer."),
+    "nan": FakeJudge(text='{"overall_score": NaN, "grounding_score": NaN}'),
 }
 
 
