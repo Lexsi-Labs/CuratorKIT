@@ -548,6 +548,51 @@ class TestPIIPseudonymizer:
         assert "john@acme.com" not in result[0].output
         assert "123-45-6789" not in result[0].output
 
+    def test_nested_span_replaced_once(self):
+        """A date Presidio finds inside an IBAN must not damage the IBAN's replacement."""
+        text = "IBAN DE89 3704 0044 0532 0130 00 belongs to the client."
+        results = [
+            _MockPresidioResult("IBAN_CODE", 5, 32, score=1.0),
+            _MockPresidioResult("DATE_TIME", 25, 29, score=0.85),
+        ]
+        p = self._make_pseudonymizer({text: results})
+        p._faker.iban.return_value = "GB00FAKE"
+        result = p.run([make_sample(output=text)])
+        assert result[0].output == "IBAN GB00FAKE belongs to the client."
+        assert result[0].provenance_chain[-1].notes["entities_replaced"] == {"IBAN_CODE": 1}
+
+    def test_partial_overlap_leaves_no_tail(self):
+        text = "Seen at Boston General Hospital today."
+        results = [
+            _MockPresidioResult("PERSON", 8, 22),
+            _MockPresidioResult("LOCATION", 15, 31),
+        ]
+        p = self._make_pseudonymizer({text: results})
+        p._faker.city.return_value = "Springfield"
+        result = p.run([make_sample(output=text)])
+        assert result[0].output == "Seen at Alice Johnson today."
+
+    def test_same_span_two_types_uses_higher_score(self):
+        text = "Paris signed the contract."
+        results = [
+            _MockPresidioResult("LOCATION", 0, 5, score=0.7),
+            _MockPresidioResult("PERSON", 0, 5, score=0.85),
+        ]
+        p = self._make_pseudonymizer({text: results})
+        p._faker.city.return_value = "Springfield"
+        result = p.run([make_sample(output=text)])
+        assert result[0].output == "Alice Johnson signed the contract."
+
+    def test_adjacent_spans_stay_separate(self):
+        text = "John Smith123-45-6789 called."
+        results = [
+            _MockPresidioResult("PERSON", 0, 10),
+            _MockPresidioResult("US_SSN", 10, 21),
+        ]
+        p = self._make_pseudonymizer({text: results})
+        result = p.run([make_sample(output=text)])
+        assert result[0].output == "Alice Johnson987-65-4321 called."
+
     def test_empty_text_field_skipped(self):
         p = self._make_pseudonymizer({})
         sample = make_sample(instruction="", input="", output="")
