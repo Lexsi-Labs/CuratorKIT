@@ -31,7 +31,7 @@ from curatorkit.gates._judge import (
     judge_error_result,
     warn_judge_errors,
 )
-from curatorkit.gates._score_parsing import extract_score, template_mentions_key
+from curatorkit.gates._score_parsing import extract_score, parse_judge_reply, template_mentions_key
 from curatorkit.interfaces import BaseGate
 from curatorkit.llm.base import BaseLLM
 from curatorkit.schema import DataSample, ProvenanceRecord, RejectedSample
@@ -125,8 +125,7 @@ class HallucinationGate(BaseGate):
             warnings.warn(
                 "hallucination_prompt_template does not mention 'grounding_score' — "
                 "HallucinationGate parses that exact key from the judge's JSON response to "
-                "decide pass/fail. Without it, scores will be recovered by extracting a number "
-                "from the raw response, which may reject far more samples than expected. Add "
+                "decide pass/fail. Without it, every reply is rejected. Scores come from JSON only. Add "
                 '`"grounding_score": 0.XX` to your template\'s expected output JSON.',
                 UserWarning,
                 stacklevel=2,
@@ -359,14 +358,7 @@ class HallucinationGate(BaseGate):
             max_tokens=self.llm.max_tokens,
         )
 
-        text = response.text.strip()
-        text = re.sub(r"```(?:json)?\s*", "", text)
-        text = re.sub(r"```\s*$", "", text)
-
-        try:
-            parsed = json.loads(text)
-        except json.JSONDecodeError:
-            parsed = None
+        text, parsed = parse_judge_reply(response.text)
 
         score, used_fallback = extract_score(parsed, text, "grounding_score")
         self._scored_count += 1

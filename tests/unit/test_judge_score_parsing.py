@@ -22,6 +22,7 @@ import pytest
 from curatorkit.gates._score_parsing import (
     JudgeParseError,
     extract_score,
+    parse_judge_reply,
     template_mentions_key,
 )
 from curatorkit.llm.base import BaseLLM, LLMResponse
@@ -89,118 +90,32 @@ class TestExtractScore:
             "0.8",
             "8",
             "{}",
-            # broken JSON and keys named in prose
+            # anything that is not JSON, whatever it states
             '{"overall_score": NaN} failed at step 9',
             '{"overall_score": 0.8, "reason": "cut off',
             '{"reason": "score: 9',
-            "overall_score: NaN, failed at step 9",
             "overall_score: 0.9",
-            "OVERALL_SCORE: N/A. Rated 8/10",
-            "overall_score: N/A, overall_score: 0.9",
-            "truthfulness: N/A, rated 8/10",
-            "Truthfulness is poor. Rated 8/10",
-            # no explicit statement
+            "8/10",
+            "I'd rate this an 8/10 overall.",
+            "9/10 claims",
+            "about a 9 out of 10.",
+            "score: 0.9",
+            "score: 2, 9/10",
+            "final score: 8/10",
             "failed at step 9",
             "Response 2 of 4 is weak.",
-            "Score is 7.",
-            "Rating: 8",
-            "sub_score: 8",
-            "85",
-            # explicit form out of range
-            "12/10",
-            "10.5/10",
-            "13 out of 10",
-            "score: 85",
-            "score: 10.5",
-            "score: 1",
-            # another denominator or unit
-            "8/100",
-            "85/100",
-            "8 of 100",
-            "85 out of 100",
-            "score: 8/100",
-            "score: 85/100",
-            "score: 7/5",
             "85%",
-            "score: 85%",
-            "score: 85 percent",
-            "score: 8 points",
-            "8/10 of 100",
-            "08/10/2024",
-            "2 of 4 tests passed. Rated 8/10",
-            "50% of claims hold. Rated 8/10",
-            # number boundaries
-            "score: -5",
-            "score: +5",
-            "score: 1e999",
-            "score: 10,5",
-            "-5/10",
-            "+5/10",
-            "/5/10",
-            "1,5/10",
-            "1.2.3/10",
-            "x8/10",
-            # several differing statements
-            "Rated 8/10, then 3/10",
-            "score: 0.9 is what it says\nscore: 0.2",
-            "8/10\nscore: 0.3",
-            "score: 9 points\n8/10",
-            # quoted text
-            'The reply said "score: 9" but gives no rating',
-            'The reply said "8/10" but gives no rating',
-            "The reply said `8/10` but gives no rating",
-            "The reply said '8/10' but gives no rating",
-            "The reply said “8/10” but gives no rating",
-            'Their "9/10" is wrong. Rated 2/10',
-            'An open quote " then 8/10',
+            'Here it is: {"overall_score": 0.9}',
+            '{"overall_score": 0.9} I hope that helps',
             # nothing at all
             "This response is quite good.",
             "",
         ],
     )
     def test_refused(self, text):
-        try:
-            parsed = json.loads(text)
-        except json.JSONDecodeError:
-            parsed = None
+        cleaned, parsed = parse_judge_reply(text)
         with pytest.raises(JudgeParseError):
-            extract_score(parsed, text, "overall_score", ("truthfulness", "creativity"))
-
-    @pytest.mark.parametrize(
-        "text, expected",
-        [
-            ("8/10", 0.8),
-            ("I'd rate this an 8/10 overall.", 0.8),
-            ("Rated 8 / 10, because step 3 failed.", 0.8),
-            ("(8/10)", 0.8),
-            ("about a 9 OUT OF 10.", 0.9),
-            ("0/10", 0.0),
-            ("10/10", 1.0),
-            # explicit /10 always divides by 10
-            ("0.9/10", 0.09),
-            ("1/10", 0.1),
-            ("7.5/10", 0.75),
-            # score: N, by the stated rule
-            ("score: 0.9", 0.9),
-            ("Final Score: 0.9.", 0.9),
-            ("score: 0", 0.0),
-            ("score: 1.0", 1.0),
-            ("score: 8", 0.8),
-            ("score: 10", 1.0),
-            ("score: 8\nfailed at step 3", 0.8),
-            ("score: 8/10", 0.8),
-            ("score: 8 out of 10", 0.8),
-            # repeating one score is not ambiguous
-            ("8/10. Again, 8/10.", 0.8),
-            ("Rated 8/10\nscore: 0.8", 0.8),
-            # other digits and apostrophes are not statements
-            ("Step 9 failed, so I'd say 2/10", 0.2),
-        ],
-    )
-    def test_prose_statement_is_read(self, text, expected):
-        score, used_fallback = extract_score(None, text, "overall_score", ("truthfulness", "creativity"))
-        assert score == pytest.approx(expected)
-        assert used_fallback is True
+            extract_score(parsed, cleaned, "overall_score", ("truthfulness", "creativity"))
 
     @pytest.mark.parametrize(
         "parsed, expected, used_fallback",
@@ -219,6 +134,32 @@ class TestExtractScore:
         )
         assert score == pytest.approx(expected)
         assert fallback is used_fallback
+
+    @pytest.mark.parametrize(
+        "reply",
+        [
+            '{"overall_score": 0.9}',
+            '  {"overall_score": 0.9}\n',
+            '```json\n{"overall_score": 0.9}\n```',
+            '```\n{"overall_score": 0.9}\n```',
+            '```json {"overall_score": 0.9} ```',
+        ],
+    )
+    def test_one_fence_around_the_whole_reply_is_stripped(self, reply):
+        assert parse_judge_reply(reply)[1] == {"overall_score": 0.9}
+
+    @pytest.mark.parametrize(
+        "reply",
+        [
+            'Here it is:\n```json\n{"overall_score": 0.9}\n```',
+            '```json\n{"overall_score": 0.9}\n```\nI hope that helps',
+            '```json\n{"overall_score": 0.9}\n```\n```json\n{"overall_score": 0.1}\n```',
+            '```json\n{"overall_score": 0.9}',
+            '{"overall_score": ```0.9```}',
+        ],
+    )
+    def test_any_other_fence_is_not_json(self, reply):
+        assert parse_judge_reply(reply)[1] is None
 
 
 class TestTemplateMentionsKey:

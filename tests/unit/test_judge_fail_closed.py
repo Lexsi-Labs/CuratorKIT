@@ -183,3 +183,28 @@ def test_nan_dimension_is_not_recorded_as_a_perfect_score(use_async):
     )
     passed, _ = _run(gate, _sft(), use_async)
     assert passed[0].provenance_chain[-1].notes["dimension_scores"] == {"creativity": 0.6}
+
+
+@pytest.mark.parametrize("use_async", [False, True])
+@pytest.mark.parametrize("cls,step,make", GATES)
+def test_fenced_json_reply_is_scored(cls, step, make, use_async):
+    reply = '```json\n{"overall_score": 0.9, "grounding_score": 0.9}\n```'
+    passed, rejected = _run(cls(llm=FakeJudge(text=reply), threshold=0.5), make(), use_async)
+    assert len(passed) == 1 and rejected == []
+
+
+@pytest.mark.parametrize("use_async", [False, True])
+@pytest.mark.parametrize("cls,step,make", GATES)
+def test_fence_inside_a_longer_reply_is_rejected(cls, step, make, use_async):
+    reply = 'Sure:\n```json\n{"overall_score": 0.9, "grounding_score": 0.9}\n```'
+    with pytest.warns(UserWarning, match="judge failed on 1/1"):
+        passed, rejected = _run(cls(llm=FakeJudge(text=reply), threshold=0.5), make(), use_async)
+    assert passed == [] and rejected[0].rejection_reason == "judge_error:JudgeParseError"
+
+
+def test_default_prompts_ask_for_json_only():
+    from curatorkit.gates.hallucination import _DEFAULT_GROUNDING_PROMPT
+    from curatorkit.gates.reward import _DEFAULT_REWARD_PROMPT
+
+    assert "JSON format ONLY" in _DEFAULT_GROUNDING_PROMPT
+    assert "JSON format ONLY" in _DEFAULT_REWARD_PROMPT

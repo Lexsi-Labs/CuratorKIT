@@ -111,14 +111,13 @@ All notable changes to CuratorKIT are documented here. The format follows
   `min_tokens=10`. SchemaGate's preference-length comparison uses the same counter.
 - A judge score of `NaN` or `Infinity` no longer passes. `json.loads` accepts both and the 0-1 clamp
   turned them into 1.0, so `{"overall_score": NaN}` cleared any threshold.
-- Judge score parsing is strict. A reply that parses as JSON is read from its top-level keys only,
-  and every requested key present must hold a number from 0 to 1. A reply that is not JSON must state
-  one score: `N/10` or `N out of 10` (always divided by 10), or `score: N` (a decimal from 0 to 1 as
-  it is, above 1 up to 10 out of 10). It used to take the first digit anywhere, so `failed at step 9`
+- Judge scores come from JSON only. A reply is parsed as JSON, after removing one code fence if it
+  wraps the whole reply, and read from its top-level keys; every requested key present must hold a
+  number from 0 to 1. The first digit anywhere in the reply used to be the score, so `failed at step 9`
   scored 0.9 and `Response 2 of 4 is weak.` 0.2, and out-of-range numbers clamped to 1.0. **Replies
-  that used to pass are now rejected as `judge_error:JudgeParseError`:** `{"overall_score": 85}`,
-  `{"overall_score": "0.9"}`, a bare `0.8`, cut-off JSON, prose naming a requested key, another scale
-  (`85/100`, `85%`), differing scores, or a score only inside quoted text. See `judge_on_error`.
+  that used to pass are now rejected as `judge_error:JudgeParseError`:** prose such as `8/10`, a bare
+  number, cut-off JSON, JSON with text around it, `{"overall_score": 85}` and `{"overall_score": "0.9"}`.
+  The default prompts already ask for JSON only. See `judge_on_error`.
 - README: the PyPI badge showed a fixed `v0.1.0`; it now reads the live version. GitHub
   Discussions links (404) now point to Issues.
 - The `trl` extra requires `transformers>=5.15,<6`.
