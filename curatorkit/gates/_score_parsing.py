@@ -20,7 +20,6 @@ from __future__ import annotations
 
 import json
 import math
-import re
 from typing import Any
 
 
@@ -28,16 +27,18 @@ class JudgeParseError(ValueError):
     """The judge replied, but no score could be parsed from its output."""
 
 
-# One fence wrapping the whole reply. Anything else around the JSON is not JSON.
-_WHOLE_FENCE = re.compile(r"\A```(?:json)?\s*(.*?)\s*```\Z", re.DOTALL)
-
-
 def parse_judge_reply(reply: str) -> tuple[str, Any]:
-    """Return (text, parsed JSON or None) for a judge reply."""
+    """Return (text, parsed JSON or None) for a judge reply.
+
+    One code fence is removed if it wraps the whole reply. Anything else around the
+    JSON is not JSON. Plain string handling, so a long reply cannot backtrack.
+    """
     text = reply.strip()
-    fence = _WHOLE_FENCE.match(text)
-    if fence:
-        text = fence.group(1)
+    if text.startswith("```") and text.endswith("```") and len(text) >= 6:
+        inner = text[3:-3]
+        if inner.startswith("json"):
+            inner = inner[4:]
+        text = inner.strip()
     try:
         return text, json.loads(text)
     except json.JSONDecodeError:

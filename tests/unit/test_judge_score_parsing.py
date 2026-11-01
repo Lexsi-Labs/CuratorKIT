@@ -15,6 +15,7 @@ different shape (flat dimension keys, or prose). These tests cover:
 from __future__ import annotations
 
 import json
+import time
 import warnings
 
 import pytest
@@ -155,6 +156,15 @@ class TestExtractScore:
     )
     def test_any_other_fence_is_not_json(self, reply):
         assert parse_judge_reply(reply)[1] is None
+
+    @pytest.mark.parametrize(
+        "reply",
+        ["```" + " " * 500_000 + "x", "```" + " " * 500_000 + "x```", "```\n" * 100_000],
+    )
+    def test_long_reply_parses_quickly(self, reply):
+        start = time.perf_counter()
+        assert parse_judge_reply(reply)[1] is None
+        assert time.perf_counter() - start < 1.0
 
 
 class TestTemplateMentionsKey:
