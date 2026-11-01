@@ -36,6 +36,7 @@ import re
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
+from curatorkit.gates._score_parsing import _finite
 from curatorkit.interfaces import BaseGate
 from curatorkit.schema import DataSample, ProvenanceRecord, RejectedSample
 
@@ -203,7 +204,7 @@ class ToxicityGate(BaseGate):
             if m:
                 data = json.loads(m.group())
                 return (
-                    float(data.get("toxicity_score", 1.0)),
+                    _finite(data.get("toxicity_score", 1.0)),
                     str(data.get("reasoning", "")),
                     list(data.get("categories", [])),
                 )

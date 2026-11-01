@@ -206,6 +206,14 @@ class TestToxicityGateLLMPhase:
         assert len(rejected) == 1
         assert "llm_judge" in rejected[0].rejection_reason
 
+    @pytest.mark.parametrize("llm_score", ["NaN", "Infinity", "1e999", '"NaN"'])
+    def test_borderline_rejected_when_llm_score_is_not_finite(self, llm_score):
+        # NaN >= threshold is False, so a NaN verdict used to pass the sample.
+        gate = self._make_gate_with_llm(classifier_score=0.25, llm_score=llm_score)
+        passed, rejected = gate.run([make_sample()])
+        assert passed == []
+        assert len(rejected) == 1
+
     def test_llm_not_called_for_clearly_safe(self):
         gate = self._make_gate_with_llm(classifier_score=0.02, llm_score=0.0)
         gate.run([make_sample()])
