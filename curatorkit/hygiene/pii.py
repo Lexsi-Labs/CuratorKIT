@@ -434,7 +434,8 @@ class PIIPseudonymizer(BaseNormalizer):
             return text, {}
 
         # Presidio keeps overlapping spans of different types (a date inside an
-        # IBAN). Replace each overlapping group once, as its widest span's type.
+        # IBAN). Replace each overlapping group once, as the type of the span that
+        # starts first (on a tie, the longest, then the highest score).
         spans: list[tuple[int, int, str]] = []
         for result in sorted(results, key=lambda r: (r.start, -r.end, -r.score)):
             if spans and result.start < spans[-1][1]:
