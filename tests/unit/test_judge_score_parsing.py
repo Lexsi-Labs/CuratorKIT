@@ -43,11 +43,6 @@ class TestExtractScore:
         assert score == pytest.approx(0.8)
         assert used_fallback is True
 
-    def test_no_json_falls_back_to_raw_text_number(self):
-        score, used_fallback = extract_score(None, "I'd rate this an 8/10 overall.", "overall_score")
-        assert score == pytest.approx(0.8)
-        assert used_fallback is True
-
     def test_nothing_found_raises_instead_of_neutral_half(self):
         # Was a neutral 0.5, which passed every sample at threshold <= 0.5.
         with pytest.raises(JudgeParseError):
@@ -245,8 +240,8 @@ class TestRewardGateFallbackRecovery:
             gate.run([sample])
 
 
-class TestHallucinationGateFallbackRecovery:
-    def test_prose_response_recovers_score_instead_of_zero(self):
+class TestHallucinationGateJsonOnly:
+    def test_prose_response_is_rejected(self):
         from curatorkit.gates.hallucination import HallucinationGate
 
         sample = DataSample(
@@ -261,7 +256,7 @@ class TestHallucinationGateFallbackRecovery:
                 threshold=0.5,
                 prompt_template="Source: {source_text}\nQ: {question}\nA: {answer}",
             )
-        with pytest.warns(UserWarning, match="HallucinationGate: 1/1"):
+        with pytest.warns(UserWarning, match="judge failed on 1/1"):
             passed, rejected = gate.run([sample])
-        assert len(passed) == 1, "0.9 >= threshold=0.5 should PASS"
-        assert len(rejected) == 0
+        assert passed == []
+        assert rejected[0].rejection_reason == "judge_error:JudgeParseError"

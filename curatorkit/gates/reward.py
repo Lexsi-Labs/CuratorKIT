@@ -14,7 +14,6 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import json
-import re
 import threading
 import warnings
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -497,13 +496,7 @@ class RewardGate(BaseGate):
             temperature=self.llm.temperature,
             max_tokens=self.llm.max_tokens,
         )
-        text = resp.text.strip()
-        text = re.sub(r"```(?:json)?\s*", "", text)
-        text = re.sub(r"```\s*$", "", text)
-        try:
-            parsed = json.loads(text)
-        except json.JSONDecodeError:
-            parsed = None
+        text, parsed = parse_judge_reply(resp.text)
 
         overall, used_fallback = extract_score(
             parsed, text, "overall_score", dimension_keys=tuple(self.dimensions)

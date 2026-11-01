@@ -186,8 +186,8 @@ def test_nan_dimension_is_not_recorded_as_a_perfect_score(use_async):
 
 
 @pytest.mark.parametrize("use_async", [False, True])
-@pytest.mark.parametrize("cls,step,make", GATES)
-def test_fenced_json_reply_is_scored(cls, step, make, use_async):
+@pytest.mark.parametrize("cls,make", [(RewardGate, _sft), (HallucinationGate, _sft)])
+def test_fenced_json_reply_is_scored(cls, make, use_async):
     reply = '```json\n{"overall_score": 0.9, "grounding_score": 0.9}\n```'
     passed, rejected = _run(cls(llm=FakeJudge(text=reply), threshold=0.5), make(), use_async)
     assert len(passed) == 1 and rejected == []
@@ -195,8 +195,14 @@ def test_fenced_json_reply_is_scored(cls, step, make, use_async):
 
 @pytest.mark.parametrize("use_async", [False, True])
 @pytest.mark.parametrize("cls,step,make", GATES)
-def test_fence_inside_a_longer_reply_is_rejected(cls, step, make, use_async):
-    reply = 'Sure:\n```json\n{"overall_score": 0.9, "grounding_score": 0.9}\n```'
+@pytest.mark.parametrize(
+    "reply",
+    [
+        'Sure:\n```json\n{"overall_score": 0.9, "grounding_score": 0.9}\n```',
+        '{"overall_score": ```0.9```, "grounding_score": ```0.9```}',
+    ],
+)
+def test_fence_inside_a_longer_reply_is_rejected(cls, step, make, reply, use_async):
     with pytest.warns(UserWarning, match="judge failed on 1/1"):
         passed, rejected = _run(cls(llm=FakeJudge(text=reply), threshold=0.5), make(), use_async)
     assert passed == [] and rejected[0].rejection_reason == "judge_error:JudgeParseError"
