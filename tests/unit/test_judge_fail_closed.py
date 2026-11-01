@@ -47,6 +47,10 @@ JUDGES = {
     "raises": FakeJudge(exc=TimeoutError("judge down")),
     "unparseable": FakeJudge(text="I cannot rate this answer."),
     "nan": FakeJudge(text='{"overall_score": NaN, "grounding_score": NaN}'),
+    "nan_with_digit": FakeJudge(
+        text='{"overall_score": NaN, "grounding_score": NaN, "reason": "failed at step 9"}'
+    ),
+    "overflow": FakeJudge(text='{"overall_score": 1e999, "grounding_score": 1e999}'),
 }
 
 

@@ -14,6 +14,7 @@ different shape (flat dimension keys, or prose). These tests cover:
 
 from __future__ import annotations
 
+import json
 import warnings
 
 import pytest
@@ -51,23 +52,173 @@ class TestExtractScore:
         with pytest.raises(JudgeParseError):
             extract_score(None, "This response is quite good.", "overall_score")
 
-    def test_score_clamped_to_0_1_range(self):
-        score, _ = extract_score({"overall_score": 1.7}, "{}", "overall_score")
-        assert score == 1.0
-
-    @pytest.mark.parametrize("value", [float("nan"), "NaN", float("inf"), float("-inf")])
-    def test_non_finite_score_is_unparseable(self, value):
-        # max(0.0, min(1.0, nan)) is 1.0, so NaN used to pass every threshold.
+    # Every reply here fails closed: a gate rejects rather than passes it.
+    @pytest.mark.parametrize(
+        "text",
+        [
+            # JSON: a requested key that is not a finite number from 0 to 1
+            '{"overall_score": NaN, "reason": "failed at step 9"}',
+            '{"overall_score": Infinity, "reason": "failed at step 9"}',
+            '{"overall_score": 1e999}',
+            '{"overall_score": 1' + "0" * 400 + "}",
+            '{"overall_score": "NaN"}',
+            '{"overall_score": "N/A", "reason": "failed at step 9"}',
+            '{"overall_score": "0.9"}',
+            '{"overall_score": null, "reason": "failed at step 9"}',
+            '{"overall_score": true}',
+            '{"overall_score": [0.9]}',
+            '{"overall_score": 1.7}',
+            '{"overall_score": 85}',
+            '{"overall_score": -0.1}',
+            '{"overall_score": NaN, "truthfulness": 0.2}',
+            '{"overall_score": "N/A", "truthfulness": 0.2}',
+            '{"overall_score": 0.9, "truthfulness": NaN}',
+            '{"truthfulness": NaN, "creativity": 0.9}',
+            '{"truthfulness": Infinity, "creativity": 0.9}',
+            '{"truthfulness": 1e999, "creativity": 0.9}',
+            '{"truthfulness": "N/A", "creativity": 0.9}',
+            '{"truthfulness": 7, "creativity": 0.9}',
+            # JSON: string values and other shapes are never scanned
+            '{"reason": "failed at step 9"}',
+            '{"rating": "8/10"}',
+            '{"reason": "score: 9"}',
+            '{"result": {"overall_score": 0.9}}',
+            "[0.9]",
+            '"8/10"',
+            "1e999",
+            "0.8",
+            "8",
+            "{}",
+            # broken JSON and keys named in prose
+            '{"overall_score": NaN} failed at step 9',
+            '{"overall_score": 0.8, "reason": "cut off',
+            '{"reason": "score: 9',
+            "overall_score: NaN, failed at step 9",
+            "overall_score: 0.9",
+            "OVERALL_SCORE: N/A. Rated 8/10",
+            "overall_score: N/A, overall_score: 0.9",
+            "truthfulness: N/A, rated 8/10",
+            "Truthfulness is poor. Rated 8/10",
+            # no explicit statement
+            "failed at step 9",
+            "Response 2 of 4 is weak.",
+            "Score is 7.",
+            "Rating: 8",
+            "sub_score: 8",
+            "85",
+            # explicit form out of range
+            "12/10",
+            "10.5/10",
+            "13 out of 10",
+            "score: 85",
+            "score: 10.5",
+            "score: 1",
+            # another denominator or unit
+            "8/100",
+            "85/100",
+            "8 of 100",
+            "85 out of 100",
+            "score: 8/100",
+            "score: 85/100",
+            "score: 7/5",
+            "85%",
+            "score: 85%",
+            "score: 85 percent",
+            "score: 8 points",
+            "8/10 of 100",
+            "08/10/2024",
+            "2 of 4 tests passed. Rated 8/10",
+            "50% of claims hold. Rated 8/10",
+            # number boundaries
+            "score: -5",
+            "score: +5",
+            "score: 1e999",
+            "score: 10,5",
+            "-5/10",
+            "+5/10",
+            "/5/10",
+            "1,5/10",
+            "1.2.3/10",
+            "x8/10",
+            # several differing statements
+            "Rated 8/10, then 3/10",
+            "score: 0.9 is what it says\nscore: 0.2",
+            "8/10\nscore: 0.3",
+            "score: 9 points\n8/10",
+            # quoted text
+            'The reply said "score: 9" but gives no rating',
+            'The reply said "8/10" but gives no rating',
+            "The reply said `8/10` but gives no rating",
+            "The reply said '8/10' but gives no rating",
+            "The reply said “8/10” but gives no rating",
+            'Their "9/10" is wrong. Rated 2/10',
+            'An open quote " then 8/10',
+            # nothing at all
+            "This response is quite good.",
+            "",
+        ],
+    )
+    def test_refused(self, text):
+        try:
+            parsed = json.loads(text)
+        except json.JSONDecodeError:
+            parsed = None
         with pytest.raises(JudgeParseError):
-            extract_score({"overall_score": value}, "no digits", "overall_score")
+            extract_score(parsed, text, "overall_score", ("truthfulness", "creativity"))
 
-    def test_non_finite_dimension_is_skipped(self):
-        parsed = {"truthfulness": float("nan"), "creativity": 0.6}
-        score, used_fallback = extract_score(
-            parsed, "{}", "overall_score", dimension_keys=("truthfulness", "creativity")
-        )
-        assert score == pytest.approx(0.6)
+    @pytest.mark.parametrize(
+        "text, expected",
+        [
+            ("8/10", 0.8),
+            ("I'd rate this an 8/10 overall.", 0.8),
+            ("Rated 8 / 10, because step 3 failed.", 0.8),
+            ("(8/10)", 0.8),
+            ("about a 9 OUT OF 10.", 0.9),
+            ("0/10", 0.0),
+            ("10/10", 1.0),
+            # explicit /10 always divides by 10
+            ("0.9/10", 0.09),
+            ("1/10", 0.1),
+            ("7.5/10", 0.75),
+            # score: N, by the stated rule
+            ("score: 0.9", 0.9),
+            ("Final Score: 0.9.", 0.9),
+            ("score: 0", 0.0),
+            ("score: 1.0", 1.0),
+            ("score: 8", 0.8),
+            ("score: 10", 1.0),
+            ("score: 8\nfailed at step 3", 0.8),
+            ("score: 8/10", 0.8),
+            ("score: 8 out of 10", 0.8),
+            # repeating one score is not ambiguous
+            ("8/10. Again, 8/10.", 0.8),
+            ("Rated 8/10\nscore: 0.8", 0.8),
+            # other digits and apostrophes are not statements
+            ("Step 9 failed, so I'd say 2/10", 0.2),
+        ],
+    )
+    def test_prose_statement_is_read(self, text, expected):
+        score, used_fallback = extract_score(None, text, "overall_score", ("truthfulness", "creativity"))
+        assert score == pytest.approx(expected)
         assert used_fallback is True
+
+    @pytest.mark.parametrize(
+        "parsed, expected, used_fallback",
+        [
+            ({"overall_score": 0}, 0.0, False),
+            ({"overall_score": 1}, 1.0, False),
+            ({"overall_score": 0.9, "reason": "failed at step 2"}, 0.9, False),
+            ({"overall_score": 0.9, "truthfulness": 0.1}, 0.9, False),
+            ({"truthfulness": 0.9, "creativity": 0.7}, 0.8, True),
+            ({"truthfulness": 0.2, "reason": "rated 9/10"}, 0.2, True),
+        ],
+    )
+    def test_json_is_read_from_its_structure(self, parsed, expected, used_fallback):
+        score, fallback = extract_score(
+            parsed, json.dumps(parsed), "overall_score", ("truthfulness", "creativity")
+        )
+        assert score == pytest.approx(expected)
+        assert fallback is used_fallback
 
 
 class TestTemplateMentionsKey:
