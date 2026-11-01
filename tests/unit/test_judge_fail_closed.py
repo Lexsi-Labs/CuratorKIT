@@ -169,3 +169,13 @@ def test_pipeline_survives_every_sample_rejected_upstream(gate_cls, tmp_path):
     res = pipe.run()
     assert res.passed == []
     assert len(res.rejected) == 1
+
+
+@pytest.mark.parametrize("use_async", [False, True])
+def test_nan_dimension_is_not_recorded_as_a_perfect_score(use_async):
+    reply = '{"overall_score": 0.9, "dimension_scores": {"truthfulness": NaN, "creativity": 0.6}}'
+    gate = RewardGate(
+        llm=FakeJudge(text=reply), threshold=0.5, dimensions=["truthfulness", "creativity"]
+    )
+    passed, _ = _run(gate, _sft(), use_async)
+    assert passed[0].provenance_chain[-1].notes["dimension_scores"] == {"creativity": 0.6}

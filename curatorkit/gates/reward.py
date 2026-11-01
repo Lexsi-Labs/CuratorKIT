@@ -28,7 +28,7 @@ from curatorkit.gates._judge import (
     judge_error_result,
     warn_judge_errors,
 )
-from curatorkit.gates._score_parsing import extract_score, template_mentions_key
+from curatorkit.gates._score_parsing import _finite, extract_score, template_mentions_key
 from curatorkit.interfaces import BaseGate
 from curatorkit.llm.base import BaseLLM
 from curatorkit.schema import DataSample, ProvenanceRecord, RejectedSample
@@ -473,7 +473,7 @@ class RewardGate(BaseGate):
             for dim in self.dimensions:
                 if dim in raw_dims:
                     try:
-                        dim_scores[dim] = max(0.0, min(1.0, float(raw_dims[dim])))
+                        dim_scores[dim] = max(0.0, min(1.0, _finite(raw_dims[dim])))
                     except (TypeError, ValueError):
                         continue
 
@@ -520,7 +520,7 @@ class RewardGate(BaseGate):
             for dim in self.dimensions:
                 if dim in raw_dims:
                     try:
-                        dim_scores[dim] = max(0.0, min(1.0, float(raw_dims[dim])))
+                        dim_scores[dim] = max(0.0, min(1.0, _finite(raw_dims[dim])))
                     except (TypeError, ValueError):
                         continue
 
