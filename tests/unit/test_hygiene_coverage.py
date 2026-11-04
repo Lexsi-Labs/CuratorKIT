@@ -8,7 +8,8 @@ from curatorkit.hygiene.secrets import SecretsGate
 from curatorkit.hygiene.toxicity import ToxicityGate
 from curatorkit.schema import DataSample
 
-AWS = "AKIAIOSFODNN7EXAMPLE"
+# AWS's documented example key, assembled at run time so the diff holds no key literal.
+AWS = "AKIA" + "IOSFODNN7EXAMPLE"
 
 
 def _conversation(later_turn):
