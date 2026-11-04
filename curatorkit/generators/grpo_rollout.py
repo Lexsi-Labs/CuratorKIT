@@ -18,11 +18,14 @@ The output format matches what TRL's GRPOTrainer expects.
 from __future__ import annotations
 
 import asyncio
+import json
+import math
+import re
 import uuid
 
 from tqdm import tqdm
 
-from curatorkit.gates._score_parsing import JudgeParseError, extract_score, parse_judge_reply
+from curatorkit.gates._score_parsing import JudgeParseError
 from curatorkit.generators.base import BaseGenerationTask
 from curatorkit.llm.base import BaseLLM, LLMResponse
 from curatorkit.schema import DataSample, RejectedSample
@@ -116,9 +119,17 @@ class GRPORolloutTask(BaseGenerationTask):
     @staticmethod
     def _reference(sample: DataSample) -> str:
         """Gold answer carried through to the rollout sample, so a verifiable-reward
-        trainer can score responses against it. A language_modeling chunk's
-        `output` is the source text, not an answer, so it is not a reference."""
-        return "" if sample.task_type == "language_modeling" else sample.output
+        trainer can score responses against it.
+
+        Only an instruction row's `output` is an answer. A row with no instruction
+        has its `output` used as the source passage (see `_get_source_context`), and
+        a passage is never a gold answer. An `unpaired_preference` completion is a
+        rated sample, not a verified answer: with `label=False` it is a known-bad
+        one. Such rows keep their prompt and get no reference.
+        """
+        if sample.instruction and sample.task_type == "instruction_following":
+            return sample.output
+        return ""
 
     def _build_messages(self, sample: DataSample) -> list[dict[str, str]]:
         """Build messages for a single response generation."""
@@ -182,13 +193,26 @@ class GRPORolloutTask(BaseGenerationTask):
     def _parse_score(text: str) -> float:
         """Parse the scorer's reply; raises ScoringError instead of inventing a score.
 
-        Same rule as the judge gates: the score is read from the reply's JSON only.
+        Only a numeric `score` key counts, from the reply as JSON or from the first
+        JSON object in it (a model that adds text around the object). No fallback to
+        the first number in the text: `Response 2 of 4 is weak.` is not a 0.2.
         """
-        text, parsed = parse_judge_reply(text)
+        text = re.sub(r"```(?:json)?\s*", "", text.strip())
+        text = re.sub(r"```\s*$", "", text)
         try:
-            return extract_score(parsed, text, "score")[0]
-        except JudgeParseError as e:
-            raise ScoringError(str(e)) from e
+            parsed = json.loads(text)
+        except json.JSONDecodeError:
+            parsed = None
+            if "{" in text:
+                try:
+                    parsed = json.JSONDecoder().raw_decode(text, text.index("{"))[0]
+                except json.JSONDecodeError:
+                    pass
+        score = parsed.get("score") if isinstance(parsed, dict) else None
+        if isinstance(score, bool) or not isinstance(score, int | float) or not math.isfinite(score):
+            err = JudgeParseError(f"no numeric 'score' in scorer output: {text[:200]!r}")
+            raise ScoringError(str(err)) from err
+        return max(0.0, min(1.0, float(score)))
 
     @staticmethod
     def _rejection_reason(error: Exception) -> str:

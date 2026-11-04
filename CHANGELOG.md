@@ -105,10 +105,13 @@ All notable changes to CuratorKIT are documented here. The format follows
   these rejects. `HallucinationGate` / `RewardGate` `STEP_VERSION` is now 1.1.0.
 - `ToxicityGate` rejects a borderline sample when the judge returns `NaN` for `toxicity_score`, and
   `RewardGate` no longer records a `NaN` dimension as 1.0 in its `dimension_scores` note.
-- `GRPORolloutTask` carries a row's gold answer to `reference` in `grpo.jsonl` (the column is present
-  only when a row has one), keeps it out of the rollout prompt, and rejects a rollout whose scoring
-  failed (`scoring_failed:<ExceptionType>`) instead of giving it a reward of 0.5. The scorer's reply
-  follows the same JSON-only rule as the judge gates (@chayan-bit).
+- `GRPORolloutTask` carries an instruction row's gold answer to the `reference` column of
+  `grpo.jsonl` (present only when a row has one), keeps it out of the rollout prompt, and rejects a
+  rollout whose scoring failed (`scoring_failed:<ExceptionType>`) instead of giving it a reward of
+  0.5 (@chayan-bit). Only an `instruction_following` row with an instruction supplies a reference: a
+  passage used as source text, or an `unpaired_preference` completion (which may be a known-bad
+  answer), is not a gold answer. The scorer accepts only a finite numeric `score` key, from the reply
+  as JSON or the first JSON object in it, so `Response 2 of 4 is weak.` is no longer a score of 0.2.
 - `EvolInstructTask` and `Curator` with a generation task: seeds without an `output` are no longer
   rejected by `SchemaGate` (`output_generated_later`, which is part of the gate's config hash), a
   custom `answer_prompt_template` is used for every sample and may use `{context}`, a refusal or

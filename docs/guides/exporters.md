@@ -116,7 +116,7 @@ For conversational preference pairs, `prompt` and both responses are encoded as 
 `rewards` is populated only when `score_responses=True` (the default).
 
 When the input rows carry a gold answer (the `output` of an instruction/output row), `GRPORolloutTask` keeps it and the exporter adds a `reference` column to every row, so a verifiable-reward trainer can score the rollouts (TRL's `GRPOTrainer` passes extra dataset columns to the reward function).
-The column is omitted when no row has a reference, and a corpus chunk's source text is never treated as one.
+The column is omitted when no row has a reference. Only an `instruction_following` row with a non-empty instruction supplies one: a corpus chunk's source text or a row with no instruction (whose `output` becomes the source passage) is never a reference, and neither is an `unpaired_preference` completion, whatever its label. Those rows are still rolled out and exported, with `reference` set to `""`, which most verifiable rewards score as wrong.
 
 ### PPO (`ppo.jsonl`)
 

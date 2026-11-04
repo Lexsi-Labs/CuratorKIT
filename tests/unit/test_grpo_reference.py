@@ -66,3 +66,29 @@ class TestExporterWritesReference:
         samples = [DataSample(source_uri="t://", instruction="open question", task_type="grpo")]
         GRPOExporter().export(samples, tmp_path)
         assert "reference" not in _rows(tmp_path / "grpo.jsonl")[0]
+
+
+class TestOnlyAnAnswerIsAReference:
+    def test_kto_bad_completion_is_not_a_reference(self, tmp_path):
+        row = DataSample(source_uri="t://", instruction="Is the earth flat?",
+                         output="Yes, it is flat.", label=False, task_type="unpaired_preference")
+        (rollout,) = _task().run([row])
+        assert rollout.instruction == "Is the earth flat?"
+        assert rollout.output == ""
+        GRPOExporter().export([rollout], tmp_path)
+        assert "reference" not in _rows(tmp_path / "grpo.jsonl")[0]
+
+    def test_kto_good_completion_is_not_a_reference_either(self):
+        row = DataSample(source_uri="t://", instruction="Is the earth flat?",
+                         output="No.", label=True, task_type="unpaired_preference")
+        (rollout,) = _task().run([row])
+        assert rollout.output == ""
+
+    def test_passage_of_a_row_without_instruction_is_not_a_reference(self, tmp_path):
+        passage = "Paris is the capital of France. It lies on the Seine."
+        row = DataSample(source_uri="t://", instruction="", output=passage)
+        (rollout,) = asyncio.run(_task().run_async([row]))
+        assert rollout.input == passage
+        assert rollout.output == ""
+        GRPOExporter().export([rollout], tmp_path)
+        assert "reference" not in _rows(tmp_path / "grpo.jsonl")[0]

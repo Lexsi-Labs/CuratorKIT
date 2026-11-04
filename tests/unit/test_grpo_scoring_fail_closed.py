@@ -56,21 +56,50 @@ class TestScoringFailsClosed:
         assert out.reward_scores == [0.8, 0.8]
 
 
-def test_score_with_text_around_the_json_is_rejected():
-    # scores come from the reply's JSON only, as in the judge gates
-    with pytest.raises(ScoringError):
-        GRPORolloutTask._parse_score('{"score": 0.7} thanks')
-
-
-def test_score_in_a_code_fence_is_parsed():
-    assert GRPORolloutTask._parse_score('```json\n{"score": 0.7}\n```') == 0.7
-
-
-def test_nan_score_with_a_digit_in_the_reasoning_is_rejected():
-    with pytest.raises(ScoringError):
-        GRPORolloutTask._parse_score('{"score": NaN, "reasoning": "fails 3 of 4 checks"}')
+def test_score_with_trailing_text_is_still_parsed():
+    # the model wrapped valid JSON in extra text; recoverable, not a failure
+    assert GRPORolloutTask._parse_score('{"score": 0.7} thanks') == 0.7
 
 
 def test_parse_score_raises_scoring_error_when_nothing_numeric():
     with pytest.raises(ScoringError):
         GRPORolloutTask._parse_score("no number here")
+
+
+@pytest.mark.parametrize(
+    "reply",
+    [
+        "Response 2 of 4 is weak.",  # an incidental number is not a score
+        '{"reasoning": "fails 3 of 5 tests"}',  # JSON without a score key
+        "0.8",  # a bare number is not the requested format
+        '{"score": "high"}',
+        '{"score": true}',
+        '{"score": NaN}',  # json accepts these; clamping would turn them into 1.0 / 0.0
+        '{"score": Infinity}',
+        '{"score": -Infinity}',
+    ],
+)
+def test_reply_without_a_numeric_score_key_is_rejected(reply):
+    with pytest.raises(ScoringError):
+        GRPORolloutTask._parse_score(reply)
+
+
+@pytest.mark.parametrize(
+    "reply, score",
+    [
+        ('```json\n{"score": 0.6, "reasoning": "ok"}\n```', 0.6),
+        ('Here you go: {"score": 0.4, "reasoning": "fails 3 of 5"}', 0.4),
+        ('{"score": 1}', 1.0),
+    ],
+)
+def test_score_key_is_found_in_json(reply, score):
+    assert GRPORolloutTask._parse_score(reply) == score
+
+
+@pytest.mark.parametrize("mode", ["sync", "async"])
+def test_number_bearing_prose_reply_rejects_the_group(mode):
+    task = _task(_FakeLLM(text="Response 2 of 4 is weak."))
+    out = task.run(SEED) if mode == "sync" else asyncio.run(task.run_async(SEED))
+    assert out == []
+    (rej,) = task.rejected
+    assert rej.rejection_reason.startswith("scoring_failed:JudgeParseError:")
