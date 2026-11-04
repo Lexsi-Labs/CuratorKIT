@@ -134,7 +134,7 @@ class TestMultiTurnTaskAsyncParity:
     def test_run_async_turn_by_turn_default_mode_produces_multiple_turns(self):
         from curatorkit.generators.multiturn_gen import MultiTurnTask
 
-        task = MultiTurnTask(llm=_llm("a follow-up or answer"), num_turns=2)
+        task = MultiTurnTask(llm=_llm("a follow-up or answer"), num_turns=3)
         samples = [
             DataSample(source_uri="t://", instruction="q", task_type="instruction_following")
         ]

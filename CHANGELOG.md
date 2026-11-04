@@ -117,6 +117,18 @@ All notable changes to CuratorKIT are documented here. The format follows
   custom `answer_prompt_template` is used for every sample and may use `{context}`, a refusal or
   prose reply is no longer taken as the evolved instruction, and a prompt-only row keeps its
   context column as `input` (@AndrewFribush).
+- Generators no longer turn prose into training data. `PreferenceGenerationTask` read a JSON pair
+  wrapped in prose as `chosen = '": "4", "rejected": ...'`, took any text containing "better" or
+  "worse" as a pair, and accepted a pair whose two answers were the same. `QAGenerationTask`'s
+  `Q:`/`A:` fallback matched the "q" of "questions" and the first "a" of a reply, so a refusal
+  became a pair and a genuine `Q:`/`A:` reply was cut after one letter. `ChainOfThoughtTask` in
+  `wrap` mode stored a refusal as the reasoning. `MultiTurnTask` exported conversations that began
+  with an assistant or system turn, did not alternate, or held an empty or non-text turn, as rows
+  with an empty prompt or answer. `AdversarialPreferenceTask` crashed on JSON that was not a list
+  of objects and kept a rejected answer equal to the chosen one. JSON inside prose is now read from
+  its outermost object or array; labels must start a line and end in a colon; identical pairs, a
+  non-conforming conversation and non-JSON chain-of-thought replies are rejected. A conversation
+  that ends on a user question keeps its earlier turns.
 - `RewardGate.run` and `HallucinationGate.run` return `([], [])` for an empty batch instead of
   raising `ValueError: range() arg 3 must not be zero`, so a pipeline whose earlier step rejects
   every sample finishes and keeps its rejects.

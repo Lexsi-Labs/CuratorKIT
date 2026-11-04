@@ -103,6 +103,11 @@ Instruction:
 {instruction}"""
 
 
+def _same_text(a: str, b: str) -> bool:
+    """Whether two answers differ only in case and whitespace; such a pair teaches nothing."""
+    return " ".join(a.split()).casefold() == " ".join(b.split()).casefold()
+
+
 class PreferenceGenerationTask(BaseGenerationTask):
     """
     Generate preference pairs (chosen/rejected) for DPO training.
@@ -180,16 +185,25 @@ class PreferenceGenerationTask(BaseGenerationTask):
         text = re.sub(r"```\s*$", "", text)
 
         chosen = rejected = question = ""
+        parsed = None
         try:
             parsed = json.loads(text)
-            if isinstance(parsed, dict):
-                chosen = coerce_text(parsed.get("chosen", ""))
-                rejected = coerce_text(parsed.get("rejected", ""))
-                question = coerce_text(parsed.get("question", ""))
         except json.JSONDecodeError:
-            return self._fallback_parse(sample, text, source_context, corpus_mode)
+            # Models often wrap the JSON object in prose; try the outermost {...}.
+            match = re.search(r"\{.*\}", text, re.DOTALL)
+            if match:
+                try:
+                    parsed = json.loads(match.group())
+                except json.JSONDecodeError:
+                    parsed = None
+            if not isinstance(parsed, dict):
+                return self._fallback_parse(sample, text, source_context, corpus_mode)
+        if isinstance(parsed, dict):
+            chosen = coerce_text(parsed.get("chosen", ""))
+            rejected = coerce_text(parsed.get("rejected", ""))
+            question = coerce_text(parsed.get("question", ""))
 
-        if not chosen or not rejected:
+        if not chosen or not rejected or _same_text(chosen, rejected):
             return []
 
         instruction = question if corpus_mode else sample.instruction
@@ -218,20 +232,22 @@ class PreferenceGenerationTask(BaseGenerationTask):
     def _fallback_parse(
         self, sample: DataSample, text: str, source_context: str, corpus_mode: bool
     ) -> list[DataSample]:
+        # A label counts only at the start of a line, followed by a colon, so prose that merely
+        # contains "better" or "worse" ("a better use is ...") is not read as a pair.
         chosen_match = re.search(
-            r"(?:chosen|high.quality|better)[:\s]*(.*?)(?:(?:rejected|low.quality|worse)[:\s]|$)",
+            r"^[ \t*#>-]*(?:chosen|high.quality|better)[ \t*]*:[ \t*]*(.*?)(?=^[ \t*#>-]*(?:rejected|low.quality|worse)[ \t*]*:|\Z)",
             text,
-            re.DOTALL | re.IGNORECASE,
+            re.DOTALL | re.IGNORECASE | re.MULTILINE,
         )
         rejected_match = re.search(
-            r"(?:rejected|low.quality|worse)[:\s]*(.*?)$",
+            r"^[ \t*#>-]*(?:rejected|low.quality|worse)[ \t*]*:[ \t*]*(.*?)\Z",
             text,
-            re.DOTALL | re.IGNORECASE,
+            re.DOTALL | re.IGNORECASE | re.MULTILINE,
         )
         chosen = chosen_match.group(1).strip() if chosen_match else ""
         rejected = rejected_match.group(1).strip() if rejected_match else ""
 
-        if not chosen or not rejected:
+        if not chosen or not rejected or _same_text(chosen, rejected):
             return []
 
         instruction = sample.instruction if not corpus_mode else ""

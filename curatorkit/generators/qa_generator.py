@@ -375,16 +375,30 @@ class QAGenerationTask(BaseGenerationTask):
             except json.JSONDecodeError:
                 pass
 
+        # A single object in prose: {"question": ..., "answer": ...}
+        match = re.search(r"\{.*\}", text, re.DOTALL)
+        if match:
+            try:
+                parsed = json.loads(match.group())
+                if isinstance(parsed, dict):
+                    return [parsed]
+            except json.JSONDecodeError:
+                pass
+
         return []
 
     def _fallback_extract(self, text: str) -> list[dict[str, str]]:
         """Regex fallback for non-JSON responses."""
         pairs = []
-        # Pattern: Q: ... A: ...
+        # "Q: ... A: ..." with each label at the start of a line and followed by a colon, full stop
+        # or bracket. Unanchored, the pattern read the "q" of "questions" and the first "a" of any
+        # prose reply as labels and produced pairs such as ("s", "bout this topic").
+        label_q = r"^[ \t*#>-]*Q(?:uestion)?[ \t]*\d*[ \t*]*[:.)][ \t*]*"
+        label_a = r"^[ \t*#>-]*A(?:nswer)?[ \t]*\d*[ \t*]*[:.)][ \t*]*"
         q_matches = re.findall(
-            r"(?:Q(?:uestion)?[:\d.)\s]*)(.*?)(?:A(?:nswer)?[:\d.)\s]*)(.*?)(?=(?:Q(?:uestion)?[:\d.)\s])|$)",
+            label_q + r"(.*?)\n" + label_a + r"(.*?)(?=" + label_q + r"|\Z)",
             text,
-            re.DOTALL | re.IGNORECASE,
+            re.DOTALL | re.IGNORECASE | re.MULTILINE,
         )
         for q, a in q_matches:
             q = q.strip()

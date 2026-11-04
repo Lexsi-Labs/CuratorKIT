@@ -32,7 +32,8 @@ import uuid
 
 from tqdm import tqdm
 
-from curatorkit.generators.base import BaseGenerationTask, coerce_text
+from curatorkit.generators.base import BaseGenerationTask
+from curatorkit.generators.preference_gen import _same_text, coerce_text
 from curatorkit.llm.base import BaseLLM, LLMResponse
 from curatorkit.schema import DataSample, ProvenanceRecord, RejectedSample
 
@@ -266,13 +267,21 @@ class AdversarialPreferenceTask(BaseGenerationTask):
             text = "\n".join(text.split("\n")[1:])
             if text.endswith("```"):
                 text = text[: text.rfind("```")]
-        try:
-            pairs = json.loads(text)
+        candidates = [text]
+        # Models often wrap the JSON in prose: try the outermost [...] and then {...}.
+        for opener, closer in (("[", "]"), ("{", "}")):
+            start, end = text.find(opener), text.rfind(closer)
+            if 0 <= start < end:
+                candidates.append(text[start : end + 1])
+        for candidate in candidates:
+            try:
+                pairs = json.loads(candidate)
+            except json.JSONDecodeError:
+                continue
             if not isinstance(pairs, list):
                 pairs = [pairs]
-            return pairs
-        except json.JSONDecodeError:
-            return []
+            return [p for p in pairs if isinstance(p, dict)]
+        return []
 
     def _build_pair_sample(
         self,
@@ -354,7 +363,7 @@ class AdversarialPreferenceTask(BaseGenerationTask):
                 except Exception:
                     rejected_text = ""
 
-            if not rejected_text:
+            if not rejected_text or _same_text(answer, rejected_text):
                 continue
 
             results.append(
@@ -435,7 +444,7 @@ class AdversarialPreferenceTask(BaseGenerationTask):
                             except Exception:
                                 rejected_text = ""
 
-                        if not rejected_text:
+                        if not rejected_text or _same_text(answer, rejected_text):
                             continue
 
                         out.append(
