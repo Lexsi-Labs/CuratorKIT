@@ -46,6 +46,7 @@ if TYPE_CHECKING:
 
 _WINDOW = 2048  # characters the classifier reads at once
 _STRIDE = 1536  # windows overlap by a quarter
+_SHORT = 64  # a structural string at least this long is scored on its own
 
 STEP_VERSION = "1.1.0"
 
@@ -187,17 +188,19 @@ class ToxicityGate(BaseGate):
         if sample.instruction.strip():
             pairs.append(("instruction", sample.instruction))
         # A conversation's system prompt and later turns live in metadata, and the exporters write them.
-        # Each real piece of text is scored on its own, so a short toxic turn is not diluted by clean
-        # ones. Only the short structural strings (role names, other keys, part types) share a field.
+        # Each piece of text is scored on its own, so a short toxic turn is not diluted by clean ones
+        # and a long string under an unexpected key is not hidden inside a joined field. Only short
+        # structural strings (role names, keys, part types) share a field. Labels carry an index, so
+        # two slots never share a name.
         structural: list[str] = []
-        for label, container, key in conversation_slots(sample, read_only=True):
+        for n, (label, container, key) in enumerate(conversation_slots(sample, read_only=True)):
             text = container[key]
             if not text.strip():
                 continue
-            if label.endswith("<key>") or key in _STRUCTURAL_KEYS or key not in ("content", "value", "text", "system_prompt"):
+            if len(text) < _SHORT and (label.endswith("<key>") or key in _STRUCTURAL_KEYS):
                 structural.append(text)
             else:
-                pairs.append((label, text))
+                pairs.append((f"{label}#{n}", text))
         if structural:
             pairs.append(("conversation_structure", "\n".join(structural)))
         return pairs
@@ -280,6 +283,7 @@ class ToxicityGate(BaseGate):
             # Score each field independently; track worst-case field
             field_scores: dict[str, dict[str, float]] = {}
             worst_field = ""
+            worst_text = ""
             worst_max = 0.0
 
             for field_name, text in field_pairs:
@@ -289,6 +293,7 @@ class ToxicityGate(BaseGate):
                 if field_max > worst_max:
                     worst_max = field_max
                     worst_field = field_name
+                    worst_text = text
 
             # Stage 1: clearly safe
             if worst_max < self.classifier_pass_threshold:
@@ -336,7 +341,6 @@ class ToxicityGate(BaseGate):
                 continue
 
             # Stage 2: borderline — escalate to LLM judge on the worst field
-            worst_text = next(text for fname, text in field_pairs if fname == worst_field)
             llm_score, reasoning, categories = self._llm_verdict(self._worst_window(worst_text))
 
             if llm_score >= self.llm_reject_threshold:

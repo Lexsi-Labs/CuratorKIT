@@ -264,3 +264,28 @@ def test_a_short_toxic_turn_is_not_diluted_by_clean_turns():
     passed, rejected = gate.run([sample])
     assert not passed and len(rejected) == 1
     assert "BADWORD" in seen  # scored by itself, not inside a joined text
+
+
+def test_a_long_toxic_string_under_an_unexpected_key_is_scored_on_its_own():
+    sample = DataSample(
+        source_uri="x", instruction="Hi", output="Hello", task_type="conversational",
+        metadata={"turns": [{"role": "user", "content": "fine", "name": "BADWORD " + "pad " * 30}]},
+    )
+    passed, rejected = _toxicity_gate().run([sample])
+    assert not passed and len(rejected) == 1
+
+
+def test_the_llm_judge_reads_the_text_that_scored_worst_even_when_labels_could_collide():
+    gate = _toxicity_gate()
+    gate.classifier_pass_threshold, gate.classifier_reject_threshold, gate.llm_reject_threshold = 0.3, 0.99, 0.5
+    gate.llm = object()
+    judged = []
+    gate._llm_verdict = lambda text: judged.append(text) or (0.9, "", [])
+    gate._worst_window = lambda text: text
+    turns = [{"role": "user", "content": {"a.b": "clean"}}, {"role": "user", "content": {"a": {"b": "BADWORD"}}}]
+    sample = DataSample(
+        source_uri="x", instruction="Hi", output="Hello", task_type="conversational",
+        metadata={"turns": turns},
+    )
+    passed, rejected = gate.run([sample])
+    assert not passed and judged and "BADWORD" in judged[0]
