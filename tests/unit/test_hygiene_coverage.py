@@ -184,3 +184,67 @@ def test_pii_in_a_content_part_is_pseudonymized_in_place_and_structure_is_kept(t
     out = step.run([_parts_conversation(tmp_path)])[0]
     part = out.metadata["turns"][0]["content"][0]
     assert part == {"type": "text", "text": "mail Zed and BADWORD"}  # "type" untouched
+
+
+# --- Nothing the exporters write goes unread ----------------------------------------------------
+
+def _nested(depth, leaf):
+    node = {"text": leaf}
+    for _ in range(depth):
+        node = {"parts": [node]}
+    return node
+
+
+def test_text_nested_deeper_than_any_fixed_limit_is_still_scanned():
+    sample = DataSample(
+        source_uri="x", instruction="Hi", output="Hello", task_type="conversational",
+        metadata={"turns": [{"role": "user", "content": [_nested(40, "BADWORD")]}]},
+    )
+    passed, rejected = _toxicity_gate().run([sample])
+    assert not passed and len(rejected) == 1
+
+
+@pytest.mark.parametrize("where", ["type", "role", "extra_key", "dict_key"])
+def test_read_only_gates_scan_structural_values_and_keys(where):
+    part = {"type": "text", "text": "fine"}
+    turn = {"role": "user", "content": [part]}
+    if where == "type":
+        part["type"] = "BADWORD"
+    elif where == "role":
+        turn["role"] = "BADWORD"
+    elif where == "extra_key":
+        turn["name"] = "BADWORD"
+    else:
+        part["BADWORD"] = "x"
+    sample = DataSample(
+        source_uri="x", instruction="Hi", output="Hello", task_type="conversational",
+        metadata={"turns": [turn]},
+    )
+    passed, rejected = _toxicity_gate().run([sample])
+    assert not passed and len(rejected) == 1
+
+
+def test_secret_in_a_structural_value_is_rejected():
+    pytest.importorskip("detect_secrets")
+    sample = DataSample(
+        source_uri="x", instruction="Hi", output="Hello", task_type="conversational",
+        metadata={"turns": [{"role": "user", "content": [{"type": f"text {AWS}", "text": "fine"}]}]},
+    )
+    passed, _ = SecretsGate().run([sample])
+    assert not passed
+
+
+def test_the_pseudonymizer_rewrites_text_but_not_structure():
+    step = PIIPseudonymizer.__new__(PIIPseudonymizer)
+    step._config_hash = lambda: "h"
+    step._load = lambda: (None, None)
+    step._fields_for_sample = lambda s: []
+    step._pseudonymize = lambda text, em, an, fk: (text.replace("Alice", "Zed"), {})
+    turn = {"role": "user", "name": "Alice", "content": [{"type": "text", "text": "hi Alice"}, {"Alice": "k"}]}
+    sample = DataSample(
+        source_uri="x", instruction="Hi", output="Hello", task_type="conversational",
+        metadata={"turns": [turn]},
+    )
+    out = step.run([sample])[0].metadata["turns"][0]
+    assert out["content"][0] == {"type": "text", "text": "hi Zed"}
+    assert out["role"] == "user" and "Alice" in out["content"][1]  # structure untouched

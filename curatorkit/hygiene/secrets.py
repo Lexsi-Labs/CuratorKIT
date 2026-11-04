@@ -238,7 +238,7 @@ class SecretsGate(BaseGate):
                 for finding in _scan_text(val, self._ds_config, self._entropy_plugins):
                     findings.append({**finding, "field": field})
         # A conversation's system prompt and later turns live in metadata, and the exporters write them.
-        for label, container, key in conversation_slots(sample):
+        for label, container, key in conversation_slots(sample, read_only=True):
             if container[key].strip():
                 for finding in _scan_text(container[key], self._ds_config, self._entropy_plugins):
                     findings.append({**finding, "field": label})

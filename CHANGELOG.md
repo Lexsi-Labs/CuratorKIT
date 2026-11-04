@@ -125,7 +125,9 @@ All notable changes to CuratorKIT are documented here. The format follows
   toxic reply, an API key or an email address there reached the export. All three now read them, in
   both turn shapes: `{"role", "content"}` from the connectors and `{"from", "value"}` from the
   generators, with text as a string or as a list of parts such as `{"type": "text", "text": ...}`
-  (`SecretsGate` `STEP_VERSION` 1.1.0).
+  (`SecretsGate` `STEP_VERSION` 1.1.0). The two steps that only read text also scan role names, other
+  keys and every dict key, at any depth; the pseudonymizer rewrites text and leaves keys and
+  `type`/`role` values alone.
 - Generators no longer turn prose into training data. `PreferenceGenerationTask` read a JSON pair
   wrapped in prose as `chosen = '": "4", "rejected": ...'`, took any text containing "better" or
   "worse" as a pair, and accepted a pair whose two answers were the same. `QAGenerationTask`'s

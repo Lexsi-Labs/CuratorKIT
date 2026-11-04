@@ -187,9 +187,10 @@ class ToxicityGate(BaseGate):
         if sample.instruction.strip():
             pairs.append(("instruction", sample.instruction))
         # A conversation's system prompt and later turns live in metadata, and the exporters write them.
-        for label, container, key in conversation_slots(sample):
-            if container[key].strip():
-                pairs.append((label, container[key]))
+        # One field for all of it: the classifier is called once per window, not once per role name.
+        text = "\n".join(c[k] for _l, c, k in conversation_slots(sample, read_only=True) if c[k].strip())
+        if text.strip():
+            pairs.append(("conversation_metadata", text))
         return pairs
 
     @staticmethod
