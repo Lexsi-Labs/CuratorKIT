@@ -655,9 +655,14 @@ class BaseConnector(BaseReader):
         instr_col = d.get("instruction")
         if not instr_col:
             return None
+        # Keep a context/input column (e.g. instruction + input, no output) instead
+        # of silently dropping it; generators read it as source context.
+        context_col = d.get("context")
+        context = str(row.get(context_col, "")) if context_col and context_col != instr_col else ""
         return DataSample(
             source_uri=self.source_uri,
             instruction=str(row.get(instr_col, "")),
+            input=context,
             task_type="prompt_only",
             metadata=self._collect_metadata(row, d),
         )

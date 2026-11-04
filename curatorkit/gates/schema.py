@@ -78,8 +78,13 @@ class SchemaGate(BaseGate):
         max_tokens: int = 2048,
         use_tiktoken: bool = False,
         enforce_task_types: list[str] | None = None,
+        output_generated_later: bool = False,
     ) -> None:
         self.required_fields = required_fields  # None = use per-task-type defaults
+        # True when this gate runs on seeds ahead of a generation step that
+        # fills ``output`` (e.g. Curator with generation_task set): the SFT
+        # default then only requires ``instruction``.
+        self.output_generated_later = output_generated_later
         self.min_tokens = min_tokens
         self.max_tokens = max_tokens
         self.use_tiktoken = use_tiktoken
@@ -93,6 +98,7 @@ class SchemaGate(BaseGate):
                 "max_tokens": self.max_tokens,
                 "use_tiktoken": self.use_tiktoken,
                 "enforce_task_types": sorted(self.enforce_task_types),
+                "output_generated_later": self.output_generated_later,
             },
             sort_keys=True,
         )
@@ -236,7 +242,7 @@ class SchemaGate(BaseGate):
             # unpaired_preference, and any unknown task_type)
             if not self._field_present(sample, "instruction"):
                 return "missing_field:instruction"
-            if not self._field_present(sample, "output"):
+            if not self.output_generated_later and not self._field_present(sample, "output"):
                 return "missing_field:output"
 
         return None

@@ -156,7 +156,9 @@ class EvolInstructTask(BaseGenerationTask):
     generate_answers : bool
         If True, also generate answers for evolved instructions.
     answer_prompt_template : str | None
-        Custom template for answer generation.
+        Custom template for answer generation. Must contain ``{instruction}``
+        and/or ``{context}`` (the source passage, empty when there is none).
+        When given, it is used for every sample, with or without context.
     """
 
     def __init__(
@@ -174,11 +176,15 @@ class EvolInstructTask(BaseGenerationTask):
         self.strategies = strategies or _EVOLUTION_STRATEGIES
         self.generate_answers = generate_answers
         self.answer_prompt_template = answer_prompt_template or _DEFAULT_ANSWER_PROMPT
+        self._custom_answer_template = answer_prompt_template is not None
         if prompt_template:
             self._validate_template(prompt_template, ["instruction", "strategy", "context"])
-        if answer_prompt_template:
-            self._validate_template(
-                answer_prompt_template, ["instruction"], "answer_prompt_template"
+        if answer_prompt_template and not any(
+            "{" + v + "}" in answer_prompt_template for v in ("instruction", "context")
+        ):
+            raise ValueError(
+                "answer_prompt_template must contain at least one of {instruction} or "
+                "{context} (the source passage, empty when there is none)."
             )
 
     def _build_messages(self, sample: DataSample) -> list[dict[str, str]]:
@@ -217,14 +223,24 @@ class EvolInstructTask(BaseGenerationTask):
         strategy_used = sample.metadata.get("_evol_strategy", "unknown")
         complexity_notes = ""
 
+        parsed = None
         try:
             parsed = json.loads(text)
-            if isinstance(parsed, dict):
-                evolved_instruction = coerce_text(parsed.get("evolved_instruction", ""))
-                strategy_used = coerce_text(parsed.get("strategy_applied", strategy_used))
-                complexity_notes = coerce_text(parsed.get("complexity_notes", ""))
         except json.JSONDecodeError:
-            evolved_instruction = text
+            # Models often wrap the JSON object in prose; try the outermost {...}.
+            match = re.search(r"\{.*\}", text, re.DOTALL)
+            if match:
+                try:
+                    parsed = json.loads(match.group())
+                except json.JSONDecodeError:
+                    parsed = None
+        if isinstance(parsed, dict):
+            evolved_instruction = coerce_text(parsed.get("evolved_instruction", ""))
+            strategy_used = coerce_text(parsed.get("strategy_applied", strategy_used))
+            complexity_notes = coerce_text(parsed.get("complexity_notes", ""))
+        # An unparseable reply (e.g. a refusal or prose) is NOT used as the
+        # evolved instruction: returning [] lets the base class retry and then
+        # record a generation_parse_failed rejection with the raw response.
 
         if not evolved_instruction:
             return []
@@ -250,6 +266,25 @@ class EvolInstructTask(BaseGenerationTask):
                 provenance_chain=list(sample.provenance_chain),
             )
         ]
+
+    def _answer_prompt(self, sample: DataSample) -> str:
+        """Prompt for the answer pass.
+
+        A user-supplied ``answer_prompt_template`` always wins; it may use
+        ``{context}`` to receive the source passage (empty string if none).
+        Only the built-in default switches to the grounded prompt when the
+        sample carries source context.
+        """
+        source_context = sample.input or ""  # already set by _parse_response
+        if self._custom_answer_template:
+            return self.answer_prompt_template.format(
+                instruction=sample.instruction, context=source_context
+            )
+        if source_context:
+            return _ANSWER_PROMPT_WITH_CONTEXT.format(
+                instruction=sample.instruction, context=source_context
+            )
+        return self.answer_prompt_template.format(instruction=sample.instruction)
 
     def run(self, samples: list[DataSample]) -> list[DataSample]:
         """
@@ -278,16 +313,7 @@ class EvolInstructTask(BaseGenerationTask):
         def _answer_one(idx_sample):
             idx, sample = idx_sample
             try:
-                source_context = sample.input  # already set by _parse_response
-                if source_context:
-                    prompt = _ANSWER_PROMPT_WITH_CONTEXT.format(
-                        instruction=sample.instruction,
-                        context=source_context,
-                    )
-                else:
-                    prompt = self.answer_prompt_template.format(
-                        instruction=sample.instruction,
-                    )
+                prompt = self._answer_prompt(sample)
                 response = self.llm.generate([{"role": "user", "content": prompt}])
                 sample.output = response.text.strip()
             except Exception:
@@ -337,16 +363,7 @@ class EvolInstructTask(BaseGenerationTask):
         async def _answer_one(idx: int, sample: DataSample) -> None:
             async with semaphore:
                 try:
-                    source_context = sample.input  # already set by _parse_response
-                    if source_context:
-                        prompt = _ANSWER_PROMPT_WITH_CONTEXT.format(
-                            instruction=sample.instruction,
-                            context=source_context,
-                        )
-                    else:
-                        prompt = self.answer_prompt_template.format(
-                            instruction=sample.instruction,
-                        )
+                    prompt = self._answer_prompt(sample)
                     response = await self.llm.agenerate([{"role": "user", "content": prompt}])
                     sample.output = response.text.strip()
                 except Exception:

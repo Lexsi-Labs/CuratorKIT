@@ -426,6 +426,7 @@ def _generate_candidates(
                 DetectionConfidence.LOW,
                 {
                     "instruction": instr_col,
+                    "context": ctx_col,
                     "system": system_col,
                 },
             )
