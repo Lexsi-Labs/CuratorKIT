@@ -110,8 +110,8 @@ All notable changes to CuratorKIT are documented here. The format follows
   rollout whose scoring failed (`scoring_failed:<ExceptionType>`) instead of giving it a reward of
   0.5 (@chayan-bit). Only an `instruction_following` row with an instruction supplies a reference: a
   passage used as source text, or an `unpaired_preference` completion (which may be a known-bad
-  answer), is not a gold answer. The scorer accepts only a finite numeric `score` key, from the reply
-  as JSON or the first JSON object in it, so `Response 2 of 4 is weak.` is no longer a score of 0.2.
+  answer), is not a gold answer. The scorer accepts only a `score` from 0 to 1, from the reply
+  as JSON or the first JSON object in it (`85` is rejected, not clamped to 1.0), so `Response 2 of 4 is weak.` is no longer a score of 0.2.
 - `EvolInstructTask` and `Curator` with a generation task: seeds without an `output` are no longer
   rejected by `SchemaGate` (`output_generated_later`, which is part of the gate's config hash), a
   custom `answer_prompt_template` is used for every sample and may use `{context}`, a refusal or

@@ -77,6 +77,9 @@ def test_parse_score_raises_scoring_error_when_nothing_numeric():
         '{"score": NaN}',  # json accepts these; clamping would turn them into 1.0 / 0.0
         '{"score": Infinity}',
         '{"score": -Infinity}',
+        '{"score": 85}',  # out of range is rejected, not clamped to a perfect reward
+        '{"score": 10}',  # a 0-10 scale
+        '{"score": -0.2}',
     ],
 )
 def test_reply_without_a_numeric_score_key_is_rejected(reply):

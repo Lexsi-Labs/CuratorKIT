@@ -19,13 +19,12 @@ from __future__ import annotations
 
 import asyncio
 import json
-import math
 import re
 import uuid
 
 from tqdm import tqdm
 
-from curatorkit.gates._score_parsing import JudgeParseError
+from curatorkit.gates._score_parsing import JudgeParseError, _structured
 from curatorkit.generators.base import BaseGenerationTask
 from curatorkit.llm.base import BaseLLM, LLMResponse
 from curatorkit.schema import DataSample, RejectedSample
@@ -193,7 +192,7 @@ class GRPORolloutTask(BaseGenerationTask):
     def _parse_score(text: str) -> float:
         """Parse the scorer's reply; raises ScoringError instead of inventing a score.
 
-        Only a numeric `score` key counts, from the reply as JSON or from the first
+        Only a `score` key holding a number from 0 to 1 counts, as in the judge gates, from the reply as JSON or from the first
         JSON object in it (a model that adds text around the object). No fallback to
         the first number in the text: `Response 2 of 4 is weak.` is not a 0.2.
         """
@@ -208,11 +207,12 @@ class GRPORolloutTask(BaseGenerationTask):
                     parsed = json.JSONDecoder().raw_decode(text, text.index("{"))[0]
                 except json.JSONDecodeError:
                     pass
-        score = parsed.get("score") if isinstance(parsed, dict) else None
-        if isinstance(score, bool) or not isinstance(score, int | float) or not math.isfinite(score):
-            err = JudgeParseError(f"no numeric 'score' in scorer output: {text[:200]!r}")
-            raise ScoringError(str(err)) from err
-        return max(0.0, min(1.0, float(score)))
+        try:
+            if not isinstance(parsed, dict) or "score" not in parsed:
+                raise JudgeParseError(f"no 'score' in scorer output: {text[:200]!r}")
+            return _structured(parsed["score"], "score")
+        except JudgeParseError as e:
+            raise ScoringError(str(e)) from e
 
     @staticmethod
     def _rejection_reason(error: Exception) -> str:
