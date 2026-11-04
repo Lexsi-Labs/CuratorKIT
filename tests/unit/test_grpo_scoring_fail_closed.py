@@ -56,9 +56,19 @@ class TestScoringFailsClosed:
         assert out.reward_scores == [0.8, 0.8]
 
 
-def test_score_with_trailing_text_is_still_parsed():
-    # the model wrapped valid JSON in extra text; recoverable, not a failure
-    assert GRPORolloutTask._parse_score('{"score": 0.7} thanks') == 0.7
+def test_score_with_text_around_the_json_is_rejected():
+    # scores come from the reply's JSON only, as in the judge gates
+    with pytest.raises(ScoringError):
+        GRPORolloutTask._parse_score('{"score": 0.7} thanks')
+
+
+def test_score_in_a_code_fence_is_parsed():
+    assert GRPORolloutTask._parse_score('```json\n{"score": 0.7}\n```') == 0.7
+
+
+def test_nan_score_with_a_digit_in_the_reasoning_is_rejected():
+    with pytest.raises(ScoringError):
+        GRPORolloutTask._parse_score('{"score": NaN, "reasoning": "fails 3 of 4 checks"}')
 
 
 def test_parse_score_raises_scoring_error_when_nothing_numeric():

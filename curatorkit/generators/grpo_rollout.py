@@ -18,13 +18,11 @@ The output format matches what TRL's GRPOTrainer expects.
 from __future__ import annotations
 
 import asyncio
-import json
-import re
 import uuid
 
 from tqdm import tqdm
 
-from curatorkit.gates._score_parsing import JudgeParseError, extract_score
+from curatorkit.gates._score_parsing import JudgeParseError, extract_score, parse_judge_reply
 from curatorkit.generators.base import BaseGenerationTask
 from curatorkit.llm.base import BaseLLM, LLMResponse
 from curatorkit.schema import DataSample, RejectedSample
@@ -182,13 +180,11 @@ class GRPORolloutTask(BaseGenerationTask):
 
     @staticmethod
     def _parse_score(text: str) -> float:
-        """Parse the scorer's reply; raises ScoringError instead of inventing a score."""
-        text = re.sub(r"```(?:json)?\s*", "", text.strip())
-        text = re.sub(r"```\s*$", "", text)
-        try:
-            parsed = json.loads(text)
-        except json.JSONDecodeError:
-            parsed = None
+        """Parse the scorer's reply; raises ScoringError instead of inventing a score.
+
+        Same rule as the judge gates: the score is read from the reply's JSON only.
+        """
+        text, parsed = parse_judge_reply(text)
         try:
             return extract_score(parsed, text, "score")[0]
         except JudgeParseError as e:

@@ -94,7 +94,7 @@ All notable changes to CuratorKIT are documented here. The format follows
   of exporting seed prompts before `GRPORolloutTask` has run.
 
 ### Fixed
-- `PIIPseudonymizer` replaces overlapping Presidio spans once, as the widest span's type. It used
+- `PIIPseudonymizer` replaces overlapping Presidio spans once, as the type of the span that starts first (on a tie, the longest, then the highest score). It used
   to replace each span in turn, so a date found inside an IBAN or card number shifted the offsets
   and left digits of the original value in the output. `entities_replaced` counts a merged group
   once. `PIIPseudonymizer` `STEP_VERSION` is now 1.1.0.
@@ -103,6 +103,17 @@ All notable changes to CuratorKIT are documented here. The format follows
   threshold <= 0.5. Both now reject the sample as `judge_error:<ExceptionType>` and record the
   error in provenance; each run warns with the count. `DiagnosticProbe` and `RewardRefiner` skip
   these rejects. `HallucinationGate` / `RewardGate` `STEP_VERSION` is now 1.1.0.
+- `ToxicityGate` rejects a borderline sample when the judge returns `NaN` for `toxicity_score`, and
+  `RewardGate` no longer records a `NaN` dimension as 1.0 in its `dimension_scores` note.
+- `GRPORolloutTask` carries a row's gold answer to `reference` in `grpo.jsonl` (the column is present
+  only when a row has one), keeps it out of the rollout prompt, and rejects a rollout whose scoring
+  failed (`scoring_failed:<ExceptionType>`) instead of giving it a reward of 0.5. The scorer's reply
+  follows the same JSON-only rule as the judge gates (@chayan-bit).
+- `EvolInstructTask` and `Curator` with a generation task: seeds without an `output` are no longer
+  rejected by `SchemaGate` (`output_generated_later`, which is part of the gate's config hash), a
+  custom `answer_prompt_template` is used for every sample and may use `{context}`, a refusal or
+  prose reply is no longer taken as the evolved instruction, and a prompt-only row keeps its
+  context column as `input` (@AndrewFribush).
 - `RewardGate.run` and `HallucinationGate.run` return `([], [])` for an empty batch instead of
   raising `ValueError: range() arg 3 must not be zero`, so a pipeline whose earlier step rejects
   every sample finishes and keeps its rejects.
@@ -117,7 +128,7 @@ All notable changes to CuratorKIT are documented here. The format follows
   scored 0.9 and `Response 2 of 4 is weak.` 0.2, and out-of-range numbers clamped to 1.0. **Replies
   that used to pass are now rejected as `judge_error:JudgeParseError`:** prose such as `8/10`, a bare
   number, cut-off JSON, JSON with text around it, `{"overall_score": 85}` and `{"overall_score": "0.9"}`.
-  The default prompts already ask for JSON only. See `judge_on_error`.
+  The default prompts already ask for JSON only. See `on_judge_error`.
 - README: the PyPI badge showed a fixed `v0.1.0`; it now reads the live version. GitHub
   Discussions links (404) now point to Issues.
 - The `trl` extra requires `transformers>=5.15,<6`.
