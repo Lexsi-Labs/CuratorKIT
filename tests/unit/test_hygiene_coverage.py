@@ -282,7 +282,8 @@ def test_the_llm_judge_reads_the_text_that_scored_worst_even_when_labels_could_c
     judged = []
     gate._llm_verdict = lambda text: judged.append(text) or (0.9, "", [])
     gate._worst_window = lambda text: text
-    turns = [{"role": "user", "content": {"a.b": "clean"}}, {"role": "user", "content": {"a": {"b": "BADWORD"}}}]
+    # both strings get the label "metadata.turns[0].content[0].text" before the index is added
+    turns = [{"role": "user", "content[0]": {"text": "BADWORD"}, "content": [{"text": "clean"}]}]
     sample = DataSample(
         source_uri="x", instruction="Hi", output="Hello", task_type="conversational",
         metadata={"turns": turns},
