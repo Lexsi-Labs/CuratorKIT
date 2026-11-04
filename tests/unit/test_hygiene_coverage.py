@@ -138,3 +138,49 @@ def test_a_phrase_straddling_a_window_boundary_is_scored_whole():
     sample = DataSample(source_uri="x", instruction="Q?", output=text, task_type="instruction_following")
     passed, rejected = gate.run([sample])
     assert not passed and len(rejected) == 1
+
+
+# --- List-of-parts content (OpenAI-style) ------------------------------------------------------
+
+def _parts_conversation(tmp_path):
+    import json
+
+    from curatorkit.connectors.jsonl import JSONLReader
+
+    row = {"messages": [
+        {"role": "system", "content": [{"type": "text", "text": f"SYS key {AWS}"}]},
+        {"role": "user", "content": "Hi"},
+        {"role": "assistant", "content": "Hello"},
+        {"role": "user", "content": [
+            {"type": "text", "text": "mail Alice and BADWORD"},
+            {"type": "image_url", "image_url": {"url": "http://x/y.png"}},
+        ]},
+        {"role": "assistant", "content": "ok"},
+    ]}
+    path = tmp_path / "parts.jsonl"
+    path.write_text(json.dumps(row) + "\n")
+    samples, _ = JSONLReader(path).read()
+    assert isinstance(samples[0].metadata["turns"][0]["content"], list)  # kept as parts
+    return samples[0]
+
+
+def test_toxic_text_in_a_content_part_is_rejected(tmp_path):
+    passed, rejected = _toxicity_gate().run([_parts_conversation(tmp_path)])
+    assert not passed and len(rejected) == 1
+
+
+def test_secret_in_a_system_prompt_part_is_rejected(tmp_path):
+    pytest.importorskip("detect_secrets")
+    passed, _ = SecretsGate().run([_parts_conversation(tmp_path)])
+    assert not passed
+
+
+def test_pii_in_a_content_part_is_pseudonymized_in_place_and_structure_is_kept(tmp_path):
+    step = PIIPseudonymizer.__new__(PIIPseudonymizer)
+    step._config_hash = lambda: "h"
+    step._load = lambda: (None, None)
+    step._fields_for_sample = lambda s: []
+    step._pseudonymize = lambda text, em, an, fk: (text.replace("Alice", "Zed"), {"PERSON": 1} if "Alice" in text else {})
+    out = step.run([_parts_conversation(tmp_path)])[0]
+    part = out.metadata["turns"][0]["content"][0]
+    assert part == {"type": "text", "text": "mail Zed and BADWORD"}  # "type" untouched
