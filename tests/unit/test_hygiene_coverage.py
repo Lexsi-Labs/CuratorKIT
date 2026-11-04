@@ -1,0 +1,75 @@
+"""Hygiene steps look at all of a sample's text: long texts and the later turns of a conversation."""
+from types import SimpleNamespace
+
+import pytest
+
+from curatorkit.hygiene.pii import PIIPseudonymizer
+from curatorkit.hygiene.secrets import SecretsGate
+from curatorkit.hygiene.toxicity import ToxicityGate
+from curatorkit.schema import DataSample
+
+AWS = "AKIAIOSFODNN7EXAMPLE"
+
+
+def _conversation(later_turn):
+    return DataSample(
+        source_uri="x", instruction="Hi", output="Hello", task_type="conversational",
+        metadata={"turns": [{"from": "human", "value": later_turn}, {"from": "gpt", "value": "ok"}]},
+    )
+
+
+def _toxicity_gate():
+    gate = ToxicityGate.__new__(ToxicityGate)
+    gate.text_field, gate.llm = "auto", None
+    gate.classifier_pass_threshold, gate.classifier_reject_threshold = 0.3, 0.7
+    gate._config_hash = lambda: "h"
+    gate._load_classifier = lambda: SimpleNamespace(
+        predict=lambda text: {"toxicity": 0.95 if "BADWORD" in text else 0.01}
+    )
+    return gate
+
+
+def test_toxic_text_after_the_classifier_window_is_rejected():
+    sample = DataSample(
+        source_uri="x", instruction="Q?", output=("Fine text. " * 300) + "BADWORD here",
+        task_type="instruction_following",
+    )
+    passed, rejected = _toxicity_gate().run([sample])
+    assert not passed and len(rejected) == 1
+
+
+def test_clean_long_text_still_passes():
+    sample = DataSample(
+        source_uri="x", instruction="Q?", output="Fine text. " * 600, task_type="instruction_following"
+    )
+    passed, rejected = _toxicity_gate().run([sample])
+    assert len(passed) == 1 and not rejected
+
+
+def test_toxic_later_turn_of_a_conversation_is_rejected():
+    passed, rejected = _toxicity_gate().run([_conversation("BADWORD")])
+    assert not passed and len(rejected) == 1
+
+
+def test_secret_in_a_later_turn_of_a_conversation_is_rejected():
+    pytest.importorskip("detect_secrets")
+    passed, rejected = SecretsGate().run([_conversation(f"my key is {AWS}")])
+    assert not passed and "secret_detected" in rejected[0].rejection_reason
+
+
+def test_pii_in_a_later_turn_is_pseudonymized_with_the_conversation_entity_map():
+    step = PIIPseudonymizer.__new__(PIIPseudonymizer)
+    step._config_hash = lambda: "h"
+    step._load = lambda: (None, None)
+    step._fields_for_sample = lambda s: ["instruction", "output"]
+    seen = []
+
+    def fake(text, entity_map, analyzer, faker):
+        seen.append(entity_map)
+        return text.replace("Alice", "Zed"), ({"PERSON": 1} if "Alice" in text else {})
+
+    step._pseudonymize = fake
+    sample = _conversation("Alice again")
+    out = step.run([sample])[0]
+    assert out.metadata["turns"][0]["value"] == "Zed again"
+    assert len({id(m) for m in seen}) == 1  # one entity map for the whole conversation

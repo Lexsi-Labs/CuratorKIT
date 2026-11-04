@@ -26,7 +26,7 @@ from datetime import UTC, datetime
 from curatorkit.interfaces import BaseGate
 from curatorkit.schema import DataSample, ProvenanceRecord, RejectedSample
 
-STEP_VERSION = "1.0.0"
+STEP_VERSION = "1.1.0"
 
 _PLUGINS_BASE = [
     {"name": "AWSKeyDetector"},
@@ -236,6 +236,14 @@ class SecretsGate(BaseGate):
             elif isinstance(val, str) and val.strip():
                 for finding in _scan_text(val, self._ds_config, self._entropy_plugins):
                     findings.append({**finding, "field": field})
+        # A conversation keeps its later turns in metadata; a key pasted in turn 3 is just as leaked.
+        turns = sample.metadata.get("turns") if sample.task_type == "conversational" else None
+        if isinstance(turns, list):
+            for i, turn in enumerate(turns):
+                value = turn.get("value") if isinstance(turn, dict) else None
+                if isinstance(value, str) and value.strip():
+                    for finding in _scan_text(value, self._ds_config, self._entropy_plugins):
+                        findings.append({**finding, "field": f"metadata.turns[{i}]"})
         return findings, active_fields
 
     def run(self, samples: list[DataSample]) -> tuple[list[DataSample], list[RejectedSample]]:

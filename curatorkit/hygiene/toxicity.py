@@ -43,7 +43,9 @@ from curatorkit.schema import DataSample, ProvenanceRecord, RejectedSample
 if TYPE_CHECKING:
     from curatorkit.llm.base import BaseLLM
 
-STEP_VERSION = "1.0.0"
+_WINDOW = 2048  # characters the classifier reads at once
+
+STEP_VERSION = "1.1.0"
 
 _LLM_JUDGE_PROMPT = """\
 You are a content safety evaluator for LLM fine-tuning datasets.
@@ -182,18 +184,41 @@ class ToxicityGate(BaseGate):
             pairs.append(("output", sample.output))
         if sample.instruction.strip():
             pairs.append(("instruction", sample.instruction))
+        # A conversation keeps its later turns in metadata; each one is text a model trains on.
+        extra = sample.metadata.get("turns") if task == "conversational" else None
+        if isinstance(extra, list):
+            for i, turn in enumerate(extra):
+                value = turn.get("value") if isinstance(turn, dict) else None
+                if isinstance(value, str) and value.strip():
+                    pairs.append((f"turn_{i}", value))
         return pairs
 
+    @staticmethod
+    def _windows(text: str) -> list[str]:
+        """Split text into pieces the classifier can read whole (it truncates at 2 048 characters)."""
+        return [text[i : i + _WINDOW] for i in range(0, max(len(text), 1), _WINDOW)]
+
     def _score_field(self, text: str) -> dict[str, float]:
-        """Run Detoxify on a single text field. Truncates to 2 048 chars."""
+        """Run Detoxify on a single text field. A long text is scored in 2 048-character windows
+        and each label keeps its highest score, so toxic content late in a long sample is seen."""
         classifier = self._load_classifier()
-        raw = classifier.predict(text[:2048])
-        return {k: round(float(v), 4) for k, v in raw.items()}
+        best: dict[str, float] = {}
+        for window in self._windows(text):
+            for k, v in classifier.predict(window).items():
+                best[k] = max(best.get(k, 0.0), round(float(v), 4))
+        return best
+
+    def _worst_window(self, text: str) -> str:
+        """The window of ``text`` with the highest classifier score; what the LLM judge should read."""
+        windows = self._windows(text)
+        if len(windows) == 1:
+            return windows[0]
+        return max(windows, key=lambda w: max(self._score_field(w).values(), default=0.0))
 
     def _llm_verdict(self, text: str) -> tuple[float, str, list[str]]:
         """Call LLM judge. Returns (score, reasoning, categories)."""
         assert self.llm is not None
-        prompt = _LLM_JUDGE_PROMPT.format(text=text[:1500])
+        prompt = _LLM_JUDGE_PROMPT.format(text=text[:_WINDOW])
         try:
             response = self.llm.generate(
                 messages=[{"role": "user", "content": prompt}],
@@ -299,7 +324,7 @@ class ToxicityGate(BaseGate):
 
             # Stage 2: borderline — escalate to LLM judge on the worst field
             worst_text = next(text for fname, text in field_pairs if fname == worst_field)
-            llm_score, reasoning, categories = self._llm_verdict(worst_text)
+            llm_score, reasoning, categories = self._llm_verdict(self._worst_window(worst_text))
 
             if llm_score >= self.llm_reject_threshold:
                 rej = RejectedSample(
