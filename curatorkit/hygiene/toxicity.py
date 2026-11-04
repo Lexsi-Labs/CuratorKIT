@@ -37,7 +37,7 @@ from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
 from curatorkit.gates._score_parsing import _finite
-from curatorkit.hygiene._turns import conversation_slots
+from curatorkit.hygiene._turns import _STRUCTURAL_KEYS, conversation_slots
 from curatorkit.interfaces import BaseGate
 from curatorkit.schema import DataSample, ProvenanceRecord, RejectedSample
 
@@ -187,10 +187,19 @@ class ToxicityGate(BaseGate):
         if sample.instruction.strip():
             pairs.append(("instruction", sample.instruction))
         # A conversation's system prompt and later turns live in metadata, and the exporters write them.
-        # One field for all of it: the classifier is called once per window, not once per role name.
-        text = "\n".join(c[k] for _l, c, k in conversation_slots(sample, read_only=True) if c[k].strip())
-        if text.strip():
-            pairs.append(("conversation_metadata", text))
+        # Each real piece of text is scored on its own, so a short toxic turn is not diluted by clean
+        # ones. Only the short structural strings (role names, other keys, part types) share a field.
+        structural: list[str] = []
+        for label, container, key in conversation_slots(sample, read_only=True):
+            text = container[key]
+            if not text.strip():
+                continue
+            if label.endswith("<key>") or key in _STRUCTURAL_KEYS or key not in ("content", "value", "text", "system_prompt"):
+                structural.append(text)
+            else:
+                pairs.append((label, text))
+        if structural:
+            pairs.append(("conversation_structure", "\n".join(structural)))
         return pairs
 
     @staticmethod

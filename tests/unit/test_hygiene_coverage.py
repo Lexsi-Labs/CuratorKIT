@@ -248,3 +248,19 @@ def test_the_pseudonymizer_rewrites_text_but_not_structure():
     out = step.run([sample])[0].metadata["turns"][0]
     assert out["content"][0] == {"type": "text", "text": "hi Zed"}
     assert out["role"] == "user" and "Alice" in out["content"][1]  # structure untouched
+
+
+def test_a_short_toxic_turn_is_not_diluted_by_clean_turns():
+    seen = []
+    gate = _toxicity_gate()
+    gate._load_classifier = lambda: SimpleNamespace(
+        predict=lambda text: seen.append(text) or {"toxicity": 0.95 if text.strip() == "BADWORD" else 0.01}
+    )
+    turns = [{"from": "human", "value": "clean " * 80}, {"from": "gpt", "value": "BADWORD"}, {"from": "human", "value": "clean " * 80}]
+    sample = DataSample(
+        source_uri="x", instruction="Hi", output="Hello", task_type="conversational",
+        metadata={"turns": turns},
+    )
+    passed, rejected = gate.run([sample])
+    assert not passed and len(rejected) == 1
+    assert "BADWORD" in seen  # scored by itself, not inside a joined text
