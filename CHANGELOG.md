@@ -118,11 +118,13 @@ All notable changes to CuratorKIT are documented here. The format follows
   prose reply is no longer taken as the evolved instruction, and a prompt-only row keeps its
   context column as `input` (@AndrewFribush).
 - Hygiene steps look at all of a sample's text. `ToxicityGate` passed toxic content after the first
-  2 048 characters of a field, because the classifier truncates its input; it now scores every
-  2 048-character window and the LLM judge reads the worst one (`STEP_VERSION` 1.1.0). `ToxicityGate`,
-  `SecretsGate` and `PIIPseudonymizer` also skipped the later turns of a conversation (kept in
-  `metadata["turns"]`), so a toxic reply, an API key or an email address in turn 2 or later reached
-  the export; all three now cover them (`SecretsGate` `STEP_VERSION` 1.1.0).
+  2 048 characters of a field, because the classifier truncates its input; it now scores overlapping
+  2 048-character windows and the LLM judge reads the worst one (`STEP_VERSION` 1.1.0).
+  `ToxicityGate`, `SecretsGate` and `PIIPseudonymizer` also skipped a conversation's system prompt
+  and later turns (`metadata["system_prompt"]` and `metadata["turns"]`, which the exporters write), so a
+  toxic reply, an API key or an email address there reached the export. All three now read them, in
+  both turn shapes: `{"role", "content"}` from the connectors and `{"from", "value"}` from the
+  generators (`SecretsGate` `STEP_VERSION` 1.1.0).
 - Generators no longer turn prose into training data. `PreferenceGenerationTask` read a JSON pair
   wrapped in prose as `chosen = '": "4", "rejected": ...'`, took any text containing "better" or
   "worse" as a pair, and accepted a pair whose two answers were the same. `QAGenerationTask`'s

@@ -53,6 +53,7 @@ import json
 from datetime import UTC, datetime
 from typing import Any
 
+from curatorkit.hygiene._turns import conversation_slots
 from curatorkit.interfaces import BaseNormalizer
 from curatorkit.schema import DataSample, ProvenanceRecord
 
@@ -496,16 +497,14 @@ class PIIPseudonymizer(BaseNormalizer):
                     for etype, count in counts.items():
                         total_counts[etype] = total_counts.get(etype, 0) + count
 
-            # A conversation keeps its later turns in metadata; pseudonymize them with the same
-            # entity map so a name that recurs gets one fake value across the whole conversation.
-            turns = sample.metadata.get("turns") if sample.task_type == "conversational" else None
-            if isinstance(turns, list):
-                for turn in turns:
-                    value = turn.get("value") if isinstance(turn, dict) else None
-                    if isinstance(value, str) and value:
-                        turn["value"], counts = self._pseudonymize(value, entity_map, analyzer, faker)
-                        for etype, count in counts.items():
-                            total_counts[etype] = total_counts.get(etype, 0) + count
+            # A conversation's system prompt and later turns live in metadata, and the exporters write
+            # them. Pseudonymize them with the same entity map so a name that recurs gets one fake
+            # value across the whole conversation.
+            for _label, container, key in conversation_slots(sample):
+                if container[key]:
+                    container[key], counts = self._pseudonymize(container[key], entity_map, analyzer, faker)
+                    for etype, count in counts.items():
+                        total_counts[etype] = total_counts.get(etype, 0) + count
 
             sample.append_provenance(
                 ProvenanceRecord(

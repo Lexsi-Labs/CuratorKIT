@@ -37,6 +37,7 @@ from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
 from curatorkit.gates._score_parsing import _finite
+from curatorkit.hygiene._turns import conversation_slots
 from curatorkit.interfaces import BaseGate
 from curatorkit.schema import DataSample, ProvenanceRecord, RejectedSample
 
@@ -44,6 +45,7 @@ if TYPE_CHECKING:
     from curatorkit.llm.base import BaseLLM
 
 _WINDOW = 2048  # characters the classifier reads at once
+_STRIDE = 1536  # windows overlap by a quarter
 
 STEP_VERSION = "1.1.0"
 
@@ -184,19 +186,20 @@ class ToxicityGate(BaseGate):
             pairs.append(("output", sample.output))
         if sample.instruction.strip():
             pairs.append(("instruction", sample.instruction))
-        # A conversation keeps its later turns in metadata; each one is text a model trains on.
-        extra = sample.metadata.get("turns") if task == "conversational" else None
-        if isinstance(extra, list):
-            for i, turn in enumerate(extra):
-                value = turn.get("value") if isinstance(turn, dict) else None
-                if isinstance(value, str) and value.strip():
-                    pairs.append((f"turn_{i}", value))
+        # A conversation's system prompt and later turns live in metadata, and the exporters write them.
+        for label, container, key in conversation_slots(sample):
+            if container[key].strip():
+                pairs.append((label, container[key]))
         return pairs
 
     @staticmethod
     def _windows(text: str) -> list[str]:
-        """Split text into pieces the classifier can read whole (it truncates at 2 048 characters)."""
-        return [text[i : i + _WINDOW] for i in range(0, max(len(text), 1), _WINDOW)]
+        """Split text into overlapping pieces the classifier can read whole (it truncates at 2 048 characters)."""
+        if len(text) <= _WINDOW:
+            return [text]
+        # Windows overlap by a quarter, so a phrase that straddles a boundary is scored whole.
+        starts = list(range(0, len(text) - _WINDOW, _STRIDE)) + [len(text) - _WINDOW]
+        return [text[i : i + _WINDOW] for i in starts]
 
     def _score_field(self, text: str) -> dict[str, float]:
         """Run Detoxify on a single text field. A long text is scored in 2 048-character windows

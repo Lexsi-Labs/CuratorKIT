@@ -23,6 +23,7 @@ import hashlib
 import json
 from datetime import UTC, datetime
 
+from curatorkit.hygiene._turns import conversation_slots
 from curatorkit.interfaces import BaseGate
 from curatorkit.schema import DataSample, ProvenanceRecord, RejectedSample
 
@@ -236,14 +237,11 @@ class SecretsGate(BaseGate):
             elif isinstance(val, str) and val.strip():
                 for finding in _scan_text(val, self._ds_config, self._entropy_plugins):
                     findings.append({**finding, "field": field})
-        # A conversation keeps its later turns in metadata; a key pasted in turn 3 is just as leaked.
-        turns = sample.metadata.get("turns") if sample.task_type == "conversational" else None
-        if isinstance(turns, list):
-            for i, turn in enumerate(turns):
-                value = turn.get("value") if isinstance(turn, dict) else None
-                if isinstance(value, str) and value.strip():
-                    for finding in _scan_text(value, self._ds_config, self._entropy_plugins):
-                        findings.append({**finding, "field": f"metadata.turns[{i}]"})
+        # A conversation's system prompt and later turns live in metadata, and the exporters write them.
+        for label, container, key in conversation_slots(sample):
+            if container[key].strip():
+                for finding in _scan_text(container[key], self._ds_config, self._entropy_plugins):
+                    findings.append({**finding, "field": label})
         return findings, active_fields
 
     def run(self, samples: list[DataSample]) -> tuple[list[DataSample], list[RejectedSample]]:

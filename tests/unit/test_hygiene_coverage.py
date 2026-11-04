@@ -73,3 +73,68 @@ def test_pii_in_a_later_turn_is_pseudonymized_with_the_conversation_entity_map()
     out = step.run([sample])[0]
     assert out.metadata["turns"][0]["value"] == "Zed again"
     assert len({id(m) for m in seen}) == 1  # one entity map for the whole conversation
+
+
+# --- Conversations ingested through the real connector --------------------------------------------
+# The connector stores later turns as {"role", "content"}, the generators as {"from", "value"}.
+
+def _ingested(tmp_path, later_turn, system="You are helpful."):
+    import json
+
+    from curatorkit.connectors.jsonl import JSONLReader
+
+    path = tmp_path / "chat.jsonl"
+    row = {"conversations": [
+        {"from": "system", "value": system},
+        {"from": "human", "value": "Hi"}, {"from": "gpt", "value": "Hello"},
+        {"from": "human", "value": later_turn}, {"from": "gpt", "value": "ok"},
+    ]}
+    path.write_text(json.dumps(row) + "\n")
+    samples, _ = JSONLReader(path).read()
+    assert samples and samples[0].task_type == "conversational"
+    assert samples[0].metadata["turns"][0].get("content") == later_turn  # the connector's shape
+    return samples[0]
+
+
+def test_toxic_turn_ingested_by_the_connector_is_rejected(tmp_path):
+    passed, rejected = _toxicity_gate().run([_ingested(tmp_path, "BADWORD")])
+    assert not passed and len(rejected) == 1
+
+
+def test_toxic_system_prompt_ingested_by_the_connector_is_rejected(tmp_path):
+    passed, rejected = _toxicity_gate().run([_ingested(tmp_path, "fine", system="BADWORD")])
+    assert not passed and len(rejected) == 1
+
+
+def test_secret_in_a_connector_turn_is_rejected(tmp_path):
+    pytest.importorskip("detect_secrets")
+    passed, rejected = SecretsGate().run([_ingested(tmp_path, f"my key is {AWS}")])
+    assert not passed and "secret_detected" in rejected[0].rejection_reason
+
+
+def test_secret_in_a_system_prompt_is_rejected(tmp_path):
+    pytest.importorskip("detect_secrets")
+    passed, rejected = SecretsGate().run([_ingested(tmp_path, "fine", system=f"token {AWS}")])
+    assert not passed
+
+
+def test_pii_in_a_connector_turn_and_system_prompt_is_pseudonymized(tmp_path):
+    step = PIIPseudonymizer.__new__(PIIPseudonymizer)
+    step._config_hash = lambda: "h"
+    step._load = lambda: (None, None)
+    step._fields_for_sample = lambda s: []
+    step._pseudonymize = lambda text, em, an, fk: (text.replace("Alice", "Zed"), {"PERSON": 1} if "Alice" in text else {})
+    out = step.run([_ingested(tmp_path, "Alice again", system="Talk to Alice")])[0]
+    assert out.metadata["turns"][0]["content"] == "Zed again"
+    assert out.metadata["system_prompt"] == "Talk to Zed"
+
+
+def test_a_phrase_straddling_a_window_boundary_is_scored_whole():
+    gate = _toxicity_gate()
+    gate._load_classifier = lambda: SimpleNamespace(
+        predict=lambda text: {"toxicity": 0.95 if "BAD WORD" in text else 0.01}
+    )
+    text = "x" * 2044 + "BAD WORD" + "y" * 2000  # "BAD WORD" crosses the first 2 048-character mark
+    sample = DataSample(source_uri="x", instruction="Q?", output=text, task_type="instruction_following")
+    passed, rejected = gate.run([sample])
+    assert not passed and len(rejected) == 1
