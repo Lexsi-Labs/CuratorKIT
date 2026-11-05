@@ -64,7 +64,7 @@ from curatorkit import Curator, CuratorConfig
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
 | `clean` | `bool` | `True` | Enable text cleaning |
-| `clean_transforms` | `dict[str, bool]` | `{}` | Toggle specific transforms. Keys: `"normalise_unicode"`, `"fix_encoding_artifacts"`, `"collapse_whitespace"`, `"remove_control_chars"`, `"strip_html"`. Default: all enabled. |
+| `clean_transforms` | `dict[str, bool]` | `{}` | Toggle specific transforms. Keys: `"normalise_unicode"`, `"fix_encoding_artifacts"`, `"collapse_whitespace"`, `"remove_control_chars"`, `"strip_html"`. Default: all enabled. `strip_html` deletes anything shaped like a tag, including tag-based prompt injections (`<system>...</system>`) in safety or red-teaming data; set `{"strip_html": False}` for those datasets. Rows it changes are listed in the `TextCleaner` provenance note `html_stripped_fields`, and a warning reports the count. |
 | `clean_fields` | `list[str]` | `[]` | Apply cleaning to these DataSample fields. Empty = applies to `instruction`, `input`, and `output`. |
 
 ---

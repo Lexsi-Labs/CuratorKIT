@@ -17,6 +17,7 @@ All notable changes to CuratorKIT are documented here. The format follows
 > PyPI page, not a heading here.
 
 ### Changed
+- `TextCleaner` records which fields `strip_html` changed (`html_stripped_fields` in the provenance note) and logs a warning with the count of affected samples, so tag-based prompt injections in safety data are no longer removed silently. Default unchanged; documented in the configuration reference (#42).
 - `sft_sharegpt.jsonl` keeps the ShareGPT `conversations` / `from` / `value` layout, but no longer
   drops data: `metadata["system_prompt"]` becomes a leading `system` turn, a non-empty `input` is
   appended to the first `human` turn, and later turns given as role/content are converted to

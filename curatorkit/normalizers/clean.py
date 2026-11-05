@@ -16,12 +16,15 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 import re
 import unicodedata
 from datetime import UTC, datetime
 
 from curatorkit.interfaces import BaseNormalizer
 from curatorkit.schema import DataSample, ProvenanceRecord
+
+logger = logging.getLogger(__name__)
 
 STEP_VERSION = "0.1.0"
 
@@ -85,11 +88,16 @@ class TextCleaner(BaseNormalizer):
 
         from tqdm import tqdm
 
+        html_changed_total = 0
         for sample in tqdm(samples, desc="TextCleaner", unit="sample"):
+            html_changed: list[str] = []
             for field in self.fields:
                 value = getattr(sample, field, None)
                 if isinstance(value, str):
+                    if self.transforms.get("strip_html", True) and self._strip_html(value) != value:
+                        html_changed.append(field)
                     setattr(sample, field, self._clean(value))
+            html_changed_total += bool(html_changed)
 
             sample.append_provenance(
                 ProvenanceRecord(
@@ -97,8 +105,21 @@ class TextCleaner(BaseNormalizer):
                     step_version=STEP_VERSION,
                     timestamp=ts,
                     config_hash=cfg_hash,
-                    notes={"transforms_applied": applied, "fields_cleaned": self.fields},
+                    notes={
+                        "transforms_applied": applied,
+                        "fields_cleaned": self.fields,
+                        "html_stripped_fields": html_changed,
+                    },
                 )
+            )
+
+        if html_changed_total:
+            logger.warning(
+                "TextCleaner strip_html removed tag-shaped text from %d of %d samples. "
+                "Tag-based prompt injections in safety data are removed too; set "
+                "clean_transforms={'strip_html': False} to keep them.",
+                html_changed_total,
+                len(samples),
             )
 
         return samples
