@@ -17,6 +17,7 @@ All notable changes to CuratorKIT are documented here. The format follows
 > PyPI page, not a heading here.
 
 ### Changed
+- `TextCleaner` records which fields `strip_html` changed (`html_stripped_fields` in the provenance note) and logs a warning with the count of affected samples, so tag-based prompt injections in safety data are no longer removed silently. Default unchanged; documented in the configuration reference (#42).
 - `sft_sharegpt.jsonl` keeps the ShareGPT `conversations` / `from` / `value` layout, but no longer
   drops data: `metadata["system_prompt"]` becomes a leading `system` turn, a non-empty `input` is
   appended to the first `human` turn, and later turns given as role/content are converted to
@@ -94,14 +95,67 @@ All notable changes to CuratorKIT are documented here. The format follows
   of exporting seed prompts before `GRPORolloutTask` has run.
 
 ### Fixed
+- `PIIPseudonymizer` replaces overlapping Presidio spans once, as the type of the span that starts first (on a tie, the longest, then the highest score). It used
+  to replace each span in turn, so a date found inside an IBAN or card number shifted the offsets
+  and left digits of the original value in the output. `entities_replaced` counts a merged group
+  once. `PIIPseudonymizer` `STEP_VERSION` is now 1.1.0.
 - The judge gates fail closed. A judge call that raised (bad key, HTTP 500, timeout) used to pass
   the sample, and judge output with no number in it scored a neutral 0.5 that cleared any
   threshold <= 0.5. Both now reject the sample as `judge_error:<ExceptionType>` and record the
   error in provenance; each run warns with the count. `DiagnosticProbe` and `RewardRefiner` skip
   these rejects. `HallucinationGate` / `RewardGate` `STEP_VERSION` is now 1.1.0.
+- `ToxicityGate` rejects a borderline sample when the judge returns `NaN` for `toxicity_score`, and
+  `RewardGate` no longer records a `NaN` dimension as 1.0 in its `dimension_scores` note.
+- `GRPORolloutTask` carries an instruction row's gold answer to the `reference` column of
+  `grpo.jsonl` (present only when a row has one), keeps it out of the rollout prompt, and rejects a
+  rollout whose scoring failed (`scoring_failed:<ExceptionType>`) instead of giving it a reward of
+  0.5 (@chayan-bit). Only an `instruction_following` row with an instruction supplies a reference: a
+  passage used as source text, or an `unpaired_preference` completion (which may be a known-bad
+  answer), is not a gold answer. The scorer accepts only a `score` from 0 to 1, from the reply
+  as JSON or the first JSON object in it (`85` is rejected, not clamped to 1.0), so `Response 2 of 4 is weak.` is no longer a score of 0.2.
+- `EvolInstructTask` and `Curator` with a generation task: seeds without an `output` are no longer
+  rejected by `SchemaGate` (`output_generated_later`, which is part of the gate's config hash), a
+  custom `answer_prompt_template` is used for every sample and may use `{context}`, a refusal or
+  prose reply is no longer taken as the evolved instruction, and a prompt-only row keeps its
+  context column as `input` (@AndrewFribush).
+- Hygiene steps look at all of a sample's text. `ToxicityGate` passed toxic content after the first
+  2 048 characters of a field, because the classifier truncates its input; it now scores overlapping
+  2 048-character windows and the LLM judge reads the worst one (`STEP_VERSION` 1.1.0).
+  `ToxicityGate`, `SecretsGate` and `PIIPseudonymizer` also skipped a conversation's system prompt
+  and later turns (`metadata["system_prompt"]` and `metadata["turns"]`, which the exporters write), so a
+  toxic reply, an API key or an email address there reached the export. All three now read them, in
+  both turn shapes: `{"role", "content"}` from the connectors and `{"from", "value"}` from the
+  generators, with text as a string or as a list of parts such as `{"type": "text", "text": ...}`
+  (`SecretsGate` `STEP_VERSION` 1.1.0). The two steps that only read text also scan role names, other
+  keys and every dict key, at any depth; the pseudonymizer rewrites text and leaves keys and
+  `type`/`role` values alone.
+- Generators no longer turn prose into training data. `PreferenceGenerationTask` read a JSON pair
+  wrapped in prose as `chosen = '": "4", "rejected": ...'`, took any text containing "better" or
+  "worse" as a pair, and accepted a pair whose two answers were the same. `QAGenerationTask`'s
+  `Q:`/`A:` fallback matched the "q" of "questions" and the first "a" of a reply, so a refusal
+  became a pair and a genuine `Q:`/`A:` reply was cut after one letter. `ChainOfThoughtTask` in
+  `wrap` mode stored a refusal as the reasoning. `MultiTurnTask` exported conversations that began
+  with an assistant or system turn, did not alternate, or held an empty or non-text turn, as rows
+  with an empty prompt or answer. `AdversarialPreferenceTask` crashed on JSON that was not a list
+  of objects and kept a rejected answer equal to the chosen one. JSON inside prose is now read from
+  its outermost object or array; labels must start a line and end in a colon; identical pairs, a
+  non-conforming conversation and non-JSON chain-of-thought replies are rejected. A conversation
+  that ends on a user question keeps its earlier turns.
+- `RewardGate.run` and `HallucinationGate.run` return `([], [])` for an empty batch instead of
+  raising `ValueError: range() arg 3 must not be zero`, so a pipeline whose earlier step rejects
+  every sample finishes and keeps its rejects.
 - Token counting counts each Han, kana, Hangul, Thai, Lao, Khmer or Myanmar character as a token,
   so complete Chinese, Japanese, Korean and Thai rows are no longer rejected by the default
   `min_tokens=10`. SchemaGate's preference-length comparison uses the same counter.
+- A judge score of `NaN` or `Infinity` no longer passes. `json.loads` accepts both and the 0-1 clamp
+  turned them into 1.0, so `{"overall_score": NaN}` cleared any threshold.
+- Judge scores come from JSON only. A reply is parsed as JSON, after removing one code fence if it
+  wraps the whole reply, and read from its top-level keys; every requested key present must hold a
+  number from 0 to 1. The first digit anywhere in the reply used to be the score, so `failed at step 9`
+  scored 0.9 and `Response 2 of 4 is weak.` 0.2, and out-of-range numbers clamped to 1.0. **Replies
+  that used to pass are now rejected as `judge_error:JudgeParseError`:** prose such as `8/10`, a bare
+  number, cut-off JSON, JSON with text around it, `{"overall_score": 85}` and `{"overall_score": "0.9"}`.
+  The default prompts already ask for JSON only. See `on_judge_error`.
 - README: the PyPI badge showed a fixed `v0.1.0`; it now reads the live version. GitHub
   Discussions links (404) now point to Issues.
 - The `trl` extra requires `transformers>=5.15,<6`.

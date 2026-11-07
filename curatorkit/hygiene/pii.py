@@ -53,10 +53,11 @@ import json
 from datetime import UTC, datetime
 from typing import Any
 
+from curatorkit.hygiene._turns import conversation_slots
 from curatorkit.interfaces import BaseNormalizer
 from curatorkit.schema import DataSample, ProvenanceRecord
 
-STEP_VERSION = "1.0.0"
+STEP_VERSION = "1.1.0"
 
 ENTITY_TYPES_DEFAULT: list[str] = [
     "PERSON",
@@ -433,18 +434,28 @@ class PIIPseudonymizer(BaseNormalizer):
         if not results:
             return text, {}
 
-        results_desc = sorted(results, key=lambda r: r.start, reverse=True)
+        # Presidio keeps overlapping spans of different types (a date inside an
+        # IBAN). Replace each overlapping group once, as the type of the span that
+        # starts first (on a tie, the longest, then the highest score).
+        spans: list[tuple[int, int, str]] = []
+        for result in sorted(results, key=lambda r: (r.start, -r.end, -r.score)):
+            if spans and result.start < spans[-1][1]:
+                start, end, entity_type = spans[-1]
+                spans[-1] = (start, max(end, result.end), entity_type)
+            else:
+                spans.append((result.start, result.end, result.entity_type))
+
         chars = list(text)
         type_counts: dict[str, int] = {}
 
-        for result in results_desc:
-            original = text[result.start : result.end]
-            cache_key = f"{result.entity_type}:{original}"
+        for start, end, entity_type in reversed(spans):
+            original = text[start:end]
+            cache_key = f"{entity_type}:{original}"
             if cache_key not in entity_map:
-                entity_map[cache_key] = _fake_for_type(result.entity_type, faker)
+                entity_map[cache_key] = _fake_for_type(entity_type, faker)
             replacement = entity_map[cache_key]
-            chars[result.start : result.end] = list(replacement)
-            type_counts[result.entity_type] = type_counts.get(result.entity_type, 0) + 1
+            chars[start:end] = list(replacement)
+            type_counts[entity_type] = type_counts.get(entity_type, 0) + 1
 
         return "".join(chars), type_counts
 
@@ -483,6 +494,15 @@ class PIIPseudonymizer(BaseNormalizer):
                 elif isinstance(val, str) and val:
                     pseudonymized, counts = self._pseudonymize(val, entity_map, analyzer, faker)
                     setattr(sample, field, pseudonymized)
+                    for etype, count in counts.items():
+                        total_counts[etype] = total_counts.get(etype, 0) + count
+
+            # A conversation's system prompt and later turns live in metadata, and the exporters write
+            # them. Pseudonymize them with the same entity map so a name that recurs gets one fake
+            # value across the whole conversation.
+            for _label, container, key in conversation_slots(sample):
+                if container[key]:
+                    container[key], counts = self._pseudonymize(container[key], entity_map, analyzer, faker)
                     for etype, count in counts.items():
                         total_counts[etype] = total_counts.get(etype, 0) + count
 

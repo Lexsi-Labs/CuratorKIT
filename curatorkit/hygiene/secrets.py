@@ -23,10 +23,11 @@ import hashlib
 import json
 from datetime import UTC, datetime
 
+from curatorkit.hygiene._turns import conversation_slots
 from curatorkit.interfaces import BaseGate
 from curatorkit.schema import DataSample, ProvenanceRecord, RejectedSample
 
-STEP_VERSION = "1.0.0"
+STEP_VERSION = "1.1.0"
 
 _PLUGINS_BASE = [
     {"name": "AWSKeyDetector"},
@@ -236,6 +237,11 @@ class SecretsGate(BaseGate):
             elif isinstance(val, str) and val.strip():
                 for finding in _scan_text(val, self._ds_config, self._entropy_plugins):
                     findings.append({**finding, "field": field})
+        # A conversation's system prompt and later turns live in metadata, and the exporters write them.
+        for label, container, key in conversation_slots(sample, read_only=True):
+            if container[key].strip():
+                for finding in _scan_text(container[key], self._ds_config, self._entropy_plugins):
+                    findings.append({**finding, "field": label})
         return findings, active_fields
 
     def run(self, samples: list[DataSample]) -> tuple[list[DataSample], list[RejectedSample]]:

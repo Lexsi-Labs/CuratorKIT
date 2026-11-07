@@ -174,7 +174,8 @@ class MultiTurnTask(BaseGenerationTask):
         turns = self._extract_turns(text)
         if not turns or len(turns) < 2:
             return []
-        return [self._turns_to_sample(sample, turns)]
+        converted = self._turns_to_sample(sample, turns)
+        return [converted] if converted is not None else []
 
     # ── Turn-by-turn path ─────────────────────────────────────────────────────
 
@@ -386,7 +387,29 @@ class MultiTurnTask(BaseGenerationTask):
 
     # ── Shared output builder ─────────────────────────────────────────────────
 
-    def _turns_to_sample(self, source: DataSample, turns: list[dict]) -> DataSample:
+    @staticmethod
+    def _valid_conversation(turns: list[dict]) -> bool:
+        """A user turn first, then strictly alternating user and assistant turns that each hold
+        text, ending on the assistant. Anything else would export a row with an empty prompt or
+        answer, or a conversation a chat template cannot render."""
+        if len(turns) < 2 or len(turns) % 2:
+            return False
+        for i, t in enumerate(turns):
+            content = t.get("content")
+            if not isinstance(content, str) or not content.strip():
+                return False
+            role = t.get("role")
+            if not isinstance(role, str) or role.strip().lower() != ("user", "assistant")[i % 2]:
+                return False
+        return True
+
+    def _turns_to_sample(self, source: DataSample, turns: list[dict]) -> DataSample | None:
+        # A dangling user question (even num_turns in turn_by_turn mode ends on a follow-up) has no
+        # answer; drop it rather than the whole conversation.
+        if turns and str(turns[-1].get("role", "")).strip().lower() == "user":
+            turns = turns[:-1]
+        if not self._valid_conversation(turns):
+            return None
         first_user = ""
         first_assistant = ""
         extra_turns = []

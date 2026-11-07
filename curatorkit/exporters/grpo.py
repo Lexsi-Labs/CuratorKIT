@@ -3,6 +3,7 @@ GRPOExporter — serialize DataSamples to GRPO group rollout format.
 
 Output: {output_dir}/grpo.jsonl
 Each line: {"prompt": "...", "responses": [...], "rewards": [...]}
+plus "reference" (the gold answer) when any exported sample carries one.
 
 The prompt maps to DataSample.instruction; responses and rewards map to
 DataSample.responses and DataSample.reward_scores, which GRPORolloutTask
@@ -37,26 +38,31 @@ class GRPOExporter(BaseExporter):
     """
 
     filename = "grpo.jsonl"
-    columns = {"prompt": "string", "responses": "list of string", "rewards": "list of float"}
+    columns = {
+        "prompt": "string",
+        "responses": "list of string",
+        "rewards": "list of float",
+        "reference": "string; gold answer, present only when the input rows carried one",
+    }
 
     def export(self, samples: list[DataSample], output_dir: Path) -> None:
         output_path = output_dir / self.filename
-        skipped = 0
-        exported = 0
+        kept = [s for s in samples if is_compatible(s.task_type, _FORMAT) and s.instruction.strip()]
+        exported = len(kept)
+        skipped = len(samples) - exported
+        # All-or-nothing column so every row has the same schema.
+        has_reference = any(s.output.strip() for s in kept)
 
         with open(output_path, "w", encoding="utf-8") as f:
-            for sample in samples:
-                if not is_compatible(sample.task_type, _FORMAT) or not sample.instruction.strip():
-                    skipped += 1
-                    continue
-
+            for sample in kept:
                 record = {
                     "prompt": sample.instruction,
                     "responses": sample.responses,
                     "rewards": sample.reward_scores,
                 }
+                if has_reference:
+                    record["reference"] = sample.output
                 f.write(json.dumps(record, ensure_ascii=False) + "\n")
-                exported += 1
 
         if skipped:
             task_types = {s.task_type for s in samples}

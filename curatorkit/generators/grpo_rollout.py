@@ -24,6 +24,7 @@ import uuid
 
 from tqdm import tqdm
 
+from curatorkit.gates._score_parsing import JudgeParseError, _structured
 from curatorkit.generators.base import BaseGenerationTask
 from curatorkit.llm.base import BaseLLM, LLMResponse
 from curatorkit.schema import DataSample, RejectedSample
@@ -54,6 +55,10 @@ Response: {response}
 
 Respond with ONLY a JSON object:
 {{"score": 0.XX, "reasoning": "brief justification"}}"""
+
+
+class ScoringError(RuntimeError):
+    """A rollout response could not be scored (scorer unreachable or unparseable output)."""
 
 
 class GRPORolloutTask(BaseGenerationTask):
@@ -110,6 +115,21 @@ class GRPORolloutTask(BaseGenerationTask):
         if scoring_prompt:
             self._validate_template(scoring_prompt, ["instruction", "response"], "scoring_prompt")
 
+    @staticmethod
+    def _reference(sample: DataSample) -> str:
+        """Gold answer carried through to the rollout sample, so a verifiable-reward
+        trainer can score responses against it.
+
+        Only an instruction row's `output` is an answer. A row with no instruction
+        has its `output` used as the source passage (see `_get_source_context`), and
+        a passage is never a gold answer. An `unpaired_preference` completion is a
+        rated sample, not a verified answer: with `label=False` it is a known-bad
+        one. Such rows keep their prompt and get no reference.
+        """
+        if sample.instruction and sample.task_type == "instruction_following":
+            return sample.output
+        return ""
+
     def _build_messages(self, sample: DataSample) -> list[dict[str, str]]:
         """Build messages for a single response generation."""
         source_context = self._get_source_context(sample)
@@ -131,6 +151,18 @@ class GRPORolloutTask(BaseGenerationTask):
     def _parse_response(self, sample: DataSample, response: LLMResponse) -> list[DataSample]:
         """Not used directly — run() handles multi-response generation."""
         return []
+
+    def _get_source_context(self, sample: DataSample) -> str:
+        """Source passage for the rollout prompt.
+
+        An instruction row's `output` is its gold answer, not a passage: the base
+        fallback to `output` would put the answer in the prompt the policy is
+        sampled from, so every rollout would copy it and the rewards would be
+        meaningless. Only `input` is context for such a row.
+        """
+        if sample.instruction and sample.task_type != "language_modeling":
+            return sample.input
+        return super()._get_source_context(sample)
 
     def _get_temperatures(self) -> list[float]:
         """Return per-rollout temperatures.
@@ -156,28 +188,58 @@ class GRPORolloutTask(BaseGenerationTask):
         step = (high - low) / (n - 1)
         return [round(low + i * step, 2) for i in range(n)]
 
+    @staticmethod
+    def _parse_score(text: str) -> float:
+        """Parse the scorer's reply; raises ScoringError instead of inventing a score.
+
+        Only a `score` key holding a number from 0 to 1 counts, as in the judge gates, from the reply as JSON or from the first
+        JSON object in it (a model that adds text around the object). No fallback to
+        the first number in the text: `Response 2 of 4 is weak.` is not a 0.2.
+        """
+        text = re.sub(r"```(?:json)?\s*", "", text.strip())
+        text = re.sub(r"```\s*$", "", text)
+        try:
+            parsed = json.loads(text)
+        except json.JSONDecodeError:
+            parsed = None
+            if "{" in text:
+                try:
+                    parsed = json.JSONDecoder().raw_decode(text, text.index("{"))[0]
+                except json.JSONDecodeError:
+                    pass
+        try:
+            if not isinstance(parsed, dict) or "score" not in parsed:
+                raise JudgeParseError(f"no 'score' in scorer output: {text[:200]!r}")
+            return _structured(parsed["score"], "score")
+        except JudgeParseError as e:
+            raise ScoringError(str(e)) from e
+
+    @staticmethod
+    def _rejection_reason(error: Exception) -> str:
+        if isinstance(error, ScoringError):
+            return f"scoring_failed:{type(error.__cause__ or error).__name__}:{error}"
+        return f"generation_failed:{type(error).__name__}:{error}"
+
     def _score_single(self, instruction: str, response_text: str) -> float:
-        """Score a single response using the scoring LLM."""
+        """Score a single response using the scoring LLM.
+
+        Fails closed like the judge gates: a scorer error or unparseable reply raises
+        ScoringError, so the rollout group is rejected rather than getting a made-up
+        reward (constant rewards give GRPO zero advantage and no learning signal).
+        """
         prompt = self.scoring_prompt.format(
             instruction=instruction,
             response=response_text,
         )
-
         try:
             resp = self.scoring_llm.generate(
                 [{"role": "user", "content": prompt}],
                 temperature=self.scoring_llm.temperature,
                 max_tokens=self.scoring_llm.max_tokens,
             )
-            text = resp.text.strip()
-            text = re.sub(r"```(?:json)?\s*", "", text)
-            text = re.sub(r"```\s*$", "", text)
-
-            parsed = json.loads(text)
-            score = float(parsed.get("score", 0.5))
-            return max(0.0, min(1.0, score))
-        except (json.JSONDecodeError, ValueError, KeyError, RuntimeError):
-            return 0.5
+        except RuntimeError as e:
+            raise ScoringError(str(e)) from e
+        return self._parse_score(resp.text)
 
     def run(self, samples: list[DataSample]) -> list[DataSample]:
         """
@@ -239,6 +301,7 @@ class GRPORolloutTask(BaseGenerationTask):
                         source_uri=sample.source_uri,
                         instruction=instruction,
                         input=source_context,
+                        output=self._reference(sample),
                         responses=responses,
                         reward_scores=scores,
                         task_type="grpo",
@@ -259,7 +322,7 @@ class GRPORolloutTask(BaseGenerationTask):
                 self._rejected.append(
                     RejectedSample(
                         **sample.model_dump(),
-                        rejection_reason=f"generation_failed:{type(e).__name__}:{e}",
+                        rejection_reason=self._rejection_reason(e),
                         rejecting_step=self.task_name,
                     )
                 )
@@ -275,15 +338,9 @@ class GRPORolloutTask(BaseGenerationTask):
                 temperature=self.scoring_llm.temperature,
                 max_tokens=self.scoring_llm.max_tokens,
             )
-            text = resp.text.strip()
-            text = re.sub(r"```(?:json)?\s*", "", text)
-            text = re.sub(r"```\s*$", "", text)
-
-            parsed = json.loads(text)
-            score = float(parsed.get("score", 0.5))
-            return max(0.0, min(1.0, score))
-        except (json.JSONDecodeError, ValueError, KeyError, RuntimeError):
-            return 0.5
+        except RuntimeError as e:
+            raise ScoringError(str(e)) from e
+        return self._parse_score(resp.text)
 
     async def run_async(self, samples: list[DataSample]) -> list[DataSample]:
         """
@@ -344,6 +401,7 @@ class GRPORolloutTask(BaseGenerationTask):
                         source_uri=sample.source_uri,
                         instruction=instruction,
                         input=source_context,
+                        output=self._reference(sample),
                         responses=responses,
                         reward_scores=scores,
                         task_type="grpo",
@@ -362,7 +420,7 @@ class GRPORolloutTask(BaseGenerationTask):
                     self._rejected.append(
                         RejectedSample(
                             **sample.model_dump(),
-                            rejection_reason=f"generation_failed:{type(e).__name__}:{e}",
+                            rejection_reason=self._rejection_reason(e),
                             rejecting_step=self.task_name,
                         )
                     )

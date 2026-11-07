@@ -1022,6 +1022,8 @@ class Curator:
                     max_tokens=cfg.max_tokens,
                     use_tiktoken=cfg.use_tiktoken or cfg.schema_use_tiktoken,
                     enforce_task_types=cfg.schema_enforce_task_types or None,
+                    # Seeds for a generation task don't have outputs yet.
+                    output_generated_later=cfg.generation_task is not None,
                 )
             )
 

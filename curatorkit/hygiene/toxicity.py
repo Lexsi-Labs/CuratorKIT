@@ -36,13 +36,19 @@ import re
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
+from curatorkit.gates._score_parsing import _finite
+from curatorkit.hygiene._turns import _STRUCTURAL_KEYS, conversation_slots
 from curatorkit.interfaces import BaseGate
 from curatorkit.schema import DataSample, ProvenanceRecord, RejectedSample
 
 if TYPE_CHECKING:
     from curatorkit.llm.base import BaseLLM
 
-STEP_VERSION = "1.0.0"
+_WINDOW = 2048  # characters the classifier reads at once
+_STRIDE = 1536  # windows overlap by a quarter
+_SHORT = 64  # a structural string at least this long is scored on its own
+
+STEP_VERSION = "1.1.0"
 
 _LLM_JUDGE_PROMPT = """\
 You are a content safety evaluator for LLM fine-tuning datasets.
@@ -181,18 +187,54 @@ class ToxicityGate(BaseGate):
             pairs.append(("output", sample.output))
         if sample.instruction.strip():
             pairs.append(("instruction", sample.instruction))
+        # A conversation's system prompt and later turns live in metadata, and the exporters write them.
+        # Each piece of text is scored on its own, so a short toxic turn is not diluted by clean ones
+        # and a long string under an unexpected key is not hidden inside a joined field. Only short
+        # structural strings (role names, keys, part types) share a field. Labels carry an index, so
+        # two slots never share a name.
+        structural: list[str] = []
+        for n, (label, container, key) in enumerate(conversation_slots(sample, read_only=True)):
+            text = container[key]
+            if not text.strip():
+                continue
+            if len(text) < _SHORT and (label.endswith("<key>") or key in _STRUCTURAL_KEYS):
+                structural.append(text)
+            else:
+                pairs.append((f"{label}#{n}", text))
+        if structural:
+            pairs.append(("conversation_structure", "\n".join(structural)))
         return pairs
 
+    @staticmethod
+    def _windows(text: str) -> list[str]:
+        """Split text into overlapping pieces the classifier can read whole (it truncates at 2 048 characters)."""
+        if len(text) <= _WINDOW:
+            return [text]
+        # Windows overlap by a quarter, so a phrase that straddles a boundary is scored whole.
+        starts = list(range(0, len(text) - _WINDOW, _STRIDE)) + [len(text) - _WINDOW]
+        return [text[i : i + _WINDOW] for i in starts]
+
     def _score_field(self, text: str) -> dict[str, float]:
-        """Run Detoxify on a single text field. Truncates to 2 048 chars."""
+        """Run Detoxify on a single text field. A long text is scored in 2 048-character windows
+        and each label keeps its highest score, so toxic content late in a long sample is seen."""
         classifier = self._load_classifier()
-        raw = classifier.predict(text[:2048])
-        return {k: round(float(v), 4) for k, v in raw.items()}
+        best: dict[str, float] = {}
+        for window in self._windows(text):
+            for k, v in classifier.predict(window).items():
+                best[k] = max(best.get(k, 0.0), round(float(v), 4))
+        return best
+
+    def _worst_window(self, text: str) -> str:
+        """The window of ``text`` with the highest classifier score; what the LLM judge should read."""
+        windows = self._windows(text)
+        if len(windows) == 1:
+            return windows[0]
+        return max(windows, key=lambda w: max(self._score_field(w).values(), default=0.0))
 
     def _llm_verdict(self, text: str) -> tuple[float, str, list[str]]:
         """Call LLM judge. Returns (score, reasoning, categories)."""
         assert self.llm is not None
-        prompt = _LLM_JUDGE_PROMPT.format(text=text[:1500])
+        prompt = _LLM_JUDGE_PROMPT.format(text=text[:_WINDOW])
         try:
             response = self.llm.generate(
                 messages=[{"role": "user", "content": prompt}],
@@ -203,7 +245,7 @@ class ToxicityGate(BaseGate):
             if m:
                 data = json.loads(m.group())
                 return (
-                    float(data.get("toxicity_score", 1.0)),
+                    _finite(data.get("toxicity_score", 1.0)),
                     str(data.get("reasoning", "")),
                     list(data.get("categories", [])),
                 )
@@ -241,6 +283,7 @@ class ToxicityGate(BaseGate):
             # Score each field independently; track worst-case field
             field_scores: dict[str, dict[str, float]] = {}
             worst_field = ""
+            worst_text = ""
             worst_max = 0.0
 
             for field_name, text in field_pairs:
@@ -250,6 +293,7 @@ class ToxicityGate(BaseGate):
                 if field_max > worst_max:
                     worst_max = field_max
                     worst_field = field_name
+                    worst_text = text
 
             # Stage 1: clearly safe
             if worst_max < self.classifier_pass_threshold:
@@ -297,8 +341,7 @@ class ToxicityGate(BaseGate):
                 continue
 
             # Stage 2: borderline — escalate to LLM judge on the worst field
-            worst_text = next(text for fname, text in field_pairs if fname == worst_field)
-            llm_score, reasoning, categories = self._llm_verdict(worst_text)
+            llm_score, reasoning, categories = self._llm_verdict(self._worst_window(worst_text))
 
             if llm_score >= self.llm_reject_threshold:
                 rej = RejectedSample(

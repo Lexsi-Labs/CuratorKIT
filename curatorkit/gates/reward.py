@@ -14,7 +14,6 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import json
-import re
 import threading
 import warnings
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -28,7 +27,12 @@ from curatorkit.gates._judge import (
     judge_error_result,
     warn_judge_errors,
 )
-from curatorkit.gates._score_parsing import extract_score, template_mentions_key
+from curatorkit.gates._score_parsing import (
+    _finite,
+    extract_score,
+    parse_judge_reply,
+    template_mentions_key,
+)
 from curatorkit.interfaces import BaseGate
 from curatorkit.llm.base import BaseLLM
 from curatorkit.schema import DataSample, ProvenanceRecord, RejectedSample
@@ -149,8 +153,8 @@ class RewardGate(BaseGate):
             warnings.warn(
                 "reward_prompt_template does not mention 'overall_score' — RewardGate parses "
                 "that exact key from the judge's JSON response to decide pass/fail. Without it, "
-                "scores will be recovered by averaging your requested dimensions or extracting a "
-                "number from the raw response, which may reject far more samples than expected. "
+                "scores are averaged from your requested dimensions if the JSON has them, and any "
+                "other reply is rejected, which may reject far more samples than expected. "
                 'Add `"overall_score": 0.XX` to your template\'s expected output JSON.',
                 UserWarning,
                 stacklevel=2,
@@ -375,6 +379,9 @@ class RewardGate(BaseGate):
             return None, rej
 
     def run(self, samples: list[DataSample]) -> tuple[list[DataSample], list[RejectedSample]]:
+        if not samples:
+            return [], []
+
         passed: list[DataSample] = []
         rejected: list[RejectedSample] = []
         cfg_hash = self._config_hash()
@@ -429,7 +436,7 @@ class RewardGate(BaseGate):
             return
         warnings.warn(
             f"RewardGate: {self._fallback_count}/{self._scored_count} judge responses had no "
-            "'overall_score' and were scored via dimension-averaging or raw-text extraction "
+            "'overall_score' and were scored via dimension-averaging "
             "instead — check that your reward_prompt_template's expected output JSON includes "
             '`"overall_score": 0.XX`.',
             UserWarning,
@@ -448,14 +455,7 @@ class RewardGate(BaseGate):
             max_tokens=self.llm.max_tokens,
         )
 
-        text = resp.text.strip()
-        text = re.sub(r"```(?:json)?\s*", "", text)
-        text = re.sub(r"```\s*$", "", text)
-
-        try:
-            parsed = json.loads(text)
-        except json.JSONDecodeError:
-            parsed = None
+        text, parsed = parse_judge_reply(resp.text)
 
         overall, used_fallback = extract_score(
             parsed, text, "overall_score", dimension_keys=tuple(self.dimensions)
@@ -470,7 +470,7 @@ class RewardGate(BaseGate):
             for dim in self.dimensions:
                 if dim in raw_dims:
                     try:
-                        dim_scores[dim] = max(0.0, min(1.0, float(raw_dims[dim])))
+                        dim_scores[dim] = max(0.0, min(1.0, _finite(raw_dims[dim])))
                     except (TypeError, ValueError):
                         continue
 
@@ -496,13 +496,7 @@ class RewardGate(BaseGate):
             temperature=self.llm.temperature,
             max_tokens=self.llm.max_tokens,
         )
-        text = resp.text.strip()
-        text = re.sub(r"```(?:json)?\s*", "", text)
-        text = re.sub(r"```\s*$", "", text)
-        try:
-            parsed = json.loads(text)
-        except json.JSONDecodeError:
-            parsed = None
+        text, parsed = parse_judge_reply(resp.text)
 
         overall, used_fallback = extract_score(
             parsed, text, "overall_score", dimension_keys=tuple(self.dimensions)
@@ -517,7 +511,7 @@ class RewardGate(BaseGate):
             for dim in self.dimensions:
                 if dim in raw_dims:
                     try:
-                        dim_scores[dim] = max(0.0, min(1.0, float(raw_dims[dim])))
+                        dim_scores[dim] = max(0.0, min(1.0, _finite(raw_dims[dim])))
                     except (TypeError, ValueError):
                         continue
 

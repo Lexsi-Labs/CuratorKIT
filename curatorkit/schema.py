@@ -57,7 +57,8 @@ class DataSample(BaseModel):
       preference             → instruction (prompt), chosen, rejected
       implicit_preference    → chosen, rejected (instruction extracted from common prefix)
       unpaired_preference    → instruction (prompt), output (completion), label
-      grpo                   → instruction (prompt), responses, reward_scores
+      grpo                   → instruction (prompt), responses, reward_scores,
+                               output (optional gold reference answer)
       prompt_only            → instruction (prompt)
       language_modeling      → output (full text sequence)
     """

@@ -160,13 +160,22 @@ class ChainOfThoughtTask(BaseGenerationTask):
         reasoning = ""
         answer = sample.output
 
+        parsed = None
         try:
             parsed = json.loads(clean)
-            if isinstance(parsed, dict):
-                reasoning = coerce_text(parsed.get("reasoning", ""))
-                answer = coerce_text(parsed.get("answer", sample.output))
         except json.JSONDecodeError:
-            reasoning = text
+            # Models often wrap the JSON object in prose; try the outermost {...}.
+            match = re.search(r"\{.*\}", clean, re.DOTALL)
+            if match:
+                try:
+                    parsed = json.loads(match.group())
+                except json.JSONDecodeError:
+                    parsed = None
+        # Anything that is not a JSON object (a refusal, prose) is not a chain of thought: returning
+        # [] lets the base class retry and then record a generation_parse_failed rejection.
+        if isinstance(parsed, dict):
+            reasoning = coerce_text(parsed.get("reasoning", ""))
+            answer = coerce_text(parsed.get("answer", sample.output))
 
         if not reasoning:
             return []

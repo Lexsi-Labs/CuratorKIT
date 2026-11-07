@@ -46,6 +46,11 @@ GATES = [
 JUDGES = {
     "raises": FakeJudge(exc=TimeoutError("judge down")),
     "unparseable": FakeJudge(text="I cannot rate this answer."),
+    "nan": FakeJudge(text='{"overall_score": NaN, "grounding_score": NaN}'),
+    "nan_with_digit": FakeJudge(
+        text='{"overall_score": NaN, "grounding_score": NaN, "reason": "failed at step 9"}'
+    ),
+    "overflow": FakeJudge(text='{"overall_score": 1e999, "grounding_score": 1e999}'),
 }
 
 
@@ -144,3 +149,68 @@ def test_probe_and_refiner_skip_judge_errors(tmp_path):
     refiner = RewardRefiner(generator_llm=generator, reward_gate=gate)
     recovered, still = refiner.refine(res.rejected)
     assert recovered == [] and still == res.rejected
+
+
+@pytest.mark.parametrize("gate_cls", [RewardGate, HallucinationGate])
+def test_empty_batch(gate_cls):
+    assert gate_cls(llm=FakeJudge()).run([]) == ([], [])
+
+
+@pytest.mark.parametrize("gate_cls", [RewardGate, HallucinationGate])
+def test_pipeline_survives_every_sample_rejected_upstream(gate_cls, tmp_path):
+    from curatorkit.connectors.base import BaseReader
+    from curatorkit.gates.schema import SchemaGate
+    from curatorkit.pipeline import Pipeline
+
+    class ShortSample(BaseReader):
+        def read(self):
+            return [DataSample(source_uri="t", instruction="a", output="b")], []
+
+    pipe = Pipeline(
+        [ShortSample(), SchemaGate(min_tokens=3), gate_cls(llm=FakeJudge())],
+        output_dir=tmp_path,
+    )
+    res = pipe.run()
+    assert res.passed == []
+    assert len(res.rejected) == 1
+
+
+@pytest.mark.parametrize("use_async", [False, True])
+def test_nan_dimension_is_not_recorded_as_a_perfect_score(use_async):
+    reply = '{"overall_score": 0.9, "dimension_scores": {"truthfulness": NaN, "creativity": 0.6}}'
+    gate = RewardGate(
+        llm=FakeJudge(text=reply), threshold=0.5, dimensions=["truthfulness", "creativity"]
+    )
+    passed, _ = _run(gate, _sft(), use_async)
+    assert passed[0].provenance_chain[-1].notes["dimension_scores"] == {"creativity": 0.6}
+
+
+@pytest.mark.parametrize("use_async", [False, True])
+@pytest.mark.parametrize("cls,make", [(RewardGate, _sft), (HallucinationGate, _sft)])
+def test_fenced_json_reply_is_scored(cls, make, use_async):
+    reply = '```json\n{"overall_score": 0.9, "grounding_score": 0.9}\n```'
+    passed, rejected = _run(cls(llm=FakeJudge(text=reply), threshold=0.5), make(), use_async)
+    assert len(passed) == 1 and rejected == []
+
+
+@pytest.mark.parametrize("use_async", [False, True])
+@pytest.mark.parametrize("cls,step,make", GATES)
+@pytest.mark.parametrize(
+    "reply",
+    [
+        'Sure:\n```json\n{"overall_score": 0.9, "grounding_score": 0.9}\n```',
+        '{"overall_score": ```0.9```, "grounding_score": ```0.9```}',
+    ],
+)
+def test_fence_inside_a_longer_reply_is_rejected(cls, step, make, reply, use_async):
+    with pytest.warns(UserWarning, match="judge failed on 1/1"):
+        passed, rejected = _run(cls(llm=FakeJudge(text=reply), threshold=0.5), make(), use_async)
+    assert passed == [] and rejected[0].rejection_reason == "judge_error:JudgeParseError"
+
+
+def test_default_prompts_ask_for_json_only():
+    from curatorkit.gates.hallucination import _DEFAULT_GROUNDING_PROMPT
+    from curatorkit.gates.reward import _DEFAULT_REWARD_PROMPT
+
+    assert "JSON format ONLY" in _DEFAULT_GROUNDING_PROMPT
+    assert "JSON format ONLY" in _DEFAULT_REWARD_PROMPT
