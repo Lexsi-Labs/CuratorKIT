@@ -23,7 +23,7 @@
       
       
       <link rel="icon" href="../../assets/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.0">
     
     
       
@@ -31,10 +31,10 @@
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.57a0d79d.min.css">
       
         
-        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.fb2fffe2.min.css">
       
       
 
@@ -1252,6 +1252,7 @@ PyPI page, not a heading here.</p>
 </blockquote>
 <h3 id="changed">Changed<a class="headerlink" href="#changed" title="Permanent link">&para;</a></h3>
 <ul>
+<li><code>TextCleaner</code> records which fields <code>strip_html</code> changed (<code>html_stripped_fields</code> in the provenance note) and logs a warning with the count of affected samples, so tag-based prompt injections in safety data are no longer removed silently. Default unchanged; documented in the configuration reference (#42).</li>
 <li><code>sft_sharegpt.jsonl</code> keeps the ShareGPT <code>conversations</code> / <code>from</code> / <code>value</code> layout, but no longer
   drops data: <code>metadata["system_prompt"]</code> becomes a leading <code>system</code> turn, a non-empty <code>input</code> is
   appended to the first <code>human</code> turn, and later turns given as role/content are converted to
@@ -1331,14 +1332,67 @@ PyPI page, not a heading here.</p>
 </ul>
 <h3 id="fixed">Fixed<a class="headerlink" href="#fixed" title="Permanent link">&para;</a></h3>
 <ul>
+<li><code>PIIPseudonymizer</code> replaces overlapping Presidio spans once, as the type of the span that starts first (on a tie, the longest, then the highest score). It used
+  to replace each span in turn, so a date found inside an IBAN or card number shifted the offsets
+  and left digits of the original value in the output. <code>entities_replaced</code> counts a merged group
+  once. <code>PIIPseudonymizer</code> <code>STEP_VERSION</code> is now 1.1.0.</li>
 <li>The judge gates fail closed. A judge call that raised (bad key, HTTP 500, timeout) used to pass
   the sample, and judge output with no number in it scored a neutral 0.5 that cleared any
   threshold &lt;= 0.5. Both now reject the sample as <code>judge_error:&lt;ExceptionType&gt;</code> and record the
   error in provenance; each run warns with the count. <code>DiagnosticProbe</code> and <code>RewardRefiner</code> skip
   these rejects. <code>HallucinationGate</code> / <code>RewardGate</code> <code>STEP_VERSION</code> is now 1.1.0.</li>
+<li><code>ToxicityGate</code> rejects a borderline sample when the judge returns <code>NaN</code> for <code>toxicity_score</code>, and
+  <code>RewardGate</code> no longer records a <code>NaN</code> dimension as 1.0 in its <code>dimension_scores</code> note.</li>
+<li><code>GRPORolloutTask</code> carries an instruction row's gold answer to the <code>reference</code> column of
+  <code>grpo.jsonl</code> (present only when a row has one), keeps it out of the rollout prompt, and rejects a
+  rollout whose scoring failed (<code>scoring_failed:&lt;ExceptionType&gt;</code>) instead of giving it a reward of
+  0.5 (@chayan-bit). Only an <code>instruction_following</code> row with an instruction supplies a reference: a
+  passage used as source text, or an <code>unpaired_preference</code> completion (which may be a known-bad
+  answer), is not a gold answer. The scorer accepts only a <code>score</code> from 0 to 1, from the reply
+  as JSON or the first JSON object in it (<code>85</code> is rejected, not clamped to 1.0), so <code>Response 2 of 4 is weak.</code> is no longer a score of 0.2.</li>
+<li><code>EvolInstructTask</code> and <code>Curator</code> with a generation task: seeds without an <code>output</code> are no longer
+  rejected by <code>SchemaGate</code> (<code>output_generated_later</code>, which is part of the gate's config hash), a
+  custom <code>answer_prompt_template</code> is used for every sample and may use <code>{context}</code>, a refusal or
+  prose reply is no longer taken as the evolved instruction, and a prompt-only row keeps its
+  context column as <code>input</code> (@AndrewFribush).</li>
+<li>Hygiene steps look at all of a sample's text. <code>ToxicityGate</code> passed toxic content after the first
+  2 048 characters of a field, because the classifier truncates its input; it now scores overlapping
+  2 048-character windows and the LLM judge reads the worst one (<code>STEP_VERSION</code> 1.1.0).
+  <code>ToxicityGate</code>, <code>SecretsGate</code> and <code>PIIPseudonymizer</code> also skipped a conversation's system prompt
+  and later turns (<code>metadata["system_prompt"]</code> and <code>metadata["turns"]</code>, which the exporters write), so a
+  toxic reply, an API key or an email address there reached the export. All three now read them, in
+  both turn shapes: <code>{"role", "content"}</code> from the connectors and <code>{"from", "value"}</code> from the
+  generators, with text as a string or as a list of parts such as <code>{"type": "text", "text": ...}</code>
+  (<code>SecretsGate</code> <code>STEP_VERSION</code> 1.1.0). The two steps that only read text also scan role names, other
+  keys and every dict key, at any depth; the pseudonymizer rewrites text and leaves keys and
+  <code>type</code>/<code>role</code> values alone.</li>
+<li>Generators no longer turn prose into training data. <code>PreferenceGenerationTask</code> read a JSON pair
+  wrapped in prose as <code>chosen = '": "4", "rejected": ...'</code>, took any text containing "better" or
+  "worse" as a pair, and accepted a pair whose two answers were the same. <code>QAGenerationTask</code>'s
+  <code>Q:</code>/<code>A:</code> fallback matched the "q" of "questions" and the first "a" of a reply, so a refusal
+  became a pair and a genuine <code>Q:</code>/<code>A:</code> reply was cut after one letter. <code>ChainOfThoughtTask</code> in
+  <code>wrap</code> mode stored a refusal as the reasoning. <code>MultiTurnTask</code> exported conversations that began
+  with an assistant or system turn, did not alternate, or held an empty or non-text turn, as rows
+  with an empty prompt or answer. <code>AdversarialPreferenceTask</code> crashed on JSON that was not a list
+  of objects and kept a rejected answer equal to the chosen one. JSON inside prose is now read from
+  its outermost object or array; labels must start a line and end in a colon; identical pairs, a
+  non-conforming conversation and non-JSON chain-of-thought replies are rejected. A conversation
+  that ends on a user question keeps its earlier turns.</li>
+<li><code>RewardGate.run</code> and <code>HallucinationGate.run</code> return <code>([], [])</code> for an empty batch instead of
+  raising <code>ValueError: range() arg 3 must not be zero</code>, so a pipeline whose earlier step rejects
+  every sample finishes and keeps its rejects.</li>
 <li>Token counting counts each Han, kana, Hangul, Thai, Lao, Khmer or Myanmar character as a token,
   so complete Chinese, Japanese, Korean and Thai rows are no longer rejected by the default
   <code>min_tokens=10</code>. SchemaGate's preference-length comparison uses the same counter.</li>
+<li>A judge score of <code>NaN</code> or <code>Infinity</code> no longer passes. <code>json.loads</code> accepts both and the 0-1 clamp
+  turned them into 1.0, so <code>{"overall_score": NaN}</code> cleared any threshold.</li>
+<li>Judge scores come from JSON only. A reply is parsed as JSON, after removing one code fence if it
+  wraps the whole reply, and read from its top-level keys; every requested key present must hold a
+  number from 0 to 1. The first digit anywhere in the reply used to be the score, so <code>failed at step 9</code>
+  scored 0.9 and <code>Response 2 of 4 is weak.</code> 0.2, and out-of-range numbers clamped to 1.0. <strong>Replies
+  that used to pass are now rejected as <code>judge_error:JudgeParseError</code>:</strong> prose such as <code>8/10</code>, a bare
+  number, cut-off JSON, JSON with text around it, <code>{"overall_score": 85}</code> and <code>{"overall_score": "0.9"}</code>.
+  The default prompts already ask for JSON only. See <code>on_judge_error</code>.</li>
 <li>README: the PyPI badge showed a fixed <code>v0.1.0</code>; it now reads the live version. GitHub
   Discussions links (404) now point to Issues.</li>
 <li>The <code>trl</code> extra requires <code>transformers&gt;=5.15,&lt;6</code>.</li>
@@ -1634,10 +1688,10 @@ PyPI page, not a heading here.</p>
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.indexes", "navigation.top", "navigation.footer", "navigation.prune", "toc.follow", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tabs.link", "content.action.edit"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.indexes", "navigation.top", "navigation.footer", "navigation.prune", "toc.follow", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tabs.link", "content.action.edit"], "search": "../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
     
     
-      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      <script src="../../assets/javascripts/bundle.c21346df.min.js"></script>
       
         <script src="../../assets/extra.js"></script>
       

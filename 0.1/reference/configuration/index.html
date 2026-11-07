@@ -23,7 +23,7 @@
       
       
       <link rel="icon" href="../../assets/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.0">
     
     
       
@@ -31,10 +31,10 @@
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.57a0d79d.min.css">
       
         
-        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.fb2fffe2.min.css">
       
       
 
@@ -1815,7 +1815,7 @@
 <td><code>clean_transforms</code></td>
 <td><code>dict[str, bool]</code></td>
 <td><code>{}</code></td>
-<td>Toggle specific transforms. Keys: <code>"normalise_unicode"</code>, <code>"fix_encoding_artifacts"</code>, <code>"collapse_whitespace"</code>, <code>"remove_control_chars"</code>, <code>"strip_html"</code>. Default: all enabled.</td>
+<td>Toggle specific transforms. Keys: <code>"normalise_unicode"</code>, <code>"fix_encoding_artifacts"</code>, <code>"collapse_whitespace"</code>, <code>"remove_control_chars"</code>, <code>"strip_html"</code>. Default: all enabled. <code>strip_html</code> deletes anything shaped like a tag, including tag-based prompt injections (<code>&lt;system&gt;...&lt;/system&gt;</code>) in safety or red-teaming data; set <code>{"strip_html": False}</code> for those datasets. Rows it changes are listed in the <code>TextCleaner</code> provenance note <code>html_stripped_fields</code>, and a warning reports the count.</td>
 </tr>
 <tr>
 <td><code>clean_fields</code></td>
@@ -2622,7 +2622,7 @@ they're treated as <code>{model: "..."}</code> shorthand and only apply when the
 </tbody>
 </table>
 <blockquote>
-<p><strong>Custom judge prompt templates and scoring</strong>: <code>reward_prompt_template</code>/<code>hallucination_prompt_template</code> replace the entire prompt text, but the gate still parses one specific top-level JSON key out of the judge's response (<code>overall_score</code> / <code>grounding_score</code>) — that key is never computed by CuratorKIT, it's whatever the LLM returns. If your custom template's expected output doesn't ask for that exact key, the gate can't find it and falls back to averaging your <code>reward_dimensions</code> (if present flat in the response) or extracting any number from the raw text, which can behave very differently from what you intended. If the response contains no number at all, the sample is rejected as <code>judge_error:JudgeParseError</code> (see <code>judge_on_error</code>). CuratorKIT warns you twice if this happens: once immediately at gate construction (a cheap check of whether the key literally appears in your template text, before any LLM calls), and once after a run if fallback parsing was actually used. When writing a custom template, always include the required key explicitly in the JSON shape you ask the model for.
+<p><strong>Custom judge prompt templates and scoring</strong>: <code>reward_prompt_template</code>/<code>hallucination_prompt_template</code> replace the entire prompt text, but the gate still parses one specific top-level JSON key out of the judge's response (<code>overall_score</code> / <code>grounding_score</code>) — that key is never computed by CuratorKIT, it's whatever the LLM returns. If your custom template's expected output doesn't ask for that exact key, the gate can't find it and falls back to averaging your <code>reward_dimensions</code> (if present flat in the response), which can behave very differently from what you intended. Scores come from JSON only: any other reply is rejected as <code>judge_error:JudgeParseError</code>, including prose, cut-off JSON, JSON with no requested key, and a requested key that is not a number from 0 to 1 (see <code>judge_on_error</code>). CuratorKIT warns you twice if this happens: once immediately at gate construction (a cheap check of whether the key literally appears in your template text, before any LLM calls), and once after a run if fallback parsing was actually used. When writing a custom template, always include the required key explicitly in the JSON shape you ask the model for.
 | <code>reward_store_score</code> | <code>bool</code> | <code>True</code> | Write the overall reward score to each sample's <code>label</code> field (used by the reward refiner and downstream filtering) |
 | <code>diversity_threshold</code> | <code>float \| None</code> | <code>None</code> | Enable DiversityGate. Samples with cosine similarity above this to any accepted sample are rejected. Range 0.0–1.0. <code>None</code> = gate disabled. |</p>
 </blockquote>
@@ -2995,10 +2995,10 @@ they're treated as <code>{model: "..."}</code> shorthand and only apply when the
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.indexes", "navigation.top", "navigation.footer", "navigation.prune", "toc.follow", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tabs.link", "content.action.edit"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.indexes", "navigation.top", "navigation.footer", "navigation.prune", "toc.follow", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tabs.link", "content.action.edit"], "search": "../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
     
     
-      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      <script src="../../assets/javascripts/bundle.c21346df.min.js"></script>
       
         <script src="../../assets/extra.js"></script>
       
