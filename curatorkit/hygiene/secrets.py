@@ -144,7 +144,7 @@ _TASK_FIELDS: dict[str, list[str]] = {
     "preference": ["instruction", "input", "chosen", "rejected"],
     "implicit_preference": ["instruction", "input", "chosen", "rejected"],
     "unpaired_preference": ["instruction", "input", "output"],
-    "grpo": ["instruction", "input", "responses"],
+    "grpo": ["instruction", "input", "output", "responses"],
     "conversational": ["instruction", "input", "output"],
     "instruction_following": ["instruction", "input", "output"],
 }
