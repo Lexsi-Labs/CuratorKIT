@@ -190,6 +190,8 @@ class ToxicityGate(BaseGate):
             pairs.append(("output", sample.output))
         if sample.instruction.strip():
             pairs.append(("instruction", sample.instruction))
+        if sample.input.strip():  # the exporters append `input` to the user turn
+            pairs.append(("input", sample.input))
         # A conversation's system prompt and later turns live in metadata, and the exporters write them.
         # Each piece of text is scored on its own, so a short toxic turn is not diluted by clean ones
         # and a long string under an unexpected key is not hidden inside a joined field. Only short
