@@ -6,6 +6,10 @@ All notable changes to CuratorKIT are documented here. The format follows
 
 ## Unreleased
 
+### Security
+
+- The toxicity gate scores a sample's `input` field. The exporters append it to the user turn, so it was exported without being checked.
+
 > **On the version numbers below.** `curatorkit.__version__` and `CITATION.cff`
 > both declare **0.1.21**, the version the release pipeline publishes next; the
 > latest on PyPI is **0.1.20**. The tree had drifted -- it sat at 0.1.15 while

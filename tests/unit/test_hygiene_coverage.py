@@ -39,6 +39,16 @@ def test_toxic_text_after_the_classifier_window_is_rejected():
     assert not passed and len(rejected) == 1
 
 
+def test_toxic_input_field_is_rejected():
+    # the exporters append `input` to the user turn, so it is scored like the instruction
+    sample = DataSample(
+        source_uri="x", instruction="Summarise this.", input="BADWORD here", output="Fine.",
+        task_type="instruction_following",
+    )
+    passed, rejected = _toxicity_gate().run([sample])
+    assert not passed and len(rejected) == 1
+
+
 def test_clean_long_text_still_passes():
     sample = DataSample(
         source_uri="x", instruction="Q?", output="Fine text. " * 600, task_type="instruction_following"
