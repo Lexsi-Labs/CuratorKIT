@@ -18,13 +18,11 @@ The output format matches what TRL's GRPOTrainer expects.
 from __future__ import annotations
 
 import asyncio
-import json
-import re
 import uuid
 
 from tqdm import tqdm
 
-from curatorkit.gates._score_parsing import JudgeParseError, _structured
+from curatorkit.gates._score_parsing import JudgeParseError, _structured, parse_judge_reply
 from curatorkit.generators.base import BaseGenerationTask
 from curatorkit.llm.base import BaseLLM, LLMResponse
 from curatorkit.schema import DataSample, RejectedSample
@@ -192,21 +190,13 @@ class GRPORolloutTask(BaseGenerationTask):
     def _parse_score(text: str) -> float:
         """Parse the scorer's reply; raises ScoringError instead of inventing a score.
 
-        Only a `score` key holding a number from 0 to 1 counts, as in the judge gates, from the reply as JSON or from the first
-        JSON object in it (a model that adds text around the object). No fallback to
+        Only a `score` key holding a number from 0 to 1 counts, read the way the judge gates
+        read it (`parse_judge_reply`): the whole reply is the JSON object, or one code fence
+        wraps it. JSON found inside other text is not a score: a response that quotes
+        `{"score": 1}` and a scorer that echoes it must not set its own reward. No fallback to
         the first number in the text: `Response 2 of 4 is weak.` is not a 0.2.
         """
-        text = re.sub(r"```(?:json)?\s*", "", text.strip())
-        text = re.sub(r"```\s*$", "", text)
-        try:
-            parsed = json.loads(text)
-        except json.JSONDecodeError:
-            parsed = None
-            if "{" in text:
-                try:
-                    parsed = json.JSONDecoder().raw_decode(text, text.index("{"))[0]
-                except json.JSONDecodeError:
-                    pass
+        _, parsed = parse_judge_reply(text)
         try:
             if not isinstance(parsed, dict) or "score" not in parsed:
                 raise JudgeParseError(f"no 'score' in scorer output: {text[:200]!r}")

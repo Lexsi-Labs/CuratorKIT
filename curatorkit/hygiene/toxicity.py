@@ -179,7 +179,10 @@ class ToxicityGate(BaseGate):
             return pairs
 
         if task == "grpo":
-            return [(f"response_{i}", r) for i, r in enumerate(sample.responses) if r.strip()]
+            pairs = [(f"response_{i}", r) for i, r in enumerate(sample.responses) if r.strip()]
+            if sample.output.strip():  # the gold answer is exported as `reference`
+                pairs.append(("reference", sample.output))
+            return pairs
 
         # instruction_following, conversational, prompt_only, source_chunk, etc.
         pairs = []
