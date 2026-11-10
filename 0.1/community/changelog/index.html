@@ -23,7 +23,7 @@
       
       
       <link rel="icon" href="../../assets/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.0">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.1">
     
     
       
@@ -862,6 +862,17 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#security" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Security
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#changed" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1077,6 +1088,17 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#security" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Security
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#changed" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1239,6 +1261,15 @@
 <a href="https://keepachangelog.com/en/1.1.0/">Keep a Changelog</a>, and the project adheres to
 <a href="https://semver.org/">Semantic Versioning</a>.</p>
 <h2 id="unreleased">Unreleased<a class="headerlink" href="#unreleased" title="Permanent link">&para;</a></h2>
+<h3 id="security">Security<a class="headerlink" href="#security" title="Permanent link">&para;</a></h3>
+<ul>
+<li>GRPO rollout scoring reads the scorer's reply the way the judge gates do: only a
+  <code>score</code> key in a reply that is the JSON object (or one code fence around it) counts.
+  JSON quoted inside other text no longer sets a reward.</li>
+<li>The GRPO gold answer (<code>reference</code> in the export) is now scrubbed by the PII, secret and
+  toxicity steps like the other GRPO text.</li>
+<li>The toxicity gate scores a sample's <code>input</code> field. The exporters append it to the user turn, so it was exported without being checked.</li>
+</ul>
 <blockquote>
 <p><strong>On the version numbers below.</strong> <code>curatorkit.__version__</code> and <code>CITATION.cff</code>
 both declare <strong>0.1.21</strong>, the version the release pipeline publishes next; the
@@ -1691,7 +1722,7 @@ PyPI page, not a heading here.</p>
       <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.indexes", "navigation.top", "navigation.footer", "navigation.prune", "toc.follow", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tabs.link", "content.action.edit"], "search": "../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "latest", "provider": "mike"}}</script>
     
     
-      <script src="../../assets/javascripts/bundle.c21346df.min.js"></script>
+      <script src="../../assets/javascripts/bundle.a5f9d56c.min.js"></script>
       
         <script src="../../assets/extra.js"></script>
       
