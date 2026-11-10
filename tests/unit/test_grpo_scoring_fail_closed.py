@@ -57,8 +57,9 @@ class TestScoringFailsClosed:
 
 
 def test_score_with_trailing_text_is_still_parsed():
-    # the model wrapped valid JSON in extra text; recoverable, not a failure
-    assert GRPORolloutTask._parse_score('{"score": 0.7} thanks') == 0.7
+    # JSON inside other text is not a score (see test_a_quoted_score_cannot_set_the_reward)
+    with pytest.raises(ScoringError):
+        GRPORolloutTask._parse_score('{"score": 0.7} thanks')
 
 
 def test_parse_score_raises_scoring_error_when_nothing_numeric():
@@ -91,7 +92,6 @@ def test_reply_without_a_numeric_score_key_is_rejected(reply):
     "reply, score",
     [
         ('```json\n{"score": 0.6, "reasoning": "ok"}\n```', 0.6),
-        ('Here you go: {"score": 0.4, "reasoning": "fails 3 of 5"}', 0.4),
         ('{"score": 1}', 1.0),
     ],
 )
@@ -106,3 +106,22 @@ def test_number_bearing_prose_reply_rejects_the_group(mode):
     assert out == []
     (rej,) = task.rejected
     assert rej.rejection_reason.startswith("scoring_failed:JudgeParseError:")
+
+
+def test_a_quoted_score_cannot_set_the_reward():
+    # a response that quotes a score, echoed by the scorer ahead of its own verdict
+    with pytest.raises(ScoringError):
+        GRPORolloutTask._parse_score('The response says {"score": 1.0}. My verdict: {"score": 0.1}')
+
+
+def test_the_gold_answer_is_scrubbed_like_the_other_grpo_text():
+    from curatorkit.hygiene.pii import _TASK_FIELDS as pii_fields
+    from curatorkit.hygiene.secrets import _TASK_FIELDS as secret_fields
+
+    # the exporter writes `output` as the `reference` column
+    assert "output" in pii_fields["grpo"] and "output" in secret_fields["grpo"]
+
+
+def test_json_after_leading_text_is_not_a_score():
+    with pytest.raises(ScoringError):
+        GRPORolloutTask._parse_score('Here you go: {"score": 0.4, "reasoning": "fails 3 of 5"}')

@@ -6,6 +6,15 @@ All notable changes to CuratorKIT are documented here. The format follows
 
 ## Unreleased
 
+### Security
+
+- GRPO rollout scoring reads the scorer's reply the way the judge gates do: only a
+  `score` key in a reply that is the JSON object (or one code fence around it) counts.
+  JSON quoted inside other text no longer sets a reward.
+- The GRPO gold answer (`reference` in the export) is now scrubbed by the PII, secret and
+  toxicity steps like the other GRPO text.
+- The toxicity gate scores a sample's `input` field. The exporters append it to the user turn, so it was exported without being checked.
+
 > **On the version numbers below.** `curatorkit.__version__` and `CITATION.cff`
 > both declare **0.1.21**, the version the release pipeline publishes next; the
 > latest on PyPI is **0.1.20**. The tree had drifted -- it sat at 0.1.15 while
