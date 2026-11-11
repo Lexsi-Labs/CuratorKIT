@@ -206,6 +206,7 @@ llm:
 | `diagnostic` | DiagnosticConfig | null | Inline probe config |
 | `max_samples` | int | null | Cap total samples after all readers |
 | `output_split` | dict[str, float] | null | Train/val/test split fractions (must sum to 1.0) |
+| `output_split_group` | str | null | Metadata key that keeps a group in one split |
 
 ### Reader types
 

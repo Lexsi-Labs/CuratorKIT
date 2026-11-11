@@ -117,6 +117,7 @@ for full usage examples.
 | `export_formats` | `list[str] \| None` | `None` (auto) | Which exporters to run. Options: `"alpaca"`, `"sharegpt"`, `"dpo"`, `"grpo"`, `"ppo"`, `"corpus"`. `None` auto-aligns to whichever task_type `generation_task` produces, or (with no `generation_task`) to whatever task_type the readers actually emit — see [Exporters → Compatibility](../guides/exporters.md#compatibility-matrix). Set explicitly to override. |
 | `output_split` | `dict[str, float] \| None` | `None` | Split accepted samples into subdirectories. E.g. `{"train": 0.8, "val": 0.1, "test": 0.1}`. Must sum to 1.0. |
 | `output_split_seed` | `int` | `42` | Seed for the pre-split shuffle. Set the same value across runs to get identical train/val/test assignments. |
+| `output_split_group` | `str \| None` | `None` | Metadata key that keeps a group in one split, so translations can't land in both. Split sizes then only approximate the fractions. See [Train / val / test splits](../guides/exporters.md#train-val-test-splits). |
 | `write_hf_readme` | `bool` | `True` | Also write `README.md` with `load_dataset` configs. An existing `README.md` that CuratorKIT did not write is never overwritten. Also a YAML top-level key. |
 
 ---

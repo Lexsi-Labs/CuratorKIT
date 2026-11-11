@@ -472,6 +472,7 @@ class PipelineConfig(BaseModel):
     # Example: {train: 0.8, val: 0.1, test: 0.1}
     output_split: dict[str, float] | None = None
     output_split_seed: int = 42  # seed for the pre-split shuffle
+    output_split_group: str | None = None  # metadata key; a group stays in one split
     # Also write README.md with load_dataset configs; a user's own README.md is never overwritten.
     write_hf_readme: bool = True
 
