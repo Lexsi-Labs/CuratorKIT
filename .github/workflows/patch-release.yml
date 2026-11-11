@@ -10,9 +10,7 @@ concurrency:
   group: curatorkit-patch-release
   cancel-in-progress: false
 
-permissions:
-  contents: read
-  pull-requests: read
+permissions: {}
 
 env:
   PYPI_PROJECT_NAME: curatorkit
@@ -27,6 +25,8 @@ jobs:
     # Skipping `plan` skips `release`, which is gated on its output.
     if: github.repository == 'Lexsi-Labs/CuratorKIT' && (github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true)
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     outputs:
       action: ${{ steps.plan.outputs.action }}
       version: ${{ steps.plan.outputs.version }}
@@ -38,13 +38,13 @@ jobs:
       pypi-exists: ${{ steps.plan.outputs.pypi-exists }}
     steps:
       - name: Check out the trusted merged source
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           ref: ${{ github.event.pull_request.merge_commit_sha || github.ref }}
           fetch-depth: 0
           persist-credentials: false
 
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: "3.12"
 
@@ -205,12 +205,12 @@ jobs:
       RELEASE_TAG: ${{ needs.plan.outputs.version }}
     steps:
       - name: Check out exact release source
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           ref: ${{ needs.plan.outputs.source-ref }}
           fetch-depth: 0
 
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: "3.12"
 
@@ -326,7 +326,7 @@ jobs:
           python -m twine upload --non-interactive --verbose dist/*
 
       - name: Send release notes to Slack
-        uses: slackapi/slack-github-action@v1.24.0
+        uses: slackapi/slack-github-action@e28cf165c92ffef168d23c5c9000cffc8a25e117 # v1.24.0
         continue-on-error: true
         with:
           channel-id: "lexsi-labs-curator-kit-release" #${{ vars.SLACK_CHANNEL }}

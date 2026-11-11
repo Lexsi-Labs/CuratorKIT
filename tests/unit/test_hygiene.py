@@ -410,7 +410,7 @@ class TestSecretsGateRealDetection:
     @pytest.mark.parametrize(
         "secret_text",
         [
-            "Set your key: API_KEY=sk-proj-8f7A9dLx2QmZ0vB4nR6tY1cW3eK5jH8gU2iP9oS7",
+            "Set your key: API_KEY=" + "sk-" + "proj-8f7A9dLx2QmZ0vB4nR6tY1cW3eK5jH8gU2iP9oS7",
             "export AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
             "AKIAIOSFODNN7EXAMPLE",
         ],
