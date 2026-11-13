@@ -171,15 +171,15 @@ CuratorConfig(
 A group's split is a hash of its id and `output_split_seed`, so an item keeps its split as the
 corpus grows. Split sizes then only approximate the fractions, more loosely with few groups: with
 `{"train": 0.8, "val": 0.1, "test": 0.1}`, 1 000 groups land within about 1 point of each fraction
-on average and 100 groups within about 3, but with 30 groups a split is off by 5 points on average
+on average and 100 groups within about 3, but with 30 groups a split is off by 5 to 7 points on average
 and sometimes empty (a warning says so). A sample with no value is split on its own text, with a
 warning, and a key that no sample has raises an error.
 
 A grouped run also warns if any group, identical prompt or near-duplicate prompt is in more than
 one split. Prompts are the instruction and input, plus every user turn of a conversation. The
-near-duplicate pass is MinHash at `output_split_near_dup_threshold` (default `0.8`); it costs about
-as much as MinHash dedup (around 2.5 minutes per 100 000 samples on one CPU core), and `None` skips
-it. To run the check yourself:
+near-duplicate pass is MinHash at `output_split_near_dup_threshold` (default `0.8`); it is the slow part:
+about 4.5 minutes for 100 000 samples of 30-word prompts on one CPU core (the group and exact checks take
+under a second), and `None` skips it. To run the check yourself:
 
 ```python
 from curatorkit.splits import leakage_report, split_samples
