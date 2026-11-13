@@ -70,7 +70,8 @@ def _ensure_detect_secrets() -> None:
         import detect_secrets  # noqa: F401
     except ImportError as e:
         raise ImportError(
-            "detect-secrets is not installed. Install with: pip install 'curatorkit[hygiene]'"
+            "detect-secrets is not installed. The secrets gate needs only that package: "
+            "pip install detect-secrets (or pip install 'curatorkit[hygiene]' for all hygiene gates)"
         ) from e
 
 
