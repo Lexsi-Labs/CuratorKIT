@@ -21,7 +21,7 @@ def _conversation(later_turn):
 
 def _toxicity_gate():
     gate = ToxicityGate.__new__(ToxicityGate)
-    gate.text_field, gate.llm = "auto", None
+    gate.text_field, gate.llm, gate.detoxify_model = "auto", None, "unbiased"
     gate.classifier_pass_threshold, gate.classifier_reject_threshold = 0.3, 0.7
     gate._config_hash = lambda: "h"
     gate._load_classifier = lambda: SimpleNamespace(
@@ -301,3 +301,23 @@ def test_the_llm_judge_reads_the_text_that_scored_worst_even_when_labels_could_c
     )
     passed, rejected = gate.run([sample])
     assert not passed and judged and "BADWORD" in judged[0]
+
+
+def test_text_in_a_script_the_classifier_cannot_read_is_flagged_unscreened(caplog):
+    # Detoxify scores Korean and Chinese it was not trained on as safe (#51): flag the pass, don't hide it.
+    gate = _toxicity_gate()
+    gate.detoxify_model = "multilingual"
+    ko = DataSample(source_uri="x", instruction="Explain.", output="너는 멍청한 바보야. 죽여버릴 거야.")
+    zh = DataSample(source_uri="x", instruction="你是个愚蠢的白痴", output="我要杀了你。")
+    ru = DataSample(source_uri="x", instruction="Q?", output="Пункт требует своевременной поставки.")
+    with caplog.at_level("WARNING", logger="curatorkit.hygiene.toxicity"):
+        passed, rejected = gate.run([ko, zh, ru])
+    notes = [s.provenance_chain[-1].notes for s in passed]
+    assert not rejected
+    assert notes[0]["unscreened_fields"] == ["output"]
+    assert notes[1]["unscreened_fields"] == ["output", "instruction"]
+    assert "unscreened_fields" not in notes[2]  # the multilingual model reads Russian
+    assert "2 of 3 samples" in caplog.text
+    gate.detoxify_model = "unbiased"  # English only
+    passed, _ = gate.run([ru])
+    assert passed[0].provenance_chain[-1].notes["unscreened_fields"] == ["output"]

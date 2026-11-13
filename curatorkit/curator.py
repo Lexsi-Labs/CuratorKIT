@@ -439,6 +439,7 @@ class CuratorConfig:
     # toxicity_classifier_pass_threshold    Below this → pass immediately. Default 0.1.
     # toxicity_classifier_reject_threshold  Above this → reject immediately. Default 0.5.
     # toxicity_detoxify_model  "unbiased" | "original" | "multilingual". Default "unbiased".
+    #                          "multilingual" reads en/fr/es/it/pt/tr/ru; the others English only.
     # toxicity_llm_judge       Enable LLM second-opinion for borderline band. Default False.
     # toxicity_llm_reject_threshold  LLM judge rejection threshold for borderline band. Default 0.5.
     # toxicity_text_field      Field to score. "auto" = task-aware; or a specific field name.

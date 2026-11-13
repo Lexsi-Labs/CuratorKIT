@@ -32,7 +32,9 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 import re
+import unicodedata
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
@@ -47,6 +49,13 @@ if TYPE_CHECKING:
 _WINDOW = 2048  # characters the classifier reads at once
 _STRIDE = 1536  # windows overlap by a quarter
 _SHORT = 64  # a structural string at least this long is scored on its own
+
+logger = logging.getLogger(__name__)
+
+# Scripts each Detoxify model was trained on (Detoxify README): "unbiased" and "original" are
+# English; "multilingual" is en, fr, es, it, pt, tr and ru.
+_MODEL_SCRIPTS = {"multilingual": ("LATIN", "CYRILLIC")}
+_DEFAULT_SCRIPTS = ("LATIN",)
 
 STEP_VERSION = "1.1.0"
 
@@ -73,6 +82,16 @@ Respond with JSON only (no markdown fences):
 
 Valid categories: toxicity, severe_toxicity, obscene, identity_attack, insult, threat, sexual_explicit, safe
 /no_think"""
+
+
+def _unreadable(text: str, scripts: tuple[str, ...]) -> bool:
+    """Most of the letters in ``text`` are in a script the classifier was not trained on
+    (Hangul, Han, Arabic, Devanagari, ...), so its low score means nothing."""
+    # ponytail: script check only, no language ID. An unsupported language in a supported script
+    # (Swahili, or French under "unbiased") is not caught; a language-ID step would catch it.
+    letters = [c for c in text if c.isalpha()]
+    other = sum(1 for c in letters if not unicodedata.name(c, "").startswith(scripts))
+    return other * 2 > len(letters)
 
 
 def _ensure_detoxify() -> Any:
@@ -109,6 +128,11 @@ class ToxicityGate(BaseGate):
         LLM toxicity score at or above which a borderline sample is rejected.
     detoxify_model : str
         "unbiased" (default, recommended), "original", or "multilingual".
+        "unbiased" and "original" read English; "multilingual" reads English,
+        French, Spanish, Italian, Portuguese, Turkish and Russian. A passing
+        sample whose text is mostly in a script the model was not trained on
+        (Korean, Chinese, Arabic, ...) lists those fields under
+        ``unscreened_fields`` in its provenance, and the run logs a warning.
     text_field : str
         "auto" scores the fields most relevant to the task_type; or pass
         a specific DataSample field name.
@@ -266,11 +290,15 @@ class ToxicityGate(BaseGate):
         ts = datetime.now(UTC)
         passed: list[DataSample] = []
         rejected: list[RejectedSample] = []
+        scripts = _MODEL_SCRIPTS.get(self.detoxify_model, _DEFAULT_SCRIPTS)
+        n_unscreened = 0
 
         from tqdm import tqdm
 
         for sample in tqdm(samples, desc="ToxicityGate", unit="sample"):
             field_pairs = self._fields_to_score(sample)
+            # The classifier scores text it cannot read as safe; say so instead of passing it silently.
+            unread = [name for name, text in field_pairs if _unreadable(text, scripts)]
 
             if not field_pairs:
                 sample.append_provenance(
@@ -314,10 +342,12 @@ class ToxicityGate(BaseGate):
                             "max_toxicity_score": worst_max,
                             "worst_field": worst_field,
                             "field_scores": field_scores,
+                            **({"unscreened_fields": unread} if unread else {}),
                         },
                     )
                 )
                 passed.append(sample)
+                n_unscreened += bool(unread)
                 continue
 
             # Stage 1: clearly toxic or no LLM available
@@ -373,6 +403,7 @@ class ToxicityGate(BaseGate):
                 )
                 rejected.append(rej)
             else:
+                unread = [f for f in unread if f != worst_field]  # the judge read worst_field
                 sample.append_provenance(
                     ProvenanceRecord(
                         step_name="ToxicityGate",
@@ -387,9 +418,21 @@ class ToxicityGate(BaseGate):
                             "llm_score": llm_score,
                             "categories": categories,
                             "reasoning": reasoning,
+                            **({"unscreened_fields": unread} if unread else {}),
                         },
                     )
                 )
                 passed.append(sample)
+                n_unscreened += bool(unread)
 
+        if n_unscreened:
+            logger.warning(
+                "ToxicityGate passed %d of %d samples with text mostly in a script the Detoxify "
+                "'%s' model was not trained on; their toxicity was not screened (see "
+                "unscreened_fields in the provenance). Screen them with a model that reads "
+                "the language.",
+                n_unscreened,
+                len(samples),
+                self.detoxify_model,
+            )
         return passed, rejected

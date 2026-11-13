@@ -533,7 +533,7 @@ CuratorConfig(
 )
 ```
 
-Use `detoxify_model="multilingual"` for non-English corpora. Use `"unbiased"` (default) over `"original"` for any corpus with legitimate discussion of sensitive topics — the unbiased model suppresses false positives.
+Use `detoxify_model="multilingual"` for corpora in French, Spanish, Italian, Portuguese, Turkish or Russian: those and English are the languages it was trained on. `"unbiased"` and `"original"` read English only. Detoxify gives text it cannot read a low score, so a passing sample whose text is mostly in a script the model was not trained on (Korean, Chinese, Arabic, Hindi, ...) lists those fields under `unscreened_fields` in its `ToxicityGate` provenance, and the run logs a warning with the count. The check goes by script, not language: an unsupported language written in Latin script (Swahili, for example) is not flagged. Screen such data with a model that reads the language. Use `"unbiased"` (default) over `"original"` for any corpus with legitimate discussion of sensitive topics — the unbiased model suppresses false positives.
 
 ---
 

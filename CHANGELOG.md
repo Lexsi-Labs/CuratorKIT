@@ -104,6 +104,12 @@ All notable changes to CuratorKIT are documented here. The format follows
   of exporting seed prompts before `GRPORolloutTask` has run.
 
 ### Fixed
+- `ToxicityGate` passed text Detoxify cannot read (Korean, Chinese and other scripts the chosen
+  model was not trained on) as clean, because the classifier gives it a low score. Such a pass now
+  lists the fields under `unscreened_fields` in its provenance and the run logs a warning with the
+  count; pass and reject decisions are unchanged. The check goes by script, so an unsupported
+  Latin-script language such as Swahili is not flagged. The docs name the languages each Detoxify
+  model reads instead of "multilingual for non-English" (#51).
 - `PIIPseudonymizer` replaces overlapping Presidio spans once, as the type of the span that starts first (on a tie, the longest, then the highest score). It used
   to replace each span in turn, so a date found inside an IBAN or card number shifted the offsets
   and left digits of the original value in the output. `entities_replaced` counts a merged group

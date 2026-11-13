@@ -103,7 +103,7 @@ for full usage examples.
 | `toxicity_gate` | `bool` | `False` | Enable `ToxicityGate`. Two-stage: Stage 1 (local Detoxify classifier) first, then optional Stage 2 (LLM judge) for borderline samples. |
 | `toxicity_classifier_pass_threshold` | `float` | `0.1` | Max-dimension Detoxify score below this → immediate pass (no LLM call). |
 | `toxicity_classifier_reject_threshold` | `float` | `0.5` | Max-dimension Detoxify score above this → immediate reject (no LLM call). Scores between the two thresholds are escalated to the LLM judge if `toxicity_llm_judge=True`. |
-| `toxicity_detoxify_model` | `str` | `"unbiased"` | Detoxify model variant. `"unbiased"` for general corpora; `"original"` for informal web text; `"multilingual"` for non-English. |
+| `toxicity_detoxify_model` | `str` | `"unbiased"` | Detoxify model variant. `"unbiased"` for general corpora; `"original"` for informal web text; `"multilingual"` for English, French, Spanish, Italian, Portuguese, Turkish and Russian only. Text mostly in another script (Korean, Chinese, Arabic, ...) is not screened: it passes with `unscreened_fields` in its provenance and a warning. Other Latin-script languages (Swahili, for example) are not detected. |
 | `toxicity_llm_judge` | `bool` | `False` | Enable LLM second opinion for borderline samples. Requires `llm_model` to be set. |
 | `toxicity_llm_reject_threshold` | `float` | `0.5` | LLM judge score at or above which a borderline sample is rejected (only used when `toxicity_llm_judge=True`). |
 
