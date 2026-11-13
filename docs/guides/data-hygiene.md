@@ -27,6 +27,9 @@ pip install "curatorkit[hygiene]"
 
 This installs: `detoxify`, `detect-secrets`, `presidio-analyzer`, `presidio-anonymizer`, `spacy`, and `faker`.
 
+Only need `SecretsGate`? `pip install detect-secrets` is enough; it skips the PII and toxicity
+stacks (spaCy, Presidio, detoxify).
+
 For `PIIPseudonymizer`'s default (spaCy) backend, also download a spaCy model — it lazy-downloads
 on first use like HF datasets do, but you can pre-fetch it:
 
