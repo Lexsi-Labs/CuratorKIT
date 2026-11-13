@@ -346,6 +346,7 @@ class GateConfig(BaseModel):
     toxicity_llm: LLMOverrideConfig | None = None  # full sampling-param override
     toxicity_llm_reject_threshold: float = 0.5
     toxicity_text_field: str = "auto"
+    toxicity_device: str | None = None  # "cuda" | "cuda:1" | "cpu" | None (auto: cuda, else cpu)
 
     # ---- GuardModelGate (data hygiene; HF guard model, e.g. Qwen3Guard-Gen) ----
     guard_model: str = "Qwen/Qwen3Guard-Gen-0.6B"

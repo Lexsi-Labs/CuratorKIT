@@ -145,6 +145,7 @@ result = Curator(CuratorConfig(
     toxicity_classifier_pass_threshold   = 0.1,
     toxicity_classifier_reject_threshold = 0.5,
     toxicity_detoxify_model              = "unbiased",  # or "original" / "multilingual"
+    toxicity_device                      = None,  # None: cuda when available, else cpu
     # Enable LLM second-opinion for borderline samples:
     toxicity_llm_judge                   = False,
     toxicity_llm_reject_threshold        = 0.5,   # LLM judge rejects at or above this score

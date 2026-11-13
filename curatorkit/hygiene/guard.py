@@ -24,7 +24,7 @@ from collections.abc import Callable
 from datetime import UTC, datetime
 from typing import Any
 
-from curatorkit.hygiene.toxicity import ToxicityGate, fields_to_score
+from curatorkit.hygiene.toxicity import ToxicityGate, _resolve_device, fields_to_score
 from curatorkit.interfaces import BaseGate
 from curatorkit.schema import DataSample, ProvenanceRecord, RejectedSample
 
@@ -54,15 +54,6 @@ def parse_guard_output(text: str) -> tuple[str | None, list[str]]:
         cats = [c.strip() for c in lines[1].split(",")] if len(lines) > 1 else []
         return lines[0].lower(), [c for c in cats if c]
     return None, []
-
-
-def _resolve_device(device: str | None) -> str:
-    """``None`` / ``"auto"`` → cuda when available, else cpu. Never picks MPS on its own."""
-    if device not in (None, "auto"):
-        return device
-    import torch
-
-    return "cuda" if torch.cuda.is_available() else "cpu"
 
 
 class GuardModelGate(BaseGate):

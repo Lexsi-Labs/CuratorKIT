@@ -443,6 +443,7 @@ class CuratorConfig:
     # toxicity_llm_judge       Enable LLM second-opinion for borderline band. Default False.
     # toxicity_llm_reject_threshold  LLM judge rejection threshold for borderline band. Default 0.5.
     # toxicity_text_field      Field to score. "auto" = task-aware; or a specific field name.
+    # toxicity_device          Where Detoxify runs. None = cuda when available, else cpu.
     # guard_gate               Screen with a Hugging Face guard model (GuardModelGate), after the
     #                          toxicity gate. Reads languages Detoxify cannot. Needs [guard] extras.
     # guard_model              HF id. Default "Qwen/Qwen3Guard-Gen-0.6B".
@@ -473,6 +474,7 @@ class CuratorConfig:
     toxicity_llm_judge: bool = False
     toxicity_llm_reject_threshold: float = 0.5
     toxicity_text_field: str = "auto"
+    toxicity_device: str | None = None
     guard_gate: bool = False
     guard_model: str = "Qwen/Qwen3Guard-Gen-0.6B"
     guard_revision: str | None = None
@@ -1126,6 +1128,7 @@ class Curator:
                     llm=_tox_llm,
                     llm_reject_threshold=cfg.toxicity_llm_reject_threshold,
                     text_field=cfg.toxicity_text_field,
+                    device=cfg.toxicity_device,
                 )
             )
 

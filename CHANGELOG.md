@@ -33,6 +33,10 @@ All notable changes to CuratorKIT are documented here. The format follows
   from/value instead of being copied through as-is.
 
 ### Added
+- `ToxicityGate(device="auto")`: Detoxify runs on CUDA when torch sees a GPU, else CPU (it always ran on
+  CPU before); `"cuda:1"`, `"cpu"` etc. pick one. The device is recorded as `device` in the provenance;
+  scores and decisions do not depend on it. Config: `toxicity_device` in `CuratorConfig` and on a YAML
+  `type: toxicity` gate, like `guard_device`.
 - `GuardModelGate` (#51): screens samples with a Hugging Face guard model, default
   `Qwen/Qwen3Guard-Gen-0.6B` (119 languages, no access request); Qwen3Guard-Gen and Llama Guard
   replies are parsed, and `parser=` / `generator=` take other formats and loaders. Each field

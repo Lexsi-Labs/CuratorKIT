@@ -150,6 +150,15 @@ def fields_to_score(sample: DataSample, text_field: str = "auto") -> list[tuple[
     return pairs
 
 
+def _resolve_device(device: str | None) -> str:
+    """``None`` / ``"auto"`` → cuda when available, else cpu. Never picks MPS on its own."""
+    if device not in (None, "auto"):
+        return device
+    import torch
+
+    return "cuda" if torch.cuda.is_available() else "cpu"
+
+
 def _ensure_detoxify() -> Any:
     try:
         from detoxify import Detoxify
@@ -192,7 +201,13 @@ class ToxicityGate(BaseGate):
     text_field : str
         "auto" scores the fields most relevant to the task_type; or pass
         a specific DataSample field name.
+    device : str | None
+        Where Detoxify runs. "auto" (default) or None: cuda when available,
+        else cpu (never MPS). Or "cuda:1", "cpu", ... Recorded as ``device``
+        in the provenance; scores and decisions do not depend on it.
     """
+
+    _device: str | None = None  # resolved when the classifier loads
 
     def __init__(
         self,
@@ -202,6 +217,7 @@ class ToxicityGate(BaseGate):
         llm_reject_threshold: float = 0.5,
         detoxify_model: str = "unbiased",
         text_field: str = "auto",
+        device: str | None = "auto",
     ) -> None:
         if classifier_pass_threshold >= classifier_reject_threshold:
             raise ValueError(
@@ -213,12 +229,14 @@ class ToxicityGate(BaseGate):
         self.llm_reject_threshold = llm_reject_threshold
         self.detoxify_model = detoxify_model
         self.text_field = text_field
+        self.device = device
         self._classifier: Any = None
 
     def _load_classifier(self) -> Any:
         if self._classifier is None:
             Detoxify = _ensure_detoxify()
-            self._classifier = Detoxify(self.detoxify_model)
+            self._device = _resolve_device(self.device)
+            self._classifier = Detoxify(self.detoxify_model, device=self._device)
         return self._classifier
 
     def _config_hash(self) -> str:
@@ -342,6 +360,7 @@ class ToxicityGate(BaseGate):
                         timestamp=ts,
                         config_hash=cfg_hash,
                         notes={
+                            "device": self._device,
                             "passed": True,
                             "phase": "classifier",
                             "max_toxicity_score": worst_max,
@@ -369,6 +388,7 @@ class ToxicityGate(BaseGate):
                         timestamp=ts,
                         config_hash=cfg_hash,
                         notes={
+                            "device": self._device,
                             "passed": False,
                             "phase": "classifier",
                             "max_toxicity_score": worst_max,
@@ -396,6 +416,7 @@ class ToxicityGate(BaseGate):
                         timestamp=ts,
                         config_hash=cfg_hash,
                         notes={
+                            "device": self._device,
                             "passed": False,
                             "phase": "llm_judge",
                             "classifier_max_score": worst_max,
@@ -416,6 +437,7 @@ class ToxicityGate(BaseGate):
                         timestamp=ts,
                         config_hash=cfg_hash,
                         notes={
+                            "device": self._device,
                             "passed": True,
                             "phase": "llm_judge",
                             "classifier_max_score": worst_max,

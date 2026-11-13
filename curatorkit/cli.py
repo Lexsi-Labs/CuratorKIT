@@ -628,6 +628,7 @@ def _build_steps(config: object, verbose: bool, include_exporters: bool = True) 
                     llm=tox_llm,
                     llm_reject_threshold=g.toxicity_llm_reject_threshold,
                     text_field=g.toxicity_text_field,
+                    device=g.toxicity_device,
                 )
             )
         elif g.type == "guard":
