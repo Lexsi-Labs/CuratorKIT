@@ -250,6 +250,9 @@ class CuratorConfig:
     # Example: {"train": 0.8, "val": 0.1, "test": 0.1}
     output_split: dict[str, float] | None = None
     output_split_seed: int = 42  # seed for the pre-split shuffle
+    # output_split_group: a metadata key (an input column ends up in metadata). Every
+    # sample sharing its value lands in one split, so translations can't straddle them.
+    output_split_group: str | None = None
     # Also write README.md (dataset card + load_dataset configs). An existing
     # README.md that curatorkit did not write is never overwritten.
     write_hf_readme: bool = True
@@ -1742,47 +1745,33 @@ class Curator:
         self, samples: list, output_dir: Path, formats: list[str] | None = None
     ) -> None:
         """Split accepted samples and export each split to suffixed files."""
-        import math
-        import random as _random
+        from curatorkit.splits import split_samples, warn_on_leakage
 
         if formats is None:
             formats = self._resolve_export_formats()
 
-        split_def = self.config.output_split  # e.g. {"train": 0.8, "val": 0.1, "test": 0.1}
-        total = sum(split_def.values())
-        if abs(total - 1.0) > 1e-6:
-            raise ValueError(
-                f"output_split fractions must sum to 1.0, got {total:.4f}. "
-                f"Adjust your split ratios."
-            )
-
-        shuffled = list(samples)
-        _random.Random(self.config.output_split_seed).shuffle(shuffled)
-        n = len(shuffled)
+        cfg = self.config
+        splits = split_samples(
+            samples,
+            cfg.output_split,  # e.g. {"train": 0.8, "val": 0.1, "test": 0.1}
+            seed=cfg.output_split_seed,
+            group_key=cfg.output_split_group,
+        )
+        if cfg.output_split_group:
+            warn_on_leakage(splits, cfg.output_split_group)
 
         _exporter_map = _exporter_classes()
 
-        start = 0
-        split_items = list(split_def.items())
-        for i, (split_name, fraction) in enumerate(split_items):
-            # Last split gets all remaining samples to avoid rounding loss
-            if i == len(split_items) - 1:
-                end = n
-            else:
-                end = start + math.floor(n * fraction)
-
-            split_samples = shuffled[start:end]
+        for split_name, rows in splits.items():
             split_dir = output_dir / split_name
             split_dir.mkdir(parents=True, exist_ok=True)
 
             for fmt in formats:
                 cls = _exporter_map.get(fmt.lower())
                 if cls:
-                    cls().export(split_samples, split_dir)
+                    cls().export(rows, split_dir)
                 else:
                     warnings.warn(f"Unknown export format '{fmt}' — skipped.")
-
-            start = end
 
     def _write_provenance(self, result, output_dir: Path, steps: list | None = None) -> None:
         from curatorkit.manifest import (
@@ -1811,6 +1800,7 @@ class Curator:
                     {s.task_type for s in result.passed}
                 ),
                 "output_split": cfg.output_split,
+                "output_split_group": cfg.output_split_group,
                 "pipeline_config_hash": cfg_hash,
             },
         )

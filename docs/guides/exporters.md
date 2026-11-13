@@ -156,6 +156,33 @@ CuratorConfig(
 )
 ```
 
+To keep related samples together, name a metadata key in `output_split_group`. Every sample
+sharing its value lands in the same split, so the translations of a prompt can't end up in both
+train and test. An input column that isn't mapped to a field is kept in `metadata`, so the key is
+usually a column name:
+
+```python
+CuratorConfig(
+    output_split       = {"train": 0.9, "test": 0.1},
+    output_split_group = "group",
+)
+```
+
+A group's split is a hash of its id and `output_split_seed`, so an item keeps its split as the
+corpus grows. Split sizes then only approximate the fractions, more loosely with few groups. A
+sample with no value is split on its own text, with a warning, and a key that no sample has raises
+an error. A grouped run also warns if any group, identical prompt or near-duplicate prompt is in
+more than one split. To run that check yourself:
+
+```python
+from curatorkit.splits import leakage_report, split_samples
+
+splits = split_samples(result.passed, {"train": 0.9, "test": 0.1}, group_key="group")
+report = leakage_report(splits, group_key="group")  # groups, exact and near duplicates, "ok"
+```
+
+Text matching can't see a translation, so only a group key catches those.
+
 Output structure:
 ```
 output/

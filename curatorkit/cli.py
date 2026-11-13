@@ -160,8 +160,7 @@ def run(
 
     # Output split — shuffle accepted samples and export each split to a subdir
     if splitting:
-        import math
-        import random as _random
+        from curatorkit.splits import split_samples, warn_on_leakage
 
         split_def = config.output_split
         total_frac = sum(split_def.values())
@@ -172,23 +171,24 @@ def run(
             )
             raise typer.Exit(1)
 
-        shuffled = list(result.passed)
-        _random.Random(getattr(config, "output_split_seed", 42)).shuffle(shuffled)
-        n = len(shuffled)
-        start = 0
-        split_items = list(split_def.items())
-        for i, (split_name, fraction) in enumerate(split_items):
-            end = n if i == len(split_items) - 1 else start + math.floor(n * fraction)
-            split_samples = shuffled[start:end]
+        group_key = getattr(config, "output_split_group", None)
+        splits = split_samples(
+            result.passed,
+            split_def,
+            seed=getattr(config, "output_split_seed", 42),
+            group_key=group_key,
+        )
+        if group_key:
+            warn_on_leakage(splits, group_key)
+        for split_name, rows in splits.items():
             split_dir = output_dir / split_name
             split_dir.mkdir(parents=True, exist_ok=True)
             for e in config.exporters:
                 cls = EXPORTERS.get(e.type)
                 if cls:
-                    cls().export(split_samples, split_dir)
+                    cls().export(rows, split_dir)
             if verbose:
-                typer.echo(f"  {split_name}: {len(split_samples):,} samples → {split_dir}/")
-            start = end
+                typer.echo(f"  {split_name}: {len(rows):,} samples → {split_dir}/")
 
     provenance = build_provenance(
         method=",".join(g.type for g in config.generators) or "curate",
@@ -197,6 +197,7 @@ def run(
             **step_models(steps),
             "export_formats": [e.type for e in config.exporters],
             "output_split": config.output_split,
+            "output_split_group": getattr(config, "output_split_group", None),
             "pipeline_config_hash": config_hash,
         },
     )

@@ -46,6 +46,13 @@ All notable changes to CuratorKIT are documented here. The format follows
   verdict and categories per field. `only_unscreened=True` screens only the fields ToxicityGate
   listed as `unscreened_fields`. Config: `guard_gate` / `guard_*` in `CuratorConfig`, `type: guard`
   in YAML; new extra `curatorkit[guard]`.
+- `output_split_group` (`CuratorConfig`, YAML): a metadata key whose value keeps a group in one
+  split, so the translations or paraphrases of an item can't land in both train and test. A group's
+  split is a hash of its id and `output_split_seed`, so an item keeps its split as the corpus grows,
+  and split sizes only approximate the fractions. Without it, splitting is unchanged.
+- `curatorkit.splits`: `split_samples` (now the one split path for `Curator` and `curatorkit run`)
+  and `leakage_report`, which finds groups, exact prompts and near-duplicate prompts in more than one
+  split. A grouped run warns when it finds any.
 - `messages` exporter (`sft_messages.jsonl`): the same turns as chat `messages`
   (`[{"role", "content"}, ...]`), the layout TRL's `SFTTrainer` and tokenizer chat templates take
   directly. Auto-resolved `export_formats` include it wherever `sharegpt` is chosen.
