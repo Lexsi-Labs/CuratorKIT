@@ -305,6 +305,11 @@ def _print_dry_run_plan(config: object, output_dir: Path) -> None:
                 f"(pass={g.toxicity_classifier_pass_threshold}, "
                 f"reject={g.toxicity_classifier_reject_threshold})"
             )
+        elif g.type == "guard":
+            typer.echo(
+                f"  {step_num}. Gate: guard (model={g.guard_model}, "
+                f"only_unscreened={g.guard_only_unscreened})"
+            )
         step_num += 1
 
     for gen in config.generators:
@@ -623,6 +628,23 @@ def _build_steps(config: object, verbose: bool, include_exporters: bool = True) 
                     llm=tox_llm,
                     llm_reject_threshold=g.toxicity_llm_reject_threshold,
                     text_field=g.toxicity_text_field,
+                )
+            )
+        elif g.type == "guard":
+            from curatorkit.hygiene.guard import GuardModelGate
+
+            steps.append(
+                GuardModelGate(
+                    model=g.guard_model,
+                    revision=g.guard_revision,
+                    text_field=g.guard_text_field,
+                    only_unscreened=g.guard_only_unscreened,
+                    reject_controversial=g.guard_reject_controversial,
+                    on_parse_error=g.guard_on_parse_error,
+                    batch_size=g.guard_batch_size,
+                    device=g.guard_device,
+                    max_new_tokens=g.guard_max_new_tokens,
+                    content_parts=g.guard_content_parts,
                 )
             )
 

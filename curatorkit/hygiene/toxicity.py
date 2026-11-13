@@ -94,6 +94,62 @@ def _unreadable(text: str, scripts: tuple[str, ...]) -> bool:
     return other * 2 > len(letters)
 
 
+def fields_to_score(sample: DataSample, text_field: str = "auto") -> list[tuple[str, str]]:
+    """
+    Return (field_name, text) pairs to screen for this sample (shared by ToxicityGate and
+    GuardModelGate, so their field labels match).
+    For multi-field task types each field is scored independently
+    so one toxic completion in a preference pair triggers rejection.
+    """
+    if text_field != "auto":
+        text = getattr(sample, text_field, "") or ""
+        return [(text_field, text)] if text.strip() else []
+
+    task = sample.task_type
+    if task == "language_modeling":
+        return [("output", sample.output)] if sample.output.strip() else []
+
+    if task in ("preference", "implicit_preference"):
+        pairs = []
+        if sample.chosen.strip():
+            pairs.append(("chosen", sample.chosen))
+        if sample.rejected.strip():
+            pairs.append(("rejected", sample.rejected))
+        return pairs
+
+    if task == "grpo":
+        pairs = [(f"response_{i}", r) for i, r in enumerate(sample.responses) if r.strip()]
+        if sample.output.strip():  # the gold answer is exported as `reference`
+            pairs.append(("reference", sample.output))
+        return pairs
+
+    # instruction_following, conversational, prompt_only, source_chunk, etc.
+    pairs = []
+    if sample.output.strip():
+        pairs.append(("output", sample.output))
+    if sample.instruction.strip():
+        pairs.append(("instruction", sample.instruction))
+    if sample.input.strip():  # the exporters append `input` to the user turn
+        pairs.append(("input", sample.input))
+    # A conversation's system prompt and later turns live in metadata, and the exporters write them.
+    # Each piece of text is scored on its own, so a short toxic turn is not diluted by clean ones
+    # and a long string under an unexpected key is not hidden inside a joined field. Only short
+    # structural strings (role names, keys, part types) share a field. Labels carry an index, so
+    # two slots never share a name.
+    structural: list[str] = []
+    for n, (label, container, key) in enumerate(conversation_slots(sample, read_only=True)):
+        text = container[key]
+        if not text.strip():
+            continue
+        if len(text) < _SHORT and (label.endswith("<key>") or key in _STRUCTURAL_KEYS):
+            structural.append(text)
+        else:
+            pairs.append((f"{label}#{n}", text))
+    if structural:
+        pairs.append(("conversation_structure", "\n".join(structural)))
+    return pairs
+
+
 def _ensure_detoxify() -> Any:
     try:
         from detoxify import Detoxify
@@ -181,58 +237,7 @@ class ToxicityGate(BaseGate):
         return hashlib.sha256(payload.encode()).hexdigest()[:16]
 
     def _fields_to_score(self, sample: DataSample) -> list[tuple[str, str]]:
-        """
-        Return (field_name, text) pairs to score for this sample.
-        For multi-field task types each field is scored independently
-        so one toxic completion in a preference pair triggers rejection.
-        """
-        if self.text_field != "auto":
-            text = getattr(sample, self.text_field, "") or ""
-            return [(self.text_field, text)] if text.strip() else []
-
-        task = sample.task_type
-        if task == "language_modeling":
-            return [("output", sample.output)] if sample.output.strip() else []
-
-        if task in ("preference", "implicit_preference"):
-            pairs = []
-            if sample.chosen.strip():
-                pairs.append(("chosen", sample.chosen))
-            if sample.rejected.strip():
-                pairs.append(("rejected", sample.rejected))
-            return pairs
-
-        if task == "grpo":
-            pairs = [(f"response_{i}", r) for i, r in enumerate(sample.responses) if r.strip()]
-            if sample.output.strip():  # the gold answer is exported as `reference`
-                pairs.append(("reference", sample.output))
-            return pairs
-
-        # instruction_following, conversational, prompt_only, source_chunk, etc.
-        pairs = []
-        if sample.output.strip():
-            pairs.append(("output", sample.output))
-        if sample.instruction.strip():
-            pairs.append(("instruction", sample.instruction))
-        if sample.input.strip():  # the exporters append `input` to the user turn
-            pairs.append(("input", sample.input))
-        # A conversation's system prompt and later turns live in metadata, and the exporters write them.
-        # Each piece of text is scored on its own, so a short toxic turn is not diluted by clean ones
-        # and a long string under an unexpected key is not hidden inside a joined field. Only short
-        # structural strings (role names, keys, part types) share a field. Labels carry an index, so
-        # two slots never share a name.
-        structural: list[str] = []
-        for n, (label, container, key) in enumerate(conversation_slots(sample, read_only=True)):
-            text = container[key]
-            if not text.strip():
-                continue
-            if len(text) < _SHORT and (label.endswith("<key>") or key in _STRUCTURAL_KEYS):
-                structural.append(text)
-            else:
-                pairs.append((f"{label}#{n}", text))
-        if structural:
-            pairs.append(("conversation_structure", "\n".join(structural)))
-        return pairs
+        return fields_to_score(sample, self.text_field)
 
     @staticmethod
     def _windows(text: str) -> list[str]:
@@ -430,7 +435,8 @@ class ToxicityGate(BaseGate):
                 "ToxicityGate passed %d of %d samples with text mostly in a script the Detoxify "
                 "'%s' model was not trained on; their toxicity was not screened (see "
                 "unscreened_fields in the provenance). Screen them with a model that reads "
-                "the language.",
+                "the language: add GuardModelGate(only_unscreened=True) after this gate "
+                "(YAML: type: guard, guard_only_unscreened: true).",
                 n_unscreened,
                 len(samples),
                 self.detoxify_model,

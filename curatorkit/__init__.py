@@ -71,6 +71,7 @@ def __getattr__(name: str):
 
     _hygiene_map = {
         "ToxicityGate": "curatorkit.hygiene.toxicity",
+        "GuardModelGate": "curatorkit.hygiene.guard",
         "SecretsGate": "curatorkit.hygiene.secrets",
         "PIIPseudonymizer": "curatorkit.hygiene.pii",
     }

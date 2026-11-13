@@ -278,9 +278,9 @@ class GateConfig(BaseModel):
     """One quality gate in the pipeline YAML (`gates:` list).
 
     `type` selects the gate: "schema", "hallucination", "reward",
-    "diversity", "secrets", or "toxicity". Prefixed field groups apply only
+    "diversity", "secrets", "toxicity", or "guard". Prefixed field groups apply only
     to the matching gate type (`hallucination_*`, `reward_*`, `secrets_*`,
-    `toxicity_*`; the embedding/similarity fields belong to the diversity
+    `toxicity_*`, `guard_*`; the embedding/similarity fields belong to the diversity
     gate, and `required_fields`/`min_tokens`/`max_tokens` to the schema
     gate) — fields for other types are ignored.
 
@@ -289,7 +289,7 @@ class GateConfig(BaseModel):
     `hallucination_llm_model` / `reward_llm_model`.
     """
 
-    type: Literal["schema", "hallucination", "reward", "diversity", "secrets", "toxicity"]
+    type: Literal["schema", "hallucination", "reward", "diversity", "secrets", "toxicity", "guard"]
 
     # ---- Schema gate ----
     required_fields: list[str] = Field(default_factory=lambda: ["instruction", "output"])
@@ -346,6 +346,18 @@ class GateConfig(BaseModel):
     toxicity_llm: LLMOverrideConfig | None = None  # full sampling-param override
     toxicity_llm_reject_threshold: float = 0.5
     toxicity_text_field: str = "auto"
+
+    # ---- GuardModelGate (data hygiene; HF guard model, e.g. Qwen3Guard-Gen) ----
+    guard_model: str = "Qwen/Qwen3Guard-Gen-0.6B"
+    guard_revision: str | None = None
+    guard_text_field: str = "auto"
+    guard_only_unscreened: bool = False  # only fields an earlier toxicity gate could not read
+    guard_reject_controversial: bool = True
+    guard_on_parse_error: Literal["reject", "pass"] = "reject"
+    guard_batch_size: int = 8
+    guard_device: str | None = None  # "cuda" | "cuda:1" | "cpu" | None (auto: cuda, else cpu)
+    guard_max_new_tokens: int = 32
+    guard_content_parts: bool = False
 
 
 # =========================================================================

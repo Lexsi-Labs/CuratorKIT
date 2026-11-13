@@ -106,6 +106,15 @@ for full usage examples.
 | `toxicity_detoxify_model` | `str` | `"unbiased"` | Detoxify model variant. `"unbiased"` for general corpora; `"original"` for informal web text; `"multilingual"` for English, French, Spanish, Italian, Portuguese, Turkish and Russian only. Text mostly in another script (Korean, Chinese, Arabic, ...) is not screened: it passes with `unscreened_fields` in its provenance and a warning. Other Latin-script languages (Swahili, for example) are not detected. |
 | `toxicity_llm_judge` | `bool` | `False` | Enable LLM second opinion for borderline samples. Requires `llm_model` to be set. |
 | `toxicity_llm_reject_threshold` | `float` | `0.5` | LLM judge score at or above which a borderline sample is rejected (only used when `toxicity_llm_judge=True`). |
+| `guard_gate` | `bool` | `False` | Enable `GuardModelGate` (runs after `ToxicityGate`): a Hugging Face guard model screens each field and the sample is rejected on an unsafe verdict. Reads languages Detoxify cannot (Korean, Chinese, Swahili, ...). Needs `pip install "curatorkit[guard]"`. YAML: a gate with `type: guard` and the same settings prefixed `guard_`. |
+| `guard_model` | `str` | `"Qwen/Qwen3Guard-Gen-0.6B"` | Guard model id. Qwen3Guard-Gen (`Safety: ...` replies) and Llama Guard 3 (`safe` / `unsafe` + `S1,...`) replies are parsed. |
+| `guard_only_unscreened` | `bool` | `False` | Screen only the fields `ToxicityGate` listed as `unscreened_fields`; other samples pass with a `skipped` note. That list goes by script, so Latin-script languages Detoxify does not read (Swahili) are not routed; leave this off to screen everything. |
+| `guard_reject_controversial` | `bool` | `True` | Reject Qwen3Guard's `Controversial` verdict too. |
+| `guard_on_parse_error` | `str` | `"reject"` | `"reject"` or `"pass"` when the guard's reply has no verdict. |
+| `guard_batch_size` | `int` | `8` | Conversations per `generate` call. |
+| `guard_device` | `str \| None` | `None` | `None` picks `cuda` when available, else `cpu` (never MPS); or `"cuda:1"`, `"cpu"`, ... |
+| `guard_revision` | `str \| None` | `None` | Model revision to pin; part of the config hash. |
+| `guard_text_field` | `str` | `"auto"` | Same field selection as `toxicity_text_field`. |
 
 ---
 

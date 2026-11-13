@@ -33,6 +33,15 @@ All notable changes to CuratorKIT are documented here. The format follows
   from/value instead of being copied through as-is.
 
 ### Added
+- `GuardModelGate` (#51): screens samples with a Hugging Face guard model, default
+  `Qwen/Qwen3Guard-Gen-0.6B` (119 languages, no access request); Qwen3Guard-Gen and Llama Guard
+  replies are parsed, and `parser=` / `generator=` take other formats and loaders. Each field
+  ToxicityGate scores is screened (prompt-side as a user message, replies with their prompt),
+  long text in the same 2 048-character windows, in batches, on CUDA when available, else CPU.
+  `Unsafe` rejects; `Controversial` and unparseable replies reject by default. Provenance has the
+  verdict and categories per field. `only_unscreened=True` screens only the fields ToxicityGate
+  listed as `unscreened_fields`. Config: `guard_gate` / `guard_*` in `CuratorConfig`, `type: guard`
+  in YAML; new extra `curatorkit[guard]`.
 - `messages` exporter (`sft_messages.jsonl`): the same turns as chat `messages`
   (`[{"role", "content"}, ...]`), the layout TRL's `SFTTrainer` and tokenizer chat templates take
   directly. Auto-resolved `export_formats` include it wherever `sharegpt` is chosen.
