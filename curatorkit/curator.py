@@ -253,6 +253,10 @@ class CuratorConfig:
     # output_split_group: a metadata key (an input column ends up in metadata). Every
     # sample sharing its value lands in one split, so translations can't straddle them.
     output_split_group: str | None = None
+    # A grouped run warns about near-duplicate prompts in more than one split (MinHash Jaccard at
+    # or above this). It costs about as much as MinHash dedup; None skips it (groups and exact
+    # duplicates are still checked).
+    output_split_near_dup_threshold: float | None = 0.8
     # Also write README.md (dataset card + load_dataset configs). An existing
     # README.md that curatorkit did not write is never overwritten.
     write_hf_readme: bool = True
@@ -1758,7 +1762,9 @@ class Curator:
             group_key=cfg.output_split_group,
         )
         if cfg.output_split_group:
-            warn_on_leakage(splits, cfg.output_split_group)
+            warn_on_leakage(
+                splits, cfg.output_split_group, near_dup_threshold=cfg.output_split_near_dup_threshold
+            )
 
         _exporter_map = _exporter_classes()
 
@@ -1801,6 +1807,7 @@ class Curator:
                 ),
                 "output_split": cfg.output_split,
                 "output_split_group": cfg.output_split_group,
+                "output_split_near_dup_threshold": cfg.output_split_near_dup_threshold,
                 "pipeline_config_hash": cfg_hash,
             },
         )

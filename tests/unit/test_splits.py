@@ -215,6 +215,43 @@ class TestLeakageReport:
             report = warn_on_leakage({"train": [_sample("same")], "test": [_sample("same")]})
         assert report["ok"] is False
 
+    def test_conversations_are_compared_on_every_user_turn(self):
+        def chat(later_user_turn, reply="Sure.", system="You are a helpful assistant."):
+            return DataSample(
+                source_uri="t",
+                task_type="conversational",
+                instruction="Hi!",
+                output="Hello, how can I help?",
+                metadata={"system_prompt": system, "turns": [later_user_turn, reply]},
+            )
+
+        user = {"role": "user", "content": "How do tides work near the coast of Norway?"}
+        other = {"from": "human", "value": "Write a poem about a quiet library in autumn."}
+        reply = {"role": "assistant", "content": "Sure."}
+        # Same opener and system prompt, different questions after it: not a leak.
+        assert leakage_report({"train": [chat(user, reply)], "test": [chat(other, reply)]})["ok"]
+        # Same user turns, different replies and system prompts: the prompt leaks.
+        a = chat(user, reply)
+        b = chat(user, {"from": "gpt", "value": "No."}, system="Be brief.")
+        assert leakage_report({"train": [a], "test": [b]})["exact_duplicates"] == [(a.id, b.id)]
+
+    def test_lightly_edited_prompts_are_found(self):
+        """One 9-character word changed in a ~140-character prompt: Jaccard about 0.85."""
+        from curatorkit.normalizers.dedup import _ngrams
+        from curatorkit.splits import _prompt_text
+
+        train, test = [], []
+        for i in range(40):
+            words = _words(("near", i)).split()
+            train.append(_sample(" ".join(words)))
+            words[7] = _words(("edit", i), 1)
+            test.append(_sample(" ".join(words)))
+        for a, b in zip(train, test):
+            x, y = _ngrams(_prompt_text(a)), _ngrams(_prompt_text(b))
+            assert len(x & y) / len(x | y) >= 0.82
+        found = {b for _, b, _ in leakage_report({"train": train, "test": test})["near_duplicates"]}
+        assert len(found) >= 36  # MinHash is approximate; 90% of 40
+
 
 def _words(key, n=14):
     """Text unlike any other key's, so a clean split has no near duplicates to report."""
@@ -313,3 +350,61 @@ class TestPipeline:
                     output_split_group="group",
                 )
             ).run()
+
+    @staticmethod
+    def _near_duplicate_seed(path):
+        """Every group's prompt differs from the others in one word: near, not exact, duplicates."""
+        base = _words("shared").split()
+        with open(path, "w", encoding="utf-8") as f:
+            for g in range(40):
+                words = list(base)
+                words[7] = _words(("g", g), 1)
+                f.write(
+                    json.dumps(
+                        {"instruction": " ".join(words), "output": _words(g), "group": f"g{g}"}
+                    )
+                    + "\n"
+                )
+
+    def test_the_near_duplicate_check_can_be_skipped_from_config(self, tmp_path):
+        seed = tmp_path / "seed.jsonl"
+        self._near_duplicate_seed(seed)
+
+        def run(out, **kwargs):
+            Curator(
+                CuratorConfig(
+                    dataset=str(seed),
+                    output_dir=str(tmp_path / out),
+                    export_formats=["alpaca"],
+                    dedup=False,
+                    output_split={"train": 0.5, "test": 0.5},
+                    output_split_group="group",
+                    **kwargs,
+                )
+            ).run()
+
+        with pytest.warns(UserWarning, match=r"0 exact and [1-9]\d* near-duplicate"):
+            run("default")
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", UserWarning)
+            run("skipped", output_split_near_dup_threshold=None)
+
+    def test_the_yaml_key_reaches_the_check(self, tmp_path):
+        from curatorkit.cli import app
+
+        seed = tmp_path / "seed.jsonl"
+        self._near_duplicate_seed(seed)
+        (tmp_path / "p.yaml").write_text(
+            f"readers:\n- type: jsonl\n  path: {seed.as_posix()}\n"
+            "exporters:\n- type: alpaca\n"
+            "output_split: {train: 0.5, test: 0.5}\n"
+            "output_split_group: group\n"
+            "output_split_near_dup_threshold: null\n",
+            encoding="utf-8",
+        )
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", UserWarning)
+            result = CliRunner().invoke(
+                app, ["run", str(tmp_path / "p.yaml"), "-o", str(tmp_path / "out")]
+            )
+        assert result.exit_code == 0, result.output

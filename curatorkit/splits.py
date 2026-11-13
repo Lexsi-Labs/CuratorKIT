@@ -18,13 +18,13 @@ import warnings
 from collections import defaultdict
 from collections.abc import Iterable
 
+from curatorkit.detection.normalizer import ROLE_USER, normalize_turn
 from curatorkit.normalizers.dedup import (
     _band_keys,
     _jaccard_estimate,
     _make_hash_funcs,
     _minhash_signature,
     _ngrams,
-    _pick_bands,
     _sample_dedup_text,
 )
 from curatorkit.schema import DataSample
@@ -48,7 +48,8 @@ def _grouped_split(
     if samples and missing == len(samples):
         raise ValueError(
             f"output_split_group: no sample has metadata[{group_key!r}]. "
-            f"Check the key; a sample's input columns are kept in metadata."
+            f"Check the key; an input column not mapped to a field is kept in metadata, "
+            f"except `id` and `source_uri`, which become the sample's own."
         )
     if missing:
         warnings.warn(
@@ -119,15 +120,35 @@ def _prompt_text(sample: DataSample) -> str:
     """What the model is shown, normalised. One prompt with two answers still leaks, so
     this leaves out the answer that ``_sample_dedup_text`` includes, unless there's no
     prompt to compare."""
-    text = f"{sample.instruction} {sample.input}".strip() or _sample_dedup_text(sample)
+    parts = [sample.instruction, sample.input]
+    if sample.task_type == "conversational":
+        # The opener alone would make every chat that starts with "Hi" a duplicate. The system
+        # prompt is left out: one shared by a whole corpus would make every chat a near duplicate.
+        for turn in sample.metadata.get("turns") or []:
+            if isinstance(turn, dict):
+                turn, _ = normalize_turn(turn)
+                if turn.get("role") == ROLE_USER:
+                    parts.append(str(turn.get("content", "")))
+    text = " ".join(parts).strip() or _sample_dedup_text(sample)
     return " ".join(text.split()).casefold()
+
+
+def _recall_bands(num_perm: int, threshold: float) -> tuple[int, int]:
+    """(bands, rows) whose LSH curve passes 0.5 at or below ``threshold``.
+
+    Dedup's ``_pick_bands`` takes the nearest point on either side; for 0.8 with 128
+    permutations that is 0.88, which finds under half of the pairs at 0.85. A missed leak
+    costs more here than a candidate pair, which the Jaccard estimate then rejects."""
+    pairs = [(b, num_perm // b) for b in range(1, num_perm + 1) if num_perm % b == 0]
+    below = [(b, r) for b, r in pairs if (1 / b) ** (1 / r) <= threshold]
+    return min(below or pairs, key=lambda br: abs((1 / br[0]) ** (1 / br[1]) - threshold))
 
 
 def _near_duplicates(
     rows: list[tuple[str, DataSample, str]], threshold: float, num_perm: int, seed: int
 ) -> list[tuple[str, str, float]]:
     funcs = _make_hash_funcs(num_perm, seed)
-    bands, width = _pick_bands(num_perm, threshold)
+    bands, width = _recall_bands(num_perm, threshold)
     signatures: dict[int, list[int]] = {}
     # One representative per split in each bucket keeps this linear in the samples: on a
     # templated corpus most prompts share a bucket, and comparing all pairs would be quadratic.
@@ -201,9 +222,13 @@ def leakage_report(
     }
 
 
-def warn_on_leakage(splits: dict[str, list[DataSample]], group_key: str | None = None) -> dict:
+def warn_on_leakage(
+    splits: dict[str, list[DataSample]],
+    group_key: str | None = None,
+    near_dup_threshold: float | None = 0.8,
+) -> dict:
     """Run :func:`leakage_report` and warn when it finds anything."""
-    report = leakage_report(splits, group_key=group_key)
+    report = leakage_report(splits, group_key=group_key, near_dup_threshold=near_dup_threshold)
     if not report["ok"]:
         warnings.warn(
             f"output_split leakage: {len(report['groups_in_multiple_splits'])} groups, "

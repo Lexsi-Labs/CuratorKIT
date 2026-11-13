@@ -49,10 +49,13 @@ All notable changes to CuratorKIT are documented here. The format follows
 - `output_split_group` (`CuratorConfig`, YAML): a metadata key whose value keeps a group in one
   split, so the translations or paraphrases of an item can't land in both train and test. A group's
   split is a hash of its id and `output_split_seed`, so an item keeps its split as the corpus grows,
-  and split sizes only approximate the fractions. Without it, splitting is unchanged.
+  and split sizes only approximate the fractions (closely with hundreds of groups, loosely with a
+  few dozen). Without it, splitting is unchanged (#53).
 - `curatorkit.splits`: `split_samples` (now the one split path for `Curator` and `curatorkit run`)
   and `leakage_report`, which finds groups, exact prompts and near-duplicate prompts in more than one
-  split. A grouped run warns when it finds any.
+  split; a conversation's prompt is every user turn, not only the first. A grouped run warns when it
+  finds any. `output_split_near_dup_threshold` (default `0.8`, `None` skips the MinHash pass) tunes
+  the near-duplicate part (#53).
 - `messages` exporter (`sft_messages.jsonl`): the same turns as chat `messages`
   (`[{"role", "content"}, ...]`), the layout TRL's `SFTTrainer` and tokenizer chat templates take
   directly. Auto-resolved `export_formats` include it wherever `sharegpt` is chosen.

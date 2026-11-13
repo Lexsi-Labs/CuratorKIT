@@ -179,7 +179,11 @@ def run(
             group_key=group_key,
         )
         if group_key:
-            warn_on_leakage(splits, group_key)
+            warn_on_leakage(
+                splits,
+                group_key,
+                near_dup_threshold=getattr(config, "output_split_near_dup_threshold", 0.8),
+            )
         for split_name, rows in splits.items():
             split_dir = output_dir / split_name
             split_dir.mkdir(parents=True, exist_ok=True)
@@ -198,6 +202,7 @@ def run(
             "export_formats": [e.type for e in config.exporters],
             "output_split": config.output_split,
             "output_split_group": getattr(config, "output_split_group", None),
+            "output_split_near_dup_threshold": getattr(config, "output_split_near_dup_threshold", 0.8),
             "pipeline_config_hash": config_hash,
         },
     )

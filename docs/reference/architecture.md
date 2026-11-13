@@ -524,6 +524,7 @@ max_samples: null              # cap on total samples, applied right after reade
 output_split: null             # e.g. {train: 0.8, val: 0.1, test: 0.1}; fractions sum to 1.0
 output_split_seed: 42
 output_split_group: null       # metadata key; samples sharing its value stay in one split
+output_split_near_dup_threshold: 0.8  # grouped runs; null skips the near-duplicate check
 
 readers:
   - type: jsonl | json | csv | parquet | huggingface | pdf

@@ -128,6 +128,7 @@ for full usage examples.
 | `output_split` | `dict[str, float] \| None` | `None` | Split accepted samples into subdirectories. E.g. `{"train": 0.8, "val": 0.1, "test": 0.1}`. Must sum to 1.0. |
 | `output_split_seed` | `int` | `42` | Seed for the pre-split shuffle. Set the same value across runs to get identical train/val/test assignments. |
 | `output_split_group` | `str \| None` | `None` | Metadata key that keeps a group in one split, so translations can't land in both. Split sizes then only approximate the fractions. See [Train / val / test splits](../guides/exporters.md#train-val-test-splits). |
+| `output_split_near_dup_threshold` | `float \| None` | `0.8` | With `output_split_group`, warn about prompts in more than one split at or above this MinHash Jaccard similarity. `None` skips the near-duplicate pass; groups and exact duplicates are still checked. |
 | `write_hf_readme` | `bool` | `True` | Also write `README.md` with `load_dataset` configs. An existing `README.md` that CuratorKIT did not write is never overwritten. Also a YAML top-level key. |
 
 ---

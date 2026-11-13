@@ -486,6 +486,7 @@ class PipelineConfig(BaseModel):
     output_split: dict[str, float] | None = None
     output_split_seed: int = 42  # seed for the pre-split shuffle
     output_split_group: str | None = None  # metadata key; a group stays in one split
+    output_split_near_dup_threshold: float | None = 0.8  # grouped runs; null skips the near-dup check
     # Also write README.md with load_dataset configs; a user's own README.md is never overwritten.
     write_hf_readme: bool = True
 
