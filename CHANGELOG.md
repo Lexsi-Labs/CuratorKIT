@@ -31,6 +31,9 @@ All notable changes to CuratorKIT are documented here. The format follows
   drops data: `metadata["system_prompt"]` becomes a leading `system` turn, a non-empty `input` is
   appended to the first `human` turn, and later turns given as role/content are converted to
   from/value instead of being copied through as-is.
+- The `SecretsGate` install error and the data-hygiene guide name `pip install detect-secrets`,
+  the one package the gate needs; `curatorkit[hygiene]` stays the way to get every hygiene gate
+  (#52).
 
 ### Added
 - `ToxicityGate(device="auto")`: Detoxify runs on CUDA when torch sees a GPU, else CPU (it always ran on
