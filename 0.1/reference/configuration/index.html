@@ -1955,7 +1955,7 @@ for full usage examples.</p>
 <td><code>toxicity_detoxify_model</code></td>
 <td><code>str</code></td>
 <td><code>"unbiased"</code></td>
-<td>Detoxify model variant. <code>"unbiased"</code> for general corpora; <code>"original"</code> for informal web text; <code>"multilingual"</code> for non-English.</td>
+<td>Detoxify model variant. <code>"unbiased"</code> for general corpora; <code>"original"</code> for informal web text; <code>"multilingual"</code> for English, French, Spanish, Italian, Portuguese, Turkish and Russian only. Text mostly in another script (Korean, Chinese, Arabic, ...) is not screened: it passes with <code>unscreened_fields</code> in its provenance and a warning. Other Latin-script languages (Swahili, for example) are not detected.</td>
 </tr>
 <tr>
 <td><code>toxicity_llm_judge</code></td>
@@ -1968,6 +1968,66 @@ for full usage examples.</p>
 <td><code>float</code></td>
 <td><code>0.5</code></td>
 <td>LLM judge score at or above which a borderline sample is rejected (only used when <code>toxicity_llm_judge=True</code>).</td>
+</tr>
+<tr>
+<td><code>toxicity_device</code></td>
+<td><code>str \| None</code></td>
+<td><code>None</code></td>
+<td>Where Detoxify runs. <code>None</code> picks <code>cuda</code> when available, else <code>cpu</code> (never MPS); or <code>"cuda:1"</code>, <code>"cpu"</code>, ... Recorded as <code>device</code> in the provenance; decisions do not depend on it. YAML: <code>toxicity_device</code> on a <code>type: toxicity</code> gate.</td>
+</tr>
+<tr>
+<td><code>guard_gate</code></td>
+<td><code>bool</code></td>
+<td><code>False</code></td>
+<td>Enable <code>GuardModelGate</code> (runs after <code>ToxicityGate</code>): a Hugging Face guard model screens each field and the sample is rejected on an unsafe verdict. Reads languages Detoxify cannot (Korean, Chinese, Swahili, ...). Needs <code>pip install "curatorkit[guard]"</code>. YAML: a gate with <code>type: guard</code> and the same settings prefixed <code>guard_</code>.</td>
+</tr>
+<tr>
+<td><code>guard_model</code></td>
+<td><code>str</code></td>
+<td><code>"Qwen/Qwen3Guard-Gen-0.6B"</code></td>
+<td>Guard model id. Qwen3Guard-Gen (<code>Safety: ...</code> replies) and Llama Guard 3 (<code>safe</code> / <code>unsafe</code> + <code>S1,...</code>) replies are parsed.</td>
+</tr>
+<tr>
+<td><code>guard_only_unscreened</code></td>
+<td><code>bool</code></td>
+<td><code>False</code></td>
+<td>Screen only the fields <code>ToxicityGate</code> listed as <code>unscreened_fields</code>; other samples pass with a <code>skipped</code> note. That list goes by script, so Latin-script languages Detoxify does not read (Swahili) are not routed; leave this off to screen everything.</td>
+</tr>
+<tr>
+<td><code>guard_reject_controversial</code></td>
+<td><code>bool</code></td>
+<td><code>True</code></td>
+<td>Reject Qwen3Guard's <code>Controversial</code> verdict too.</td>
+</tr>
+<tr>
+<td><code>guard_on_parse_error</code></td>
+<td><code>str</code></td>
+<td><code>"reject"</code></td>
+<td><code>"reject"</code> or <code>"pass"</code> when the guard's reply has no verdict.</td>
+</tr>
+<tr>
+<td><code>guard_batch_size</code></td>
+<td><code>int</code></td>
+<td><code>8</code></td>
+<td>Conversations per <code>generate</code> call.</td>
+</tr>
+<tr>
+<td><code>guard_device</code></td>
+<td><code>str \| None</code></td>
+<td><code>None</code></td>
+<td><code>None</code> picks <code>cuda</code> when available, else <code>cpu</code> (never MPS); or <code>"cuda:1"</code>, <code>"cpu"</code>, ...</td>
+</tr>
+<tr>
+<td><code>guard_revision</code></td>
+<td><code>str \| None</code></td>
+<td><code>None</code></td>
+<td>Model revision to pin; part of the config hash.</td>
+</tr>
+<tr>
+<td><code>guard_text_field</code></td>
+<td><code>str</code></td>
+<td><code>"auto"</code></td>
+<td>Same field selection as <code>toxicity_text_field</code>.</td>
 </tr>
 </tbody>
 </table>
@@ -2006,6 +2066,18 @@ for full usage examples.</p>
 <td><code>int</code></td>
 <td><code>42</code></td>
 <td>Seed for the pre-split shuffle. Set the same value across runs to get identical train/val/test assignments.</td>
+</tr>
+<tr>
+<td><code>output_split_group</code></td>
+<td><code>str \| None</code></td>
+<td><code>None</code></td>
+<td>Metadata key that keeps a group in one split, so translations can't land in both. Split sizes then only approximate the fractions. See <a href="../../guides/exporters/#train-val-test-splits">Train / val / test splits</a>.</td>
+</tr>
+<tr>
+<td><code>output_split_near_dup_threshold</code></td>
+<td><code>float \| None</code></td>
+<td><code>0.8</code></td>
+<td>With <code>output_split_group</code>, warn about prompts in more than one split at or above this MinHash Jaccard similarity. <code>None</code> skips the near-duplicate pass; groups and exact duplicates are still checked.</td>
 </tr>
 <tr>
 <td><code>write_hf_readme</code></td>
@@ -2138,6 +2210,12 @@ for full usage examples.</p>
 <td><code>int</code></td>
 <td><code>3</code></td>
 <td>Retry attempts on transient errors</td>
+</tr>
+<tr>
+<td><code>llm_retry_after_max</code></td>
+<td><code>float</code></td>
+<td><code>60.0</code></td>
+<td>Longest wait, in seconds, honoured from a provider's <code>Retry-After</code> (or <code>retry_after</code> / <code>retry-after-ms</code>, and on a 429 <code>x-ratelimit-reset-requests</code>) before a retry. With no such header the wait is 1 s, 2 s, 4 s ... (up to 30 s) with jitter. One value for every role (generator, judge, probe, refiner); YAML: <code>llm.retry_after_max</code></td>
 </tr>
 <tr>
 <td><code>llm_drop_params</code></td>
@@ -2413,6 +2491,12 @@ they're treated as <code>{model: "..."}</code> shorthand and only apply when the
 <td>Preference pair generation: <code>"single_call"</code> (one call for both chosen/rejected) or <code>"two_pass"</code> (separate calls)</td>
 </tr>
 <tr>
+<td><code>rejected_temperature_offset</code></td>
+<td><code>float</code></td>
+<td><code>0.3</code></td>
+<td><code>preference_mode="two_pass"</code>: the rejected answer is sampled at the LLM temperature plus this (at most 1.5, or the base temperature if higher). <code>0</code> samples both sides at the same temperature. Both temperatures are recorded per sample (<code>metadata["chosen_temperature"]</code>, <code>["rejected_temperature"]</code>) and in its provenance record.</td>
+</tr>
+<tr>
 <td><code>multiturn_mode</code></td>
 <td><code>str</code></td>
 <td><code>"turn_by_turn"</code></td>
@@ -2568,6 +2652,18 @@ they're treated as <code>{model: "..."}</code> shorthand and only apply when the
 <td><code>int</code></td>
 <td><code>42</code></td>
 <td>Random seed for injection sampling</td>
+</tr>
+<tr>
+<td><code>adversarial_temperature</code></td>
+<td><code>float</code></td>
+<td><code>0.8</code></td>
+<td><code>adversarial_preference</code>: temperature of the call that writes an adversarial rejected answer</td>
+</tr>
+<tr>
+<td><code>naive_rejected_temperature</code></td>
+<td><code>float</code></td>
+<td><code>0.9</code></td>
+<td><code>adversarial_preference</code>: temperature of the call that writes a naive, degraded rejected answer. The chosen answer uses the LLM temperature. Both sides' temperatures are recorded per sample like <code>rejected_temperature_offset</code></td>
 </tr>
 <tr>
 <td><code>high_temp</code></td>

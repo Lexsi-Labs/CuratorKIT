@@ -1671,6 +1671,18 @@
 <td>null</td>
 <td>Train/val/test split fractions (must sum to 1.0)</td>
 </tr>
+<tr>
+<td><code>output_split_group</code></td>
+<td>str</td>
+<td>null</td>
+<td>Metadata key that keeps a group in one split</td>
+</tr>
+<tr>
+<td><code>output_split_near_dup_threshold</code></td>
+<td>float</td>
+<td>0.8</td>
+<td>Near-duplicate check on grouped splits; null skips it</td>
+</tr>
 </tbody>
 </table>
 <h3 id="reader-types">Reader types<a class="headerlink" href="#reader-types" title="Permanent link">&para;</a></h3>
@@ -1792,7 +1804,7 @@
 </tr>
 <tr>
 <td><code>preference</code></td>
-<td><code>preference_mode</code> (<code>single_call</code>/<code>two_pass</code>), <code>prompt_template</code></td>
+<td><code>preference_mode</code> (<code>single_call</code>/<code>two_pass</code>), <code>rejected_temperature_offset</code> (default <code>0.3</code>), <code>prompt_template</code></td>
 </tr>
 <tr>
 <td><code>grpo</code></td>
@@ -1812,7 +1824,7 @@
 </tr>
 <tr>
 <td><code>adversarial_preference</code></td>
-<td><code>injection_rate</code>, <code>injection_types</code>, <code>injection_seed</code></td>
+<td><code>injection_rate</code>, <code>injection_types</code>, <code>injection_seed</code>, <code>adversarial_temperature</code> (default <code>0.8</code>), <code>naive_rejected_temperature</code> (default <code>0.9</code>)</td>
 </tr>
 <tr>
 <td><code>adversarial_qa</code></td>

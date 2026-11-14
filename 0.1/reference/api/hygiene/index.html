@@ -1104,6 +1104,34 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#curatorkit.hygiene.GuardModelGate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GuardModelGate
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="GuardModelGate">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#curatorkit.hygiene.GuardModelGate--parameters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parameters
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#curatorkit.hygiene.PIIPseudonymizer" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1511,6 +1539,34 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#curatorkit.hygiene.GuardModelGate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GuardModelGate
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="GuardModelGate">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#curatorkit.hygiene.GuardModelGate--parameters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parameters
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#curatorkit.hygiene.PIIPseudonymizer" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1646,6 +1702,8 @@
 data before LLM generation begins:</p>
 <p>ToxicityGate       — two-stage filter: Detoxify classifier for clear
                         cases, LLM judge for borderline samples.
+  GuardModelGate     — Hugging Face guard model (Qwen3Guard-Gen, Llama Guard);
+                        reads languages Detoxify cannot. Needs [guard] extras.
   SecretsGate        — rejects samples containing credentials, API keys,
                         or high-entropy secrets (yelp/detect-secrets).
   PIIPseudonymizer   — replaces PII entities with consistent fake values
@@ -1676,6 +1734,86 @@ and write structured notes to the provenance chain.</p>
 
 
 
+
+<div class="doc doc-object doc-class">
+
+
+
+<h3 id="curatorkit.hygiene.GuardModelGate" class="doc doc-heading">
+            <span class="doc doc-object-name doc-class-name">GuardModelGate</span>
+
+
+<a href="#curatorkit.hygiene.GuardModelGate" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">GuardModelGate</span><span class="p">(</span><span class="n">model</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">'Qwen/Qwen3Guard-Gen-0.6B'</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">revision</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">text_field</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">'auto'</span><span class="p">,</span> <span class="n">only_unscreened</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">reject_controversial</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">on_parse_error</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">'reject'</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">8</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">max_new_tokens</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">32</span><span class="p">,</span> <span class="n">content_parts</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">parser</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">],</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">generator</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]]],</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><a class="autorefs autorefs-internal" title="BaseGate (curatorkit.interfaces.BaseGate)" href="../interfaces/#curatorkit.interfaces.BaseGate">BaseGate</a></code></p>
+
+
+
+        <p>Reject samples a guard model labels unsafe.</p>
+<h5 id="curatorkit.hygiene.GuardModelGate--parameters">Parameters<a class="headerlink" href="#curatorkit.hygiene.GuardModelGate--parameters" title="Permanent link">&para;</a></h5>
+<p>model : str
+    Hugging Face id of a chat-template guard model. Default <code>Qwen/Qwen3Guard-Gen-0.6B</code>
+    (119 languages, no access request). Llama Guard 3 works the same way once you have
+    access; pass <code>content_parts=True</code> for templates that expect list-of-parts content.
+revision : str | None
+    Model revision (commit or tag) to pin; recorded in the config hash.
+text_field : str
+    <code>"auto"</code> screens the same fields as ToxicityGate, or name one DataSample field.
+only_unscreened : bool
+    Screen only the fields that an earlier ToxicityGate listed under <code>unscreened_fields</code>
+    (text in a script Detoxify cannot read); other samples pass with a <code>skipped</code> note.
+    That list goes by script, so a Latin-script language Detoxify does not read (Swahili) is
+    not routed here; leave this off to screen every field.
+reject_controversial : bool
+    Reject Qwen3Guard's <code>Controversial</code> verdict too (default True, the strict reading).
+on_parse_error : "reject" | "pass"
+    What to do when the reply has no verdict. Default <code>"reject"</code> (fail closed).
+batch_size : int
+    Conversations per <code>generate</code> call.
+device : str | None
+    <code>None</code> / <code>"auto"</code>: cuda when available, else cpu. Or <code>"cuda:1"</code>, <code>"cpu"</code>, ...
+max_new_tokens : int
+    Tokens the guard may write; a verdict needs about 20.
+content_parts : bool
+    Send message content as <code>[{"type": "text", "text": ...}]</code> (Llama Guard 3-1B / 4 style).
+parser : callable | None
+    <code>text -&gt; (verdict, categories)</code> for a guard with another reply format.
+generator : callable | None
+    <code>list[list[message]] -&gt; list[str]</code>: replaces the built-in transformers loader, e.g. a
+    vLLM or processor-based model. <code>model</code> is still recorded as the guard's name.</p>
+
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
 
 <div class="doc doc-object doc-class">
 
@@ -1831,7 +1969,7 @@ plugins : list[dict] | None
 
 
 <a href="#curatorkit.hygiene.ToxicityGate" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">ToxicityGate</span><span class="p">(</span><span class="n">classifier_pass_threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span> <span class="n">classifier_reject_threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span> <span class="n">llm</span><span class="p">:</span> <span class="n">BaseLLM</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">llm_reject_threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span> <span class="n">detoxify_model</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">'unbiased'</span><span class="p">,</span> <span class="n">text_field</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">'auto'</span><span class="p">)</span>
+<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">ToxicityGate</span><span class="p">(</span><span class="n">classifier_pass_threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span> <span class="n">classifier_reject_threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span> <span class="n">llm</span><span class="p">:</span> <span class="n">BaseLLM</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">llm_reject_threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span> <span class="n">detoxify_model</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">'unbiased'</span><span class="p">,</span> <span class="n">text_field</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">'auto'</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="s1">'auto'</span><span class="p">)</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
@@ -1858,9 +1996,18 @@ llm_reject_threshold : float
     LLM toxicity score at or above which a borderline sample is rejected.
 detoxify_model : str
     "unbiased" (default, recommended), "original", or "multilingual".
+    "unbiased" and "original" read English; "multilingual" reads English,
+    French, Spanish, Italian, Portuguese, Turkish and Russian. A passing
+    sample whose text is mostly in a script the model was not trained on
+    (Korean, Chinese, Arabic, ...) lists those fields under
+    <code>unscreened_fields</code> in its provenance, and the run logs a warning.
 text_field : str
     "auto" scores the fields most relevant to the task_type; or pass
-    a specific DataSample field name.</p>
+    a specific DataSample field name.
+device : str | None
+    Where Detoxify runs. "auto" (default) or None: cuda when available,
+    else cpu (never MPS). Or "cuda:1", "cpu", ... Recorded as <code>device</code>
+    in the provenance; scores and decisions do not depend on it.</p>
 
 
 

@@ -1620,39 +1620,65 @@ The column is omitted when no row has a reference. Only an <code>instruction_fol
 <a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>    <span class="n">output_dir</span>     <span class="o">=</span> <span class="s2">"output/"</span><span class="p">,</span>
 <a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="p">)</span>
 </code></pre></div>
+<p>To keep related samples together, name a metadata key in <code>output_split_group</code>. Every sample
+sharing its value lands in the same split, so the translations of a prompt can't end up in both
+train and test. An input column that isn't mapped to a field is kept in <code>metadata</code>, so the key is
+usually a column name (not <code>id</code> or <code>source_uri</code>: those become the sample's own id and source):</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="n">CuratorConfig</span><span class="p">(</span>
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>    <span class="n">output_split</span>       <span class="o">=</span> <span class="p">{</span><span class="s2">"train"</span><span class="p">:</span> <span class="mf">0.9</span><span class="p">,</span> <span class="s2">"test"</span><span class="p">:</span> <span class="mf">0.1</span><span class="p">},</span>
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>    <span class="n">output_split_group</span> <span class="o">=</span> <span class="s2">"group"</span><span class="p">,</span>
+<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="p">)</span>
+</code></pre></div>
+<p>A group's split is a hash of its id and <code>output_split_seed</code>, so an item keeps its split as the
+corpus grows. Split sizes then only approximate the fractions, more loosely with few groups: with
+<code>{"train": 0.8, "val": 0.1, "test": 0.1}</code>, 1 000 groups land within about 1 point of each fraction
+on average and 100 groups within about 3, but with 30 groups a split is off by 5 to 7 points on average
+and sometimes empty (a warning says so). A sample with no value is split on its own text, with a
+warning, and a key that no sample has raises an error.</p>
+<p>A grouped run also warns if any group, identical prompt or near-duplicate prompt is in more than
+one split. Prompts are the instruction and input, plus every user turn of a conversation. The
+near-duplicate pass is MinHash at <code>output_split_near_dup_threshold</code> (default <code>0.8</code>); it is the slow part:
+about 4.5 minutes for 100 000 samples of 30-word prompts on one CPU core (the group and exact checks take
+under a second), and <code>None</code> skips it. To run the check yourself:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">curatorkit.splits</span><span class="w"> </span><span class="kn">import</span> <span class="n">leakage_report</span><span class="p">,</span> <span class="n">split_samples</span>
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>
+<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="n">splits</span> <span class="o">=</span> <span class="n">split_samples</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">passed</span><span class="p">,</span> <span class="p">{</span><span class="s2">"train"</span><span class="p">:</span> <span class="mf">0.9</span><span class="p">,</span> <span class="s2">"test"</span><span class="p">:</span> <span class="mf">0.1</span><span class="p">},</span> <span class="n">group_key</span><span class="o">=</span><span class="s2">"group"</span><span class="p">)</span>
+<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="n">report</span> <span class="o">=</span> <span class="n">leakage_report</span><span class="p">(</span><span class="n">splits</span><span class="p">,</span> <span class="n">group_key</span><span class="o">=</span><span class="s2">"group"</span><span class="p">)</span>  <span class="c1"># groups, exact and near duplicates, "ok"</span>
+</code></pre></div>
+<p>Text matching can't see a translation, so only a group key catches those.</p>
 <p>Output structure:
-<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>output/
-<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>  train/
-<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>    sft_alpaca.jsonl
-<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>    dpo.jsonl
-<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>  val/
-<a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>    sft_alpaca.jsonl
-<a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a>    dpo.jsonl
-<a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a>  test/
-<a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a>    sft_alpaca.jsonl
-<a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a>    dpo.jsonl
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>output/
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>  train/
+<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>    sft_alpaca.jsonl
+<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a>    dpo.jsonl
+<a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a>  val/
+<a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a>    sft_alpaca.jsonl
+<a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a>    dpo.jsonl
+<a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a>  test/
+<a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a>    sft_alpaca.jsonl
+<a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a>    dpo.jsonl
 </code></pre></div></p>
 <p>Samples are shuffled before splitting. The last split receives any remainder from rounding.</p>
 <hr />
 <h2 id="output-directory-layout">Output directory layout<a class="headerlink" href="#output-directory-layout" title="Permanent link">&para;</a></h2>
 <p>Every run writes these files regardless of which exporters are configured:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>output/
-<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>  manifest.json             Pipeline config hash, stage counts, rejection breakdown
-<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>  rejected.jsonl            All rejected samples with structured reasons
-<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>  dataset_card.md           Human-readable run summary
-<a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>  README.md                 Same card with `configs:` YAML (Hugging Face dataset folder; see below)
-<a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a>  lexsi_provenance.json     lexsi.provenance/1 lineage record (also manifest["provenance"])
-<a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a>  checksums.txt             SHA-256 for all output files
-<a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a>  diagnostic_summary.json   Failure mode counts, recovery stats (when probe active)
-<a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a>  [format files]            Only the formats you listed in export_formats
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>output/
+<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>  manifest.json             Pipeline config hash, stage counts, rejection breakdown
+<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>  rejected.jsonl            All rejected samples with structured reasons
+<a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a>  dataset_card.md           Human-readable run summary
+<a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a>  README.md                 Same card with `configs:` YAML (Hugging Face dataset folder; see below)
+<a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a>  lexsi_provenance.json     lexsi.provenance/1 lineage record (also manifest["provenance"])
+<a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a>  checksums.txt             SHA-256 for all output files
+<a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a>  diagnostic_summary.json   Failure mode counts, recovery stats (when probe active)
+<a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a>  [format files]            Only the formats you listed in export_formats
 </code></pre></div>
 <p><code>manifest.json</code> and <code>rejected.jsonl</code> are always written and cannot be disabled. They are the primary audit trail for the run.</p>
 <h3 id="loading-the-folder-with-datasets">Loading the folder with <code>datasets</code><a class="headerlink" href="#loading-the-folder-with-datasets" title="Permanent link">&para;</a></h3>
 <p><code>README.md</code> declares one config per non-empty export file; the config name is the file stem and each <code>output_split</code> directory is a split (unsplit runs give <code>train</code>). Only the listed files are data, so <code>manifest.json</code>, <code>rejected.jsonl</code> and <code>lexsi_provenance.json</code> never show up as splits.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">datasets</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_dataset</span>
-<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="n">load_dataset</span><span class="p">(</span><span class="s2">"output/"</span><span class="p">,</span> <span class="s2">"sft_messages"</span><span class="p">)</span>   <span class="c1"># messages (role/content)</span>
-<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="n">load_dataset</span><span class="p">(</span><span class="s2">"output/"</span><span class="p">,</span> <span class="s2">"dpo"</span><span class="p">)</span>            <span class="c1"># prompt / chosen / rejected</span>
-<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="n">load_dataset</span><span class="p">(</span><span class="s2">"output/"</span><span class="p">)</span>                   <span class="c1"># the first config listed</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">datasets</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_dataset</span>
+<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="n">load_dataset</span><span class="p">(</span><span class="s2">"output/"</span><span class="p">,</span> <span class="s2">"sft_messages"</span><span class="p">)</span>   <span class="c1"># messages (role/content)</span>
+<a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="n">load_dataset</span><span class="p">(</span><span class="s2">"output/"</span><span class="p">,</span> <span class="s2">"dpo"</span><span class="p">)</span>            <span class="c1"># prompt / chosen / rejected</span>
+<a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="n">load_dataset</span><span class="p">(</span><span class="s2">"output/"</span><span class="p">)</span>                   <span class="c1"># the first config listed</span>
 </code></pre></div>
 <p><code>CuratorResult.push_to_hub(repo_id, export_file=...)</code> uses the same config and split names on the Hub.</p>
 <p>Use a dedicated <code>output_dir</code>. A <code>README.md</code> already there that CuratorKIT did not write (say, a repository's own README) is never overwritten: the run warns, skips it, and the folder is then not loadable by config name. Set <code>write_hf_readme=False</code> (<code>CuratorConfig</code> or YAML) to never write <code>README.md</code>.</p>

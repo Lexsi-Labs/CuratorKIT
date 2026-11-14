@@ -1397,13 +1397,14 @@
 <p><strong>Output fields:</strong> <code>instruction=question</code>, <code>input=source_text</code>, <code>chosen=chosen</code>, <code>rejected=rejected</code></p>
 <p><strong>Two generation modes:</strong>
 - <code>single_call</code> (default) — one LLM call generates question + chosen + rejected together
-- <code>two_pass</code> — separate LLM calls for chosen and rejected; rejected generated at <code>temperature + 0.3</code></p>
+- <code>two_pass</code> — separate LLM calls for chosen and rejected; rejected generated at <code>temperature + rejected_temperature_offset</code> (default <code>0.3</code>, capped at 1.5). Set <code>rejected_temperature_offset = 0.0</code> for equal sampling on both sides, e.g. when the two sides must differ only in the prompt. Each sample records <code>metadata["chosen_temperature"]</code> and <code>metadata["rejected_temperature"]</code>, and carries a provenance record with the model, tokens, prompt hash and both temperatures.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="n">CuratorConfig</span><span class="p">(</span>
 <a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>    <span class="n">dataset</span>          <span class="o">=</span> <span class="s2">"docs/handbook.pdf"</span><span class="p">,</span>
 <a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>    <span class="n">llm_model</span>        <span class="o">=</span> <span class="s2">"openai/gpt-4o-mini"</span><span class="p">,</span>
 <a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    <span class="n">generation_task</span>  <span class="o">=</span> <span class="s2">"preference"</span><span class="p">,</span>
 <a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>    <span class="n">preference_mode</span>  <span class="o">=</span> <span class="s2">"single_call"</span><span class="p">,</span>   <span class="c1"># or "two_pass"</span>
-<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="p">)</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>    <span class="n">rejected_temperature_offset</span> <span class="o">=</span> <span class="mf">0.3</span><span class="p">,</span>  <span class="c1"># two_pass only; 0.0 = same temperature for both sides</span>
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="p">)</span>
 </code></pre></div>
 <p><strong>Note on RewardGate with preference pairs:</strong> The gate dual-scores — <code>chosen_score &gt;= threshold</code> AND <code>rejected_score &lt; threshold</code>. If <code>rejected_score &gt;= threshold</code> (rejected response too good), the pair fails with <code>rejected_above_threshold</code>. This is a generation contrast problem, not a gate issue. See <a href="../quality-gates/">Quality filtering</a>.</p>
 <hr />
@@ -1565,8 +1566,11 @@
 <a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a>    <span class="n">injection_rate</span>   <span class="o">=</span> <span class="mf">0.3</span><span class="p">,</span>
 <a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a>    <span class="n">injection_types</span>  <span class="o">=</span> <span class="p">[</span><span class="s2">"contradicts_source"</span><span class="p">,</span> <span class="s2">"parametric_drift"</span><span class="p">],</span>   <span class="c1"># empty list = all types</span>
 <a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a>    <span class="n">injection_seed</span>   <span class="o">=</span> <span class="mi">42</span><span class="p">,</span>
-<a id="__codelineno-14-8" name="__codelineno-14-8" href="#__codelineno-14-8"></a><span class="p">)</span>
+<a id="__codelineno-14-8" name="__codelineno-14-8" href="#__codelineno-14-8"></a>    <span class="n">adversarial_temperature</span>    <span class="o">=</span> <span class="mf">0.8</span><span class="p">,</span>   <span class="c1"># rejected call for an injected pair</span>
+<a id="__codelineno-14-9" name="__codelineno-14-9" href="#__codelineno-14-9"></a>    <span class="n">naive_rejected_temperature</span> <span class="o">=</span> <span class="mf">0.9</span><span class="p">,</span>   <span class="c1"># rejected call for the rest (explicitly degraded)</span>
+<a id="__codelineno-14-10" name="__codelineno-14-10" href="#__codelineno-14-10"></a><span class="p">)</span>
 </code></pre></div>
+<p>The chosen answer is sampled at the LLM temperature. All three temperatures are configurable, and each sample records <code>metadata["chosen_temperature"]</code> and <code>metadata["rejected_temperature"]</code>.</p>
 <p><strong>Output fields:</strong> <code>instruction=question</code>, <code>input=source_text</code>, <code>chosen=faithful_answer</code>, <code>rejected=adversarially_corrupted_answer</code></p>
 <hr />
 <h3 id="adversarial_qa-multi-strategy-adversarial-qa"><code>adversarial_qa</code> — Multi-strategy adversarial QA<a class="headerlink" href="#adversarial_qa-multi-strategy-adversarial-qa" title="Permanent link">&para;</a></h3>

@@ -2449,7 +2449,7 @@ multi-turn dialogues, chain-of-thought traces, and adversarial variants.</p>
 
 
 <a href="#curatorkit.generators.AdversarialPreferenceTask" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">AdversarialPreferenceTask</span><span class="p">(</span><span class="n">llm</span><span class="p">:</span> <span class="n">BaseLLM</span><span class="p">,</span> <span class="n">num_questions</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">injection_rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span> <span class="n">injection_types</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="mi">42</span><span class="p">,</span> <span class="n">faithful_prompt_template</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">adversarial_prompt_template</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">difficulty</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">'medium'</span><span class="p">,</span> <span class="n">concurrency</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">)</span>
+<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">AdversarialPreferenceTask</span><span class="p">(</span><span class="n">llm</span><span class="p">:</span> <span class="n">BaseLLM</span><span class="p">,</span> <span class="n">num_questions</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">injection_rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span> <span class="n">injection_types</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="mi">42</span><span class="p">,</span> <span class="n">faithful_prompt_template</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">adversarial_prompt_template</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">difficulty</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">'medium'</span><span class="p">,</span> <span class="n">concurrency</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span> <span class="n">adversarial_temperature</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.8</span><span class="p">,</span> <span class="n">naive_rejected_temperature</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.9</span><span class="p">)</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
@@ -2486,6 +2486,13 @@ adversarial_prompt_template : str | None
     {context}, {question} placeholders.
 difficulty : str
     "easy" | "medium" | "hard" — passed to faithful generation prompt.
+adversarial_temperature : float
+    Temperature of the call that writes an adversarial rejected answer (default 0.8).
+naive_rejected_temperature : float
+    Temperature of the call that writes a naive, degraded rejected answer (default 0.9).
+    The faithful (chosen) call uses <code>llm.temperature</code>. All three temperatures are recorded
+    per sample in <code>metadata</code> (<code>chosen_temperature</code>, <code>rejected_temperature</code>) and in its
+    provenance record.
 concurrency : int</p>
 
 
@@ -3332,7 +3339,7 @@ ignored mode="turn_by_turn" (the default) on every async invocation.</p>
 
 
 <a href="#curatorkit.generators.PreferenceGenerationTask" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">PreferenceGenerationTask</span><span class="p">(</span><span class="n">llm</span><span class="p">:</span> <span class="n">BaseLLM</span><span class="p">,</span> <span class="n">prompt_template</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">'single_call'</span><span class="p">,</span> <span class="n">chosen_prompt</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">rejected_prompt</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">concurrency</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">)</span>
+<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">PreferenceGenerationTask</span><span class="p">(</span><span class="n">llm</span><span class="p">:</span> <span class="n">BaseLLM</span><span class="p">,</span> <span class="n">prompt_template</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">'single_call'</span><span class="p">,</span> <span class="n">chosen_prompt</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">rejected_prompt</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">concurrency</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span> <span class="n">rejected_temperature_offset</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.3</span><span class="p">)</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
@@ -3354,7 +3361,14 @@ chosen_prompt : str | None
     Two-pass template for chosen (must contain {instruction},
     optionally {context_section}).
 rejected_prompt : str | None
-    Two-pass template for rejected.</p>
+    Two-pass template for rejected.
+rejected_temperature_offset : float
+    Two-pass: the rejected answer is sampled at <code>llm.temperature + offset</code> (at most 1.5, or
+    the base temperature if that is higher), so it differs from the chosen one in sampling as
+    well as in prompt. <code>0.3</code> is the default; <code>0</code> samples both sides at the same temperature,
+    for data where the two sides must differ only in the prompt. Both temperatures are
+    recorded in each sample's metadata (<code>chosen_temperature</code>, <code>rejected_temperature</code>) and in
+    its provenance record.</p>
 
 
 
