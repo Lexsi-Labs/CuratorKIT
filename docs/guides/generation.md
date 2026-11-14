@@ -77,7 +77,7 @@ Return JSON: {"question": "...", "chosen": "...", "rejected": "...", "degradatio
 
 **Two generation modes:**
 - `single_call` (default) — one LLM call generates question + chosen + rejected together
-- `two_pass` — separate LLM calls for chosen and rejected; rejected generated at `temperature + 0.3`
+- `two_pass` — separate LLM calls for chosen and rejected; rejected generated at `temperature + rejected_temperature_offset` (default `0.3`, capped at 1.5). Set `rejected_temperature_offset = 0.0` for equal sampling on both sides, e.g. when the two sides must differ only in the prompt. Each sample records `metadata["chosen_temperature"]` and `metadata["rejected_temperature"]`, and carries a provenance record with the model, tokens, prompt hash and both temperatures.
 
 ```python
 CuratorConfig(
@@ -85,6 +85,7 @@ CuratorConfig(
     llm_model        = "openai/gpt-4o-mini",
     generation_task  = "preference",
     preference_mode  = "single_call",   # or "two_pass"
+    rejected_temperature_offset = 0.3,  # two_pass only; 0.0 = same temperature for both sides
 )
 ```
 
@@ -256,8 +257,12 @@ CuratorConfig(
     injection_rate   = 0.3,
     injection_types  = ["contradicts_source", "parametric_drift"],   # empty list = all types
     injection_seed   = 42,
+    adversarial_temperature    = 0.8,   # rejected call for an injected pair
+    naive_rejected_temperature = 0.9,   # rejected call for the rest (explicitly degraded)
 )
 ```
+
+The chosen answer is sampled at the LLM temperature. All three temperatures are configurable, and each sample records `metadata["chosen_temperature"]` and `metadata["rejected_temperature"]`.
 
 **Output fields:** `instruction=question`, `input=source_text`, `chosen=faithful_answer`, `rejected=adversarially_corrupted_answer`
 

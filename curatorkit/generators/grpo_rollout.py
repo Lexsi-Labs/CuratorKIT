@@ -257,8 +257,10 @@ class GRPORolloutTask(BaseGenerationTask):
                 responses: list[str] = []
 
                 response_status: list[str] = []
+                calls: list = []  # (response, messages, temperature) for the provenance record
                 for temp in temperatures:
                     resp = self.llm.generate(messages, temperature=temp)
+                    calls.append((resp, messages, temp))
                     text = resp.text.strip()
                     if text:
                         responses.append(text)
@@ -288,7 +290,7 @@ class GRPORolloutTask(BaseGenerationTask):
                 else:
                     scores = [0.0] * len(responses)
 
-                results.append(
+                ds = (
                     DataSample(
                         id=str(uuid.uuid4()),
                         source_uri=sample.source_uri,
@@ -310,6 +312,7 @@ class GRPORolloutTask(BaseGenerationTask):
                         provenance_chain=list(sample.provenance_chain),
                     )
                 )
+                results.append(self._record_calls(ds, sample.id, calls))
 
             except Exception as e:
                 self._rejected.append(self._rejection(sample, e))
@@ -355,8 +358,10 @@ class GRPORolloutTask(BaseGenerationTask):
                     responses: list[str] = []
                     response_status: list[str] = []
 
+                    calls: list = []  # (response, messages, temperature) for the provenance record
                     for temp in temperatures:
                         resp = await self.llm.agenerate(messages, temperature=temp)
+                        calls.append((resp, messages, temp))
                         text = resp.text.strip()
                         if text:
                             responses.append(text)
@@ -383,7 +388,7 @@ class GRPORolloutTask(BaseGenerationTask):
                     else:
                         scores = [0.0] * len(responses)
 
-                    results_map[idx] = DataSample(
+                    ds = DataSample(
                         id=str(uuid.uuid4()),
                         source_uri=sample.source_uri,
                         instruction=instruction,
@@ -403,6 +408,7 @@ class GRPORolloutTask(BaseGenerationTask):
                         },
                         provenance_chain=list(sample.provenance_chain),
                     )
+                    results_map[idx] = self._record_calls(ds, sample.id, calls)
                 except Exception as e:
                     self._rejected.append(self._rejection(sample, e))
 

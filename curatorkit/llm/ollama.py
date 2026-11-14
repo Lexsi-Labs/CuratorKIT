@@ -40,6 +40,8 @@ class OllamaBackend(BaseLLM):
         Request timeout in seconds.
     max_retries : int
         Retries on transient failures.
+    retry_after_max : float
+        Longest wait (seconds) honoured from a provider's Retry-After before a retry.
     """
 
     def __init__(
@@ -50,6 +52,7 @@ class OllamaBackend(BaseLLM):
         max_tokens: int = 1024,
         timeout: float = 300.0,
         max_retries: int = 3,
+        retry_after_max: float = 60.0,
     ) -> None:
         super().__init__(
             model=model,
@@ -58,6 +61,7 @@ class OllamaBackend(BaseLLM):
             api_key=None,
             timeout=timeout,
             max_retries=max_retries,
+            retry_after_max=retry_after_max,
         )
         self.base_url = base_url.rstrip("/")
 

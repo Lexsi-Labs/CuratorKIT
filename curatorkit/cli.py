@@ -418,6 +418,7 @@ def _build_llm(
             max_tokens=max_tokens,
             timeout=timeout,
             max_retries=max_retries,
+            retry_after_max=llm_cfg.retry_after_max,
         )
 
     return LiteLLMBackend(
@@ -428,6 +429,7 @@ def _build_llm(
         api_base=api_base,
         timeout=timeout,
         max_retries=max_retries,
+        retry_after_max=llm_cfg.retry_after_max,
         drop_params=drop_params,
         extra_body=extra_body or None,
     )
@@ -698,6 +700,7 @@ def _build_steps(config: object, verbose: bool, include_exporters: bool = True) 
                     rejected_prompt=gen.rejected_prompt_template,
                     mode=gen.preference_mode,
                     concurrency=concurrency,
+                    rejected_temperature_offset=gen.rejected_temperature_offset,
                 )
             )
         elif gen.type == "grpo":
@@ -734,6 +737,8 @@ def _build_steps(config: object, verbose: bool, include_exporters: bool = True) 
                     adversarial_prompt_template=gen.adversarial_prompt_template,
                     difficulty=gen.difficulty,
                     concurrency=concurrency,
+                    adversarial_temperature=gen.adversarial_temperature,
+                    naive_rejected_temperature=gen.naive_rejected_temperature,
                 )
             )
         elif gen.type == "adversarial_qa":

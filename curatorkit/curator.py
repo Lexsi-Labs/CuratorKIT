@@ -282,6 +282,7 @@ class CuratorConfig:
     llm_concurrency: int = 10
     llm_timeout: float = 120.0
     llm_max_retries: int = 3
+    llm_retry_after_max: float = 60.0  # longest wait honoured from a provider's Retry-After (all roles)
     llm_drop_params: bool = True  # silently drop unsupported params per provider
     llm_extra_body: dict = field(
         default_factory=dict
@@ -333,6 +334,7 @@ class CuratorConfig:
     generate_answers: bool = True
     cot_mode: str = "generate"  # generate | wrap
     preference_mode: str = "single_call"  # single_call | two_pass
+    rejected_temperature_offset: float = 0.3  # two_pass: rejected sampled at llm temperature + this (0 = equal)
     # turn_by_turn (default): each turn is its own LLM call, not customizable
     # via multiturn_prompt_template. single_call: one LLM call generates the
     # whole conversation, using multiturn_prompt_template if set — that field
@@ -367,6 +369,8 @@ class CuratorConfig:
     injection_types: list[str] = field(default_factory=list)  # empty = all types
     injection_seed: int = 42
     high_temp: float = 1.4  # adversarial_qa: temperature for high_temperature_drift
+    adversarial_temperature: float = 0.8  # adversarial_preference: adversarial rejected call
+    naive_rejected_temperature: float = 0.9  # adversarial_preference: naive degraded rejected call
 
     # ── Quality gates ───────────────────────────────────────────────────────
     hallucination_threshold: float | None = None  # None = off; set a float to enable
@@ -1351,6 +1355,7 @@ class Curator:
                 temperature=temperature,
                 max_tokens=max_tokens,
                 timeout=timeout,
+                retry_after_max=self.config.llm_retry_after_max,
             )
 
         from curatorkit.llm.litellm import LiteLLMBackend
@@ -1363,6 +1368,7 @@ class Curator:
             api_base=api_base,
             timeout=timeout,
             max_retries=max_retries,
+            retry_after_max=self.config.llm_retry_after_max,
             drop_params=drop_params,
             extra_body=extra_body or None,
         )
@@ -1539,6 +1545,7 @@ class Curator:
                 rejected_prompt=cfg.preference_rejected_prompt,
                 mode=cfg.preference_mode,
                 concurrency=concurrency,
+                rejected_temperature_offset=cfg.rejected_temperature_offset,
             )
         elif task == "grpo":
             from curatorkit.generators.grpo_rollout import GRPORolloutTask
@@ -1605,6 +1612,8 @@ class Curator:
                 faithful_prompt_template=cfg.qa_prompt_template,
                 adversarial_prompt_template=cfg.adversarial_prompt_template,
                 concurrency=concurrency,
+                adversarial_temperature=cfg.adversarial_temperature,
+                naive_rejected_temperature=cfg.naive_rejected_temperature,
             )
         elif task == "adversarial_qa":
             from curatorkit.generators.adversarial_qa_generator import AdversarialQAGenerationTask

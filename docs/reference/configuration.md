@@ -165,6 +165,7 @@ for full usage examples.
 | `llm_concurrency` | `int` | `10` | Max parallel LLM requests for generation |
 | `llm_timeout` | `float` | `120.0` | Request timeout in seconds |
 | `llm_max_retries` | `int` | `3` | Retry attempts on transient errors |
+| `llm_retry_after_max` | `float` | `60.0` | Longest wait, in seconds, honoured from a provider's `Retry-After` (or `retry_after` / `retry-after-ms`, and on a 429 `x-ratelimit-reset-requests`) before a retry. With no such header the wait is 1 s, 2 s, 4 s ... (up to 30 s) with jitter. One value for every role (generator, judge, probe, refiner); YAML: `llm.retry_after_max` |
 | `llm_drop_params` | `bool` | `True` | Silently drop unsupported params rather than raising (LiteLLM behaviour) |
 | `llm_extra_body` | `dict` | `{}` | Extra fields forwarded verbatim in the API request body (e.g. `{"chat_template_kwargs": {"enable_thinking": True}}`) |
 
@@ -297,6 +298,7 @@ Same 3-tier cascade and role-default table as the Python API (see above), includ
 | `cot_mode` | `str` | `"generate"` | Chain-of-thought mode: `"generate"` (LLM produces CoT from scratch) or `"wrap"` (wrap an existing answer with reasoning) |
 | `cot_marker` | `str \| None` | `None` | Separator inserted between the reasoning block and the final answer in `cot` output. `None` = the built-in separator (`"\n\n## Answer\n"`). |
 | `preference_mode` | `str` | `"single_call"` | Preference pair generation: `"single_call"` (one call for both chosen/rejected) or `"two_pass"` (separate calls) |
+| `rejected_temperature_offset` | `float` | `0.3` | `preference_mode="two_pass"`: the rejected answer is sampled at the LLM temperature plus this (at most 1.5, or the base temperature if higher). `0` samples both sides at the same temperature. Both temperatures are recorded per sample (`metadata["chosen_temperature"]`, `["rejected_temperature"]`) and in its provenance record. |
 | `multiturn_mode` | `str` | `"turn_by_turn"` | Multi-turn generation: `"turn_by_turn"` (each turn is its own LLM call, conditioned on prior real turns) or `"single_call"` (one call generates the whole conversation — required for `multiturn_prompt_template` to have any effect) |
 | `generation_concurrency` | `int \| None` | `None` | Concurrency for the generation task. `None` = use `llm_concurrency`. |
 | `judge_concurrency` | `int \| None` | `None` | Concurrency for scoring/judging calls. `None` = use `llm_concurrency`. |
@@ -343,6 +345,8 @@ All default to `None` (built-in template used). `multiturn_mode` defaults to `"t
 | `injection_rate` | `float` | `0.5` | Fraction of questions to inject adversarial hallucinations into (0.0–1.0) |
 | `injection_types` | `list[str]` | `[]` | Which injection strategies to use. For `adversarial_preference`: `"contradicts_source"`, `"parametric_drift"`, `"domain_mismatch"`, `"instruction_quality"`. For `adversarial_qa`: same four plus `"high_temperature_drift"`. Empty = all types for the active task. |
 | `injection_seed` | `int` | `42` | Random seed for injection sampling |
+| `adversarial_temperature` | `float` | `0.8` | `adversarial_preference`: temperature of the call that writes an adversarial rejected answer |
+| `naive_rejected_temperature` | `float` | `0.9` | `adversarial_preference`: temperature of the call that writes a naive, degraded rejected answer. The chosen answer uses the LLM temperature. Both sides' temperatures are recorded per sample like `rejected_temperature_offset` |
 | `high_temp` | `float` | `1.4` | Sampling temperature used for the `high_temperature_drift` injection type (`adversarial_qa` only) |
 
 ---

@@ -130,6 +130,7 @@ class LLMConfig(BaseModel):
     concurrency: int = 10
     timeout: float = 120.0
     max_retries: int = 3
+    retry_after_max: float = 60.0  # longest wait honoured from a provider's Retry-After
     drop_params: bool = True
     extra_body: dict = Field(default_factory=dict)
 
@@ -231,6 +232,7 @@ class GenerationConfig(BaseModel):
 
     # ---- Preference-specific ----
     preference_mode: Literal["single_call", "two_pass"] = "single_call"
+    rejected_temperature_offset: float = 0.3  # two_pass: rejected sampled at llm temperature + this
     chosen_prompt_template: str | None = None  # two_pass: prompt for chosen generation
     rejected_prompt_template: str | None = None  # two_pass: prompt for rejected generation
 
@@ -256,6 +258,8 @@ class GenerationConfig(BaseModel):
     injection_seed: int = 42
     adversarial_prompt_template: str | None = None
     high_temp: float = 1.4  # adversarial_qa: temperature for high_temperature_drift injection
+    adversarial_temperature: float = 0.8  # adversarial_preference: adversarial rejected call
+    naive_rejected_temperature: float = 0.9  # adversarial_preference: naive degraded rejected call
 
     # ---- Gate prompt overrides ----
     hallucination_prompt_template: str | None = None

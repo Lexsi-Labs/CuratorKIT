@@ -249,12 +249,12 @@ All readers accept:
 | `type` | Key fields |
 |--------|-----------|
 | `qa` | `num_questions`, `difficulty`, `prompt_template` |
-| `preference` | `preference_mode` (`single_call`/`two_pass`), `prompt_template` |
+| `preference` | `preference_mode` (`single_call`/`two_pass`), `rejected_temperature_offset` (default `0.3`), `prompt_template` |
 | `grpo` | `num_responses`, `score_responses`, `temperature_spread` (default `0.6`) |
 | `multiturn` | `num_turns`, `include_context`, `prompt_template` |
 | `evol_instruct` | `num_evolutions`, `strategies`, `generate_answers` |
 | `cot` | `cot_mode` (`generate`/`wrap`), `prompt_template` |
-| `adversarial_preference` | `injection_rate`, `injection_types`, `injection_seed` |
+| `adversarial_preference` | `injection_rate`, `injection_types`, `injection_seed`, `adversarial_temperature` (default `0.8`), `naive_rejected_temperature` (default `0.9`) |
 | `adversarial_qa` | `injection_rate`, `injection_types`, `injection_seed`, `high_temp` |
 
 In YAML, `temperature_spread` defaults to `0.6` — GRPO rollouts are sampled at temperatures spread around the base LLM temperature. Note that the Python API equivalent (`grpo_temperature_spread` on `CuratorConfig`) defaults to `0.0`, so set it explicitly if you need identical behaviour across both channels.

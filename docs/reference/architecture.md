@@ -576,6 +576,7 @@ llm:                                 # global LLM config, shared by generators a
   concurrency: 10
   timeout: 120.0
   max_retries: 3
+  retry_after_max: 60.0   # cap on a provider's Retry-After wait, seconds
   drop_params: true
   extra_body: {}
 

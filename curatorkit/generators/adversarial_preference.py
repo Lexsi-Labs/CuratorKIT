@@ -183,6 +183,13 @@ class AdversarialPreferenceTask(BaseGenerationTask):
         {context}, {question} placeholders.
     difficulty : str
         "easy" | "medium" | "hard" — passed to faithful generation prompt.
+    adversarial_temperature : float
+        Temperature of the call that writes an adversarial rejected answer (default 0.8).
+    naive_rejected_temperature : float
+        Temperature of the call that writes a naive, degraded rejected answer (default 0.9).
+        The faithful (chosen) call uses `llm.temperature`. All three temperatures are recorded
+        per sample in `metadata` (`chosen_temperature`, `rejected_temperature`) and in its
+        provenance record.
     concurrency : int
     """
 
@@ -197,8 +204,12 @@ class AdversarialPreferenceTask(BaseGenerationTask):
         adversarial_prompt_template: str | None = None,
         difficulty: str = "medium",
         concurrency: int = 10,
+        adversarial_temperature: float = 0.8,
+        naive_rejected_temperature: float = 0.9,
     ) -> None:
         super().__init__(llm=llm, concurrency=concurrency)
+        self.adversarial_temperature = adversarial_temperature
+        self.naive_rejected_temperature = naive_rejected_temperature
         self.num_questions = num_questions
         self.injection_rate = injection_rate
         self.injection_types = injection_types or _DEFAULT_INJECTION_TYPES
@@ -294,6 +305,10 @@ class AdversarialPreferenceTask(BaseGenerationTask):
         use_adversarial: bool,
         response: LLMResponse,
     ) -> DataSample:
+        chosen_temperature = self.llm.temperature
+        rejected_temperature = (
+            self.adversarial_temperature if use_adversarial else self.naive_rejected_temperature
+        )
         ds = DataSample(
             id=str(uuid.uuid4()),
             source_uri=sample.source_uri,
@@ -309,6 +324,8 @@ class AdversarialPreferenceTask(BaseGenerationTask):
                 "injection_type": injection_type or "naive_degraded",
                 "adversarial_rejected": use_adversarial,
                 "difficulty": self.difficulty,
+                "chosen_temperature": chosen_temperature,
+                "rejected_temperature": rejected_temperature,
             },
             provenance_chain=list(sample.provenance_chain),
         )
@@ -322,6 +339,8 @@ class AdversarialPreferenceTask(BaseGenerationTask):
                     "injection_type": injection_type or "naive_degraded",
                     "adversarial_rejected": use_adversarial,
                     "source_sample_id": sample.id,
+                    "chosen_temperature": chosen_temperature,
+                    "rejected_temperature": rejected_temperature,
                 },
             )
         )
@@ -352,10 +371,10 @@ class AdversarialPreferenceTask(BaseGenerationTask):
 
             if use_adversarial:
                 adv_msgs = self._build_adversarial_messages(context, question, injection_type)
-                rejected_text = self.llm.generate(adv_msgs, temperature=0.8).text.strip()
+                rejected_text = self.llm.generate(adv_msgs, temperature=self.adversarial_temperature).text.strip()
             else:
                 naive_msgs = self._build_naive_rejected_messages(context, question)
-                rejected_text = self.llm.generate(naive_msgs, temperature=0.9).text.strip()
+                rejected_text = self.llm.generate(naive_msgs, temperature=self.naive_rejected_temperature).text.strip()
 
             if not rejected_text or _same_text(answer, rejected_text):
                 continue
@@ -425,11 +444,15 @@ class AdversarialPreferenceTask(BaseGenerationTask):
                             adv_msgs = self._build_adversarial_messages(
                                 context, question, injection_type
                             )
-                            adv_resp = await self.llm.agenerate(adv_msgs, temperature=0.8)
+                            adv_resp = await self.llm.agenerate(
+                                adv_msgs, temperature=self.adversarial_temperature
+                            )
                             rejected_text = adv_resp.text.strip()
                         else:
                             naive_msgs = self._build_naive_rejected_messages(context, question)
-                            naive_resp = await self.llm.agenerate(naive_msgs, temperature=0.9)
+                            naive_resp = await self.llm.agenerate(
+                                naive_msgs, temperature=self.naive_rejected_temperature
+                            )
                             rejected_text = naive_resp.text.strip()
 
                         if not rejected_text or _same_text(answer, rejected_text):
