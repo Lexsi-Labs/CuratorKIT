@@ -13,6 +13,7 @@ Three components are available:
 | `SecretsGate` | Gate (rejects) | Rejects samples containing credentials, API keys, or high-entropy secrets |
 | `PIIPseudonymizer` | Normalizer (modifies) | Replaces PII entities with consistent fake values (per-sample scope) |
 | `ToxicityGate` | Gate (rejects) | Rejects toxic content in two stages: Stage 1 (local classifier), Stage 2 (optional LLM judge) |
+| `GuardModelGate` | Gate (rejects) | Rejects content a Hugging Face guard model (Qwen3Guard-Gen, Llama Guard) labels unsafe; reads languages Detoxify cannot |
 
 All three are **task-aware**: they automatically select the correct fields to scan or pseudonymize based on `sample.task_type` — checking `chosen`/`rejected` for preference data, `responses` for GRPO rollouts, and `output` for source chunks.
 
@@ -25,6 +26,9 @@ pip install "curatorkit[hygiene]"
 ```
 
 This installs: `detoxify`, `detect-secrets`, `presidio-analyzer`, `presidio-anonymizer`, `spacy`, and `faker`.
+
+Only need `SecretsGate`? `pip install detect-secrets` is enough; it skips the PII and toxicity
+stacks (spaCy, Presidio, detoxify).
 
 For `PIIPseudonymizer`'s default (spaCy) backend, also download a spaCy model — it lazy-downloads
 on first use like HF datasets do, but you can pre-fetch it:
@@ -144,12 +148,48 @@ result = Curator(CuratorConfig(
     toxicity_classifier_pass_threshold   = 0.1,
     toxicity_classifier_reject_threshold = 0.5,
     toxicity_detoxify_model              = "unbiased",  # or "original" / "multilingual"
+    toxicity_device                      = None,  # None: cuda when available, else cpu
     # Enable LLM second-opinion for borderline samples:
     toxicity_llm_judge                   = False,
     toxicity_llm_reject_threshold        = 0.5,   # LLM judge rejects at or above this score
     llm_model                            = "openai/gpt-4o-mini",  # required when llm_judge=True
 )).run()
 ```
+
+### GuardModelGate (multilingual guard model)
+
+Detoxify reads English (`unbiased`, `original`) or seven European languages (`multilingual`).
+`GuardModelGate` screens with a chat-template guard model instead; the default,
+`Qwen/Qwen3Guard-Gen-0.6B`, covers 119 languages and needs no access request. Install
+`pip install "curatorkit[guard]"` (torch + transformers; install a CUDA build of torch first for GPU).
+
+```python
+result = Curator(CuratorConfig(
+    dataset                = "data/raw.jsonl",
+    toxicity_gate          = True,
+    guard_gate             = True,        # runs after ToxicityGate
+    guard_only_unscreened  = True,        # only the fields Detoxify could not read
+    # guard_model          = "Qwen/Qwen3Guard-Gen-4B",
+)).run()
+```
+
+- Each field is screened on its own: prompt-side text (instruction, input, conversation turns)
+  as a user message, response-side text (output, chosen, rejected, GRPO responses, reference) as
+  the assistant reply to the sample's prompt. Long text is split into the same 2 048-character
+  windows ToxicityGate uses; one unsafe window rejects the sample.
+- `Unsafe` rejects; `Controversial` rejects unless `guard_reject_controversial=False`; a reply
+  with no verdict rejects unless `guard_on_parse_error="pass"`.
+- Provenance (`GuardModelGate` record): `guard_model`, `screened_fields`, `field_verdicts`
+  (verdict and categories per field), and on a reject `worst_field`, `categories` and the raw reply.
+- `guard_only_unscreened=True` routes only the fields `ToxicityGate` listed as `unscreened_fields`.
+  That check goes by script, so a Latin-script language Detoxify does not read (Swahili) passes
+  unrouted. To cover those, screen every field (`guard_only_unscreened=False`, the default),
+  with or without ToxicityGate in front.
+- Device: CUDA when torch sees a GPU, else CPU; `guard_device="cuda:1"` to pick one.
+- Llama Guard 3 is parsed too (`unsafe` / `S1,S10`); it is gated on the Hub, so request access
+  first. For a template that wants list-of-parts content pass `content_parts=True`, and for a
+  model `AutoModelForCausalLM` cannot load (Llama Guard 4) pass `generator=` (a function from a
+  list of conversations to a list of replies) in Python.
 
 ### All three together
 
@@ -166,7 +206,7 @@ result = Curator(CuratorConfig(
 )).run()
 ```
 
-**Execution order** (fixed): `SecretsGate → PIIPseudonymizer → ToxicityGate → [generation]`
+**Execution order** (fixed): `SecretsGate → PIIPseudonymizer → ToxicityGate → GuardModelGate → [generation]`
 
 ---
 
@@ -264,6 +304,9 @@ gates:
     toxicity_classifier_reject_threshold: 0.5
     toxicity_detoxify_model: unbiased
     # toxicity_llm_model: openai/gpt-4o-mini   # enable LLM judge for borderline band
+  - type: guard                               # HF guard model; needs curatorkit[guard]
+    guard_model: Qwen/Qwen3Guard-Gen-0.6B
+    guard_only_unscreened: true               # only text the toxicity gate could not read
 ```
 
 ### Full hygiene pipeline YAML example
@@ -387,6 +430,21 @@ gate = ToxicityGate(
     llm_reject_threshold=0.5,
 )
 
+passed, rejected = gate.run(samples)
+```
+
+### GuardModelGate
+
+```python
+from curatorkit.hygiene.guard import GuardModelGate
+
+gate = GuardModelGate(
+    model="Qwen/Qwen3Guard-Gen-0.6B",
+    only_unscreened=False,       # True: only fields ToxicityGate could not read
+    reject_controversial=True,
+    batch_size=8,
+    device=None,                 # cuda when available, else cpu
+)
 passed, rejected = gate.run(samples)
 ```
 
@@ -533,7 +591,7 @@ CuratorConfig(
 )
 ```
 
-Use `detoxify_model="multilingual"` for non-English corpora. Use `"unbiased"` (default) over `"original"` for any corpus with legitimate discussion of sensitive topics — the unbiased model suppresses false positives.
+Use `detoxify_model="multilingual"` for corpora in French, Spanish, Italian, Portuguese, Turkish or Russian: those and English are the languages it was trained on. `"unbiased"` and `"original"` read English only. Detoxify gives text it cannot read a low score, so a passing sample whose text is mostly in a script the model was not trained on (Korean, Chinese, Arabic, Hindi, ...) lists those fields under `unscreened_fields` in its `ToxicityGate` provenance, and the run logs a warning with the count. The check goes by script, not language: an unsupported language written in Latin script (Swahili, for example) is not flagged. Screen such data with a model that reads the language. Use `"unbiased"` (default) over `"original"` for any corpus with legitimate discussion of sensitive topics — the unbiased model suppresses false positives.
 
 ---
 

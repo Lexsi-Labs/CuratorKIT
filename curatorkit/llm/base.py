@@ -19,10 +19,74 @@ import asyncio
 import hashlib
 import json
 import random
+import re
 import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
+from datetime import UTC, datetime
+from email.utils import parsedate_to_datetime
 from typing import Any
+
+_DURATION_PART = re.compile(r"(\d+(?:\.\d+)?)(ms|h|m|s)")
+_DURATION_UNITS = {"ms": 0.001, "s": 1.0, "m": 60.0, "h": 3600.0}
+
+
+def _seconds(value: Any) -> float | None:
+    """A wait in seconds from a number, "7", "1.5", an HTTP date, or "6m0s" / "250ms" (OpenAI)."""
+    if value is None or isinstance(value, bool):
+        return None
+    if isinstance(value, (int, float)):
+        return max(float(value), 0.0)
+    text = str(value).strip()
+    try:
+        return max(float(text), 0.0)
+    except ValueError:
+        pass
+    parts = _DURATION_PART.findall(text)
+    if parts and "".join(n + u for n, u in parts) == text:
+        return sum(float(n) * _DURATION_UNITS[u] for n, u in parts)
+    try:
+        when = parsedate_to_datetime(text)
+    except (TypeError, ValueError):
+        return None
+    if when.tzinfo is None:
+        when = when.replace(tzinfo=UTC)
+    return max((when - datetime.now(UTC)).total_seconds(), 0.0)
+
+
+def retry_after_seconds(error: BaseException) -> float | None:
+    """How long the provider asked us to wait, or None when it did not say.
+
+    Reads, in order: a `retry_after` attribute on the error (set by some SDKs), then the response
+    headers the SDKs expose on `error.response` / `error.headers`: `retry-after-ms`,
+    `retry-after` (seconds or an HTTP date) and, on a 429, OpenAI's `x-ratelimit-reset-requests`.
+    The error's `__cause__` is checked too, since a wrapper may hold the provider error.
+    """
+    for err in (error, getattr(error, "__cause__", None)):
+        if err is None:
+            continue
+        found = _seconds(getattr(err, "retry_after", None))
+        if found is not None:
+            return found
+        headers = getattr(getattr(err, "response", None), "headers", None) or getattr(
+            err, "headers", None
+        )
+        if not headers:
+            continue
+        try:
+            lowered = {str(k).lower(): v for k, v in headers.items()}
+        except AttributeError:
+            continue
+        if "retry-after-ms" in lowered and (ms := _seconds(lowered["retry-after-ms"])) is not None:
+            return ms / 1000
+        if (found := _seconds(lowered.get("retry-after"))) is not None:
+            return found
+        status = getattr(err, "status_code", None) or getattr(
+            getattr(err, "response", None), "status_code", None
+        )
+        if status == 429 and (found := _seconds(lowered.get("x-ratelimit-reset-requests"))) is not None:
+            return found
+    return None
 
 
 @dataclass
@@ -74,6 +138,10 @@ class BaseLLM(ABC):
         Number of retries after the first attempt on transient failures.
         Total calls made is `max_retries + 1` — `0` means one attempt, no
         retries; the first attempt is always made regardless of this value.
+    retry_after_max : float
+        Longest wait, in seconds, taken from a provider's `Retry-After` (or `retry_after`
+        / rate-limit reset header) before a retry. Without such a header the wait is the
+        exponential backoff of 1 s, 2 s, 4 s ... (capped at 30 s) with jitter.
     """
 
     def __init__(
@@ -84,6 +152,7 @@ class BaseLLM(ABC):
         api_key: str | None = None,
         timeout: float = 120.0,
         max_retries: int = 3,
+        retry_after_max: float = 60.0,
     ) -> None:
         self.model = model
         self.temperature = temperature
@@ -91,6 +160,7 @@ class BaseLLM(ABC):
         self.api_key = api_key
         self.timeout = timeout
         self.max_retries = max_retries
+        self.retry_after_max = retry_after_max
 
     @abstractmethod
     def _call(
@@ -112,6 +182,17 @@ class BaseLLM(ABC):
         """
         loop = asyncio.get_event_loop()
         return await loop.run_in_executor(None, lambda: self._call(messages, **kwargs))
+
+    def _retry_delay(self, error: Exception, attempt: int) -> float:
+        """Seconds to wait before the retry that follows failed attempt number `attempt`.
+
+        The provider's own request (`retry_after_seconds`, capped at `retry_after_max`) wins;
+        without one, exponential backoff of 1 s, 2 s, 4 s ... capped at 30 s, with jitter.
+        """
+        asked = retry_after_seconds(error)
+        if asked is not None:
+            return min(asked, self.retry_after_max)
+        return min(2 ** (attempt - 1), 30) * random.uniform(0.5, 1.5)
 
     def generate(
         self,
@@ -160,8 +241,7 @@ class BaseLLM(ABC):
             except Exception as e:
                 last_error = e
                 if attempt < total_attempts:
-                    # Exponential backoff: 1s, 2s, 4s...
-                    time.sleep(min(2 ** (attempt - 1), 30) * random.uniform(0.5, 1.5))
+                    time.sleep(self._retry_delay(e, attempt))
                 continue
 
         raise RuntimeError(
@@ -200,7 +280,7 @@ class BaseLLM(ABC):
             except Exception as e:
                 last_error = e
                 if attempt < total_attempts:
-                    await asyncio.sleep(min(2 ** (attempt - 1), 30) * random.uniform(0.5, 1.5))
+                    await asyncio.sleep(self._retry_delay(e, attempt))
                 continue
 
         raise RuntimeError(

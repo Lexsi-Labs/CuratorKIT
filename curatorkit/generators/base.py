@@ -157,6 +157,75 @@ class BaseGenerationTask(BaseNormalizer):
             return ""
         return f"Source passage:\n---\n{source_context}\n---\n\n"
 
+    def _provenance_record(
+        self,
+        source_sample_id: str,
+        responses: list[LLMResponse],
+        prompts: list,
+        ts: datetime | None = None,
+        **notes,
+    ) -> ProvenanceRecord:
+        """The generation record for output built from several LLM calls (two_pass preference,
+        turn-by-turn multi-turn, GRPO rollouts, the evolved-answer pass). Same keys as the record
+        `run()` writes for a one-call sample, with token counts and latency summed over `responses`;
+        `notes` adds the settings the calls used (temperatures and so on)."""
+        total = LLMResponse(
+            text="",
+            model=responses[0].model if responses else self.llm.model,
+            prompt_tokens=sum(r.prompt_tokens for r in responses),
+            completion_tokens=sum(r.completion_tokens for r in responses),
+            total_tokens=sum(r.total_tokens for r in responses),
+            latency_seconds=sum(r.latency_seconds for r in responses),
+        )
+        return ProvenanceRecord(
+            step_name=self.task_name,
+            step_version=STEP_VERSION,
+            timestamp=ts or datetime.now(UTC),
+            config_hash=self.llm.config_hash(),
+            notes={
+                **total.to_provenance_dict(),
+                "prompt_hash": hashlib.sha256(json.dumps(prompts).encode()).hexdigest()[:12],
+                "source_sample_id": source_sample_id,
+                "generation_task": self.task_name,
+                "llm_calls": len(responses),
+                **notes,
+            },
+        )
+
+    def _record_calls(
+        self, ds: DataSample, source_id: str, calls: list[tuple[LLMResponse, list, float | None]], **notes
+    ) -> DataSample:
+        """Append the generation record for `ds`, built from `(response, messages, temperature)`
+        tuples, one per LLM call that went into it (temperatures land in `temperatures_used`)."""
+        ds.append_provenance(
+            self._provenance_record(
+                source_id,
+                [c[0] for c in calls],
+                [c[1] for c in calls],
+                temperatures_used=[c[2] for c in calls],
+                **notes,
+            )
+        )
+        return ds
+
+    def _failed(
+        self, sample: DataSample, error: Exception, prefix: str = "generation_failed"
+    ) -> RejectedSample:
+        """Reject `sample` because the LLM call (or the code around it) raised.
+
+        The reason is `<prefix>:<ExceptionType>`, so it stays distinct from an unparseable reply
+        (`generation_parse_failed`) and counts as one bucket per error type in the manifest's
+        `rejected_breakdown`. BaseLLM wraps provider errors in a RuntimeError, so the type is that
+        of the original error (`RateLimitError`, `Timeout`, ...). The message goes to
+        `metadata["error"]`. Every generator that catches a raised error routes through here.
+        """
+        return RejectedSample(
+            **sample.model_dump(exclude={"metadata"}),
+            rejection_reason=f"{prefix}:{type(error.__cause__ or error).__name__}",
+            rejecting_step=self.task_name,
+            metadata={**sample.metadata, "error": str(error)[:500]},
+        )
+
     # ------------------------------------------------------------------
     # Abstract interface — subclasses implement these
     # ------------------------------------------------------------------
@@ -235,13 +304,7 @@ class BaseGenerationTask(BaseNormalizer):
                     results.append(gen_sample)
 
             except Exception as e:
-                self._rejected.append(
-                    RejectedSample(
-                        **sample.model_dump(),
-                        rejection_reason=f"generation_failed:{type(e).__name__}:{e}",
-                        rejecting_step=self.task_name,
-                    )
-                )
+                self._rejected.append(self._failed(sample, e))
 
         return results
 
@@ -322,13 +385,7 @@ class BaseGenerationTask(BaseNormalizer):
                     return generated
 
                 except Exception as e:
-                    self._rejected.append(
-                        RejectedSample(
-                            **sample.model_dump(),
-                            rejection_reason=f"generation_failed:{type(e).__name__}:{e}",
-                            rejecting_step=self.task_name,
-                        )
-                    )
+                    self._rejected.append(self._failed(sample, e))
                     return []
 
         # When checkpointing is enabled, chunk_size equals checkpoint_batch_size

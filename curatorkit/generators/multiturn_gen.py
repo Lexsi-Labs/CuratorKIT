@@ -182,12 +182,13 @@ class MultiTurnTask(BaseGenerationTask):
     def _generate_turn_by_turn(self, sample: DataSample) -> DataSample | None:
         context = self._get_context(sample)
         turns: list[dict] = []
+        calls: list = []  # (response, messages, temperature) for the provenance record
 
         # Turn 0 user: use existing instruction or generate from source
         if sample.instruction:
             first_q = sample.instruction
         elif context:
-            resp = self.llm.generate(
+            resp = self._tracked(calls,
                 [{"role": "user", "content": _INITIAL_QUESTION_PROMPT.format(context=context)}],
                 temperature=0.7,
                 max_tokens=128,
@@ -207,7 +208,7 @@ class MultiTurnTask(BaseGenerationTask):
                     context=context,
                     conversation=conv_str,
                 )
-                resp = self.llm.generate(
+                resp = self._tracked(calls,
                     [{"role": "user", "content": prompt}],
                     temperature=0.7,
                     max_tokens=512,
@@ -221,7 +222,7 @@ class MultiTurnTask(BaseGenerationTask):
                     context=context,
                     conversation=conv_str,
                 )
-                resp = self.llm.generate(
+                resp = self._tracked(calls,
                     [{"role": "user", "content": prompt}],
                     temperature=0.7,
                     max_tokens=512,
@@ -233,7 +234,7 @@ class MultiTurnTask(BaseGenerationTask):
                     context=context,
                     conversation=conv_str,
                 )
-                resp = self.llm.generate(
+                resp = self._tracked(calls,
                     [{"role": "user", "content": prompt}],
                     temperature=0.8,
                     max_tokens=128,
@@ -242,7 +243,28 @@ class MultiTurnTask(BaseGenerationTask):
 
         if len(turns) < 2:
             return None
-        return self._turns_to_sample(sample, turns)
+        ds = self._turns_to_sample(sample, turns)
+        return self._record_calls(ds, sample.id, calls) if ds is not None else None
+
+    def _tracked(self, calls: list, messages, **kwargs) -> LLMResponse:
+        resp = self.llm.generate(messages, **kwargs)
+        calls.append((resp, messages, kwargs.get("temperature")))
+        return resp
+
+    async def _atracked(self, calls: list, messages, **kwargs) -> LLMResponse:
+        resp = await self.llm.agenerate(messages, **kwargs)
+        calls.append((resp, messages, kwargs.get("temperature")))
+        return resp
+
+    def _turn_by_turn_rejection(self, sample: DataSample, err: Exception | None) -> RejectedSample:
+        """A raised error is a generation failure; no error means fewer than two usable turns."""
+        if err is not None:
+            return self._failed(sample, err)
+        return RejectedSample(
+            **sample.model_dump(),
+            rejection_reason=f"generation_failed:{self.task_name}:empty",
+            rejecting_step=self.task_name,
+        )
 
     # ── run() ─────────────────────────────────────────────────────────────────
 
@@ -260,7 +282,7 @@ class MultiTurnTask(BaseGenerationTask):
                 ds = self._generate_turn_by_turn(sample)
                 return idx, ds, None
             except Exception as e:
-                return idx, None, str(e)
+                return idx, None, e
 
         with ThreadPoolExecutor(max_workers=self.concurrency) as pool:
             futures = {pool.submit(_process, (i, s)): s for i, s in enumerate(samples)}
@@ -275,13 +297,7 @@ class MultiTurnTask(BaseGenerationTask):
                 if ds is not None:
                     results_map[idx] = ds
                 else:
-                    self._rejected.append(
-                        RejectedSample(
-                            **sample.model_dump(),
-                            rejection_reason=f"generation_failed:{self.task_name}:{err or 'empty'}",
-                            rejecting_step=self.task_name,
-                        )
-                    )
+                    self._rejected.append(self._turn_by_turn_rejection(sample, err))
 
         return [results_map[i] for i in sorted(results_map)]
 
@@ -311,18 +327,12 @@ class MultiTurnTask(BaseGenerationTask):
                     err = None
                 except Exception as e:
                     ds = None
-                    err = str(e)
+                    err = e
 
                 if ds is not None:
                     results_map[idx] = ds
                 else:
-                    self._rejected.append(
-                        RejectedSample(
-                            **sample.model_dump(),
-                            rejection_reason=f"generation_failed:{self.task_name}:{err or 'empty'}",
-                            rejecting_step=self.task_name,
-                        )
-                    )
+                    self._rejected.append(self._turn_by_turn_rejection(sample, err))
 
         tasks = [_process(i, s) for i, s in enumerate(samples)]
         for coro in tqdm(
@@ -339,11 +349,12 @@ class MultiTurnTask(BaseGenerationTask):
         """Async counterpart to _generate_turn_by_turn()."""
         context = self._get_context(sample)
         turns: list[dict] = []
+        calls: list = []  # (response, messages, temperature) for the provenance record
 
         if sample.instruction:
             first_q = sample.instruction
         elif context:
-            resp = await self.llm.agenerate(
+            resp = await self._atracked(calls,
                 [{"role": "user", "content": _INITIAL_QUESTION_PROMPT.format(context=context)}],
                 temperature=0.7,
                 max_tokens=128,
@@ -360,7 +371,7 @@ class MultiTurnTask(BaseGenerationTask):
             if turn_idx == self.num_turns - 1 and len(turns) % 2 == 1:
                 # Last turn is an assistant response
                 prompt = _ASSISTANT_RESPONSE_PROMPT.format(context=context, conversation=conv_str)
-                resp = await self.llm.agenerate(
+                resp = await self._atracked(calls,
                     [{"role": "user", "content": prompt}], temperature=0.7, max_tokens=512
                 )
                 turns.append({"role": "assistant", "content": resp.text.strip()})
@@ -369,21 +380,22 @@ class MultiTurnTask(BaseGenerationTask):
             if len(turns) % 2 == 1:
                 # Need assistant response
                 prompt = _ASSISTANT_RESPONSE_PROMPT.format(context=context, conversation=conv_str)
-                resp = await self.llm.agenerate(
+                resp = await self._atracked(calls,
                     [{"role": "user", "content": prompt}], temperature=0.7, max_tokens=512
                 )
                 turns.append({"role": "assistant", "content": resp.text.strip()})
             else:
                 # Need user follow-up
                 prompt = _USER_FOLLOWUP_PROMPT.format(context=context, conversation=conv_str)
-                resp = await self.llm.agenerate(
+                resp = await self._atracked(calls,
                     [{"role": "user", "content": prompt}], temperature=0.8, max_tokens=128
                 )
                 turns.append({"role": "user", "content": resp.text.strip()})
 
         if len(turns) < 2:
             return None
-        return self._turns_to_sample(sample, turns)
+        ds = self._turns_to_sample(sample, turns)
+        return self._record_calls(ds, sample.id, calls) if ds is not None else None
 
     # ── Shared output builder ─────────────────────────────────────────────────
 

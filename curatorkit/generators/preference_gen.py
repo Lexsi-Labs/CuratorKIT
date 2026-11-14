@@ -126,6 +126,13 @@ class PreferenceGenerationTask(BaseGenerationTask):
         optionally {context_section}).
     rejected_prompt : str | None
         Two-pass template for rejected.
+    rejected_temperature_offset : float
+        Two-pass: the rejected answer is sampled at `llm.temperature + offset` (at most 1.5, or
+        the base temperature if that is higher), so it differs from the chosen one in sampling as
+        well as in prompt. `0.3` is the default; `0` samples both sides at the same temperature,
+        for data where the two sides must differ only in the prompt. Both temperatures are
+        recorded in each sample's metadata (`chosen_temperature`, `rejected_temperature`) and in
+        its provenance record.
     """
 
     def __init__(
@@ -136,9 +143,11 @@ class PreferenceGenerationTask(BaseGenerationTask):
         chosen_prompt: str | None = None,
         rejected_prompt: str | None = None,
         concurrency: int = 10,
+        rejected_temperature_offset: float = 0.3,
     ) -> None:
         super().__init__(llm=llm, prompt_template=prompt_template, concurrency=concurrency)
         self.mode = mode
+        self.rejected_temperature_offset = rejected_temperature_offset
         self.chosen_prompt = chosen_prompt or _DEFAULT_CHOSEN_PROMPT
         self.rejected_prompt = rejected_prompt or _DEFAULT_REJECTED_PROMPT
         if prompt_template:
@@ -273,6 +282,67 @@ class PreferenceGenerationTask(BaseGenerationTask):
             )
         ]
 
+    def _rejected_temperature(self) -> float:
+        """Temperature for the rejected call: base + offset, capped at 1.5 (never below the base
+        temperature when that is already above 1.5, so an offset of 0 is exactly equal sampling)."""
+        base = self.llm.temperature
+        return max(min(base + self.rejected_temperature_offset, max(1.5, base)), 0.0)
+
+    def _two_pass_sample(
+        self,
+        sample: DataSample,
+        instruction: str,
+        source_context: str,
+        chosen_text: str,
+        rejected_text: str,
+        corpus_mode: bool,
+        responses: list[LLMResponse],
+        prompts: list,
+        chosen_temperature: float,
+        rejected_temperature: float,
+    ) -> DataSample:
+        ds = DataSample(
+            id=str(uuid.uuid4()),
+            source_uri=sample.source_uri,
+            instruction=instruction,
+            input=source_context,
+            chosen=chosen_text,
+            rejected=rejected_text,
+            task_type="preference",
+            metadata={
+                "generation_source": "preference_generator",
+                "generation_mode": "two_pass",
+                "corpus_mode": corpus_mode,
+                "source_sample_id": sample.id,
+                "chosen_temperature": chosen_temperature,
+                "rejected_temperature": rejected_temperature,
+            },
+            provenance_chain=list(sample.provenance_chain),
+        )
+        ds.append_provenance(
+            self._provenance_record(
+                sample.id,
+                responses,
+                prompts,
+                chosen_temperature=chosen_temperature,
+                rejected_temperature=rejected_temperature,
+                rejected_temperature_offset=None if corpus_mode else self.rejected_temperature_offset,
+            )
+        )
+        return ds
+
+    def _two_pass_rejection(self, sample: DataSample, err: object) -> RejectedSample:
+        """A raised error (rate limit, timeout, 5xx) is a generation failure; anything else the
+        worker returned is a reply that could not be used, i.e. a parse failure."""
+        if isinstance(err, Exception):
+            return self._failed(sample, err)
+        return RejectedSample(
+            **sample.model_dump(exclude={"metadata"}),
+            rejection_reason=f"generation_parse_failed:{self.task_name}",
+            rejecting_step=self.task_name,
+            metadata={**sample.metadata, "partial_result": str(err)},
+        )
+
     # ── run() ────────────────────────────────────────────────────────────────
 
     def run(self, samples: list[DataSample]) -> list[DataSample]:
@@ -294,19 +364,24 @@ class PreferenceGenerationTask(BaseGenerationTask):
 
                 # For corpus mode derive question inline from corpus prompt
                 if corpus_mode:
-                    corpus_resp = self.llm.generate(
+                    prompts = [
                         [
                             {
                                 "role": "user",
                                 "content": _CORPUS_PAIR_PROMPT.format(context=source_context),
                             }
                         ]
-                    )
+                    ]
+                    corpus_resp = self.llm.generate(prompts[0])
+                    responses = [corpus_resp]
+                    chosen_temp = rejected_temp = self.llm.temperature  # one call, no offset
                     text = corpus_resp.text.strip()
                     text = re.sub(r"```(?:json)?\s*", "", text)
                     text = re.sub(r"```\s*$", "", text)
                     try:
                         parsed = json.loads(text)
+                        if not isinstance(parsed, dict):
+                            return idx, None, "corpus_parse_failed"
                         instruction = coerce_text(parsed.get("question", ""))
                         chosen_text = coerce_text(parsed.get("chosen", ""))
                         rejected_text = coerce_text(parsed.get("rejected", ""))
@@ -324,39 +399,31 @@ class PreferenceGenerationTask(BaseGenerationTask):
                         instruction=instruction,
                         context_section=ctx_section,
                     )
-                    chosen_resp = self.llm.generate([{"role": "user", "content": chosen_prompt}])
-                    chosen_text = chosen_resp.text.strip()
-                    rejected_resp = self.llm.generate(
+                    chosen_temp = self.llm.temperature
+                    rejected_temp = self._rejected_temperature()
+                    prompts = [
+                        [{"role": "user", "content": chosen_prompt}],
                         [{"role": "user", "content": rejected_prompt}],
-                        temperature=min(self.llm.temperature + 0.3, 1.5),
-                    )
+                    ]
+                    chosen_resp = self.llm.generate(prompts[0], temperature=chosen_temp)
+                    chosen_text = chosen_resp.text.strip()
+                    rejected_resp = self.llm.generate(prompts[1], temperature=rejected_temp)
                     rejected_text = rejected_resp.text.strip()
+                    responses = [chosen_resp, rejected_resp]
 
                 if not chosen_text or not rejected_text:
                     return idx, None, {"chosen": chosen_text, "rejected": rejected_text}
 
                 return (
                     idx,
-                    DataSample(
-                        id=str(uuid.uuid4()),
-                        source_uri=sample.source_uri,
-                        instruction=instruction,
-                        input=source_context,
-                        chosen=chosen_text,
-                        rejected=rejected_text,
-                        task_type="preference",
-                        metadata={
-                            "generation_source": "preference_generator",
-                            "generation_mode": "two_pass",
-                            "corpus_mode": corpus_mode,
-                            "source_sample_id": sample.id,
-                        },
-                        provenance_chain=list(sample.provenance_chain),
+                    self._two_pass_sample(
+                        sample, instruction, source_context, chosen_text, rejected_text,
+                        corpus_mode, responses, prompts, chosen_temp, rejected_temp,
                     ),
                     None,
                 )
             except Exception as e:
-                return idx, None, str(e)
+                return idx, None, e
 
         with ThreadPoolExecutor(max_workers=self.concurrency) as pool:
             futures = {pool.submit(_generate_pair, (i, s)): s for i, s in enumerate(samples)}
@@ -371,14 +438,7 @@ class PreferenceGenerationTask(BaseGenerationTask):
                 if ds is not None:
                     results_map[idx] = ds
                 else:
-                    self._rejected.append(
-                        RejectedSample(
-                            **sample.model_dump(exclude={"metadata"}),
-                            rejection_reason=f"generation_parse_failed:{self.task_name}",
-                            rejecting_step=self.task_name,
-                            metadata={**sample.metadata, "partial_result": str(err)},
-                        )
-                    )
+                    self._rejected.append(self._two_pass_rejection(sample, err))
 
         return [results_map[i] for i in sorted(results_map)]
 
@@ -409,19 +469,24 @@ class PreferenceGenerationTask(BaseGenerationTask):
                     corpus_mode = self._is_corpus_mode(sample)
 
                     if corpus_mode:
-                        corpus_resp = await self.llm.agenerate(
+                        prompts = [
                             [
                                 {
                                     "role": "user",
                                     "content": _CORPUS_PAIR_PROMPT.format(context=source_context),
                                 }
                             ]
-                        )
+                        ]
+                        corpus_resp = await self.llm.agenerate(prompts[0])
+                        responses = [corpus_resp]
+                        chosen_temp = rejected_temp = self.llm.temperature  # one call, no offset
                         text = corpus_resp.text.strip()
                         text = re.sub(r"```(?:json)?\s*", "", text)
                         text = re.sub(r"```\s*$", "", text)
                         try:
                             parsed = json.loads(text)
+                            if not isinstance(parsed, dict):
+                                return idx, None, "corpus_parse_failed"
                             instruction = coerce_text(parsed.get("question", ""))
                             chosen_text = coerce_text(parsed.get("chosen", ""))
                             rejected_text = coerce_text(parsed.get("rejected", ""))
@@ -439,41 +504,33 @@ class PreferenceGenerationTask(BaseGenerationTask):
                             instruction=instruction,
                             context_section=ctx_section,
                         )
-                        chosen_resp = await self.llm.agenerate(
-                            [{"role": "user", "content": chosen_prompt}]
-                        )
+                        chosen_temp = self.llm.temperature
+                        rejected_temp = self._rejected_temperature()
+                        prompts = [
+                            [{"role": "user", "content": chosen_prompt}],
+                            [{"role": "user", "content": rejected_prompt}],
+                        ]
+                        chosen_resp = await self.llm.agenerate(prompts[0], temperature=chosen_temp)
                         chosen_text = chosen_resp.text.strip()
                         rejected_resp = await self.llm.agenerate(
-                            [{"role": "user", "content": rejected_prompt}],
-                            temperature=min(self.llm.temperature + 0.3, 1.5),
+                            prompts[1], temperature=rejected_temp
                         )
                         rejected_text = rejected_resp.text.strip()
+                        responses = [chosen_resp, rejected_resp]
 
                     if not chosen_text or not rejected_text:
                         return idx, None, {"chosen": chosen_text, "rejected": rejected_text}
 
                     return (
                         idx,
-                        DataSample(
-                            id=str(uuid.uuid4()),
-                            source_uri=sample.source_uri,
-                            instruction=instruction,
-                            input=source_context,
-                            chosen=chosen_text,
-                            rejected=rejected_text,
-                            task_type="preference",
-                            metadata={
-                                "generation_source": "preference_generator",
-                                "generation_mode": "two_pass",
-                                "corpus_mode": corpus_mode,
-                                "source_sample_id": sample.id,
-                            },
-                            provenance_chain=list(sample.provenance_chain),
+                        self._two_pass_sample(
+                            sample, instruction, source_context, chosen_text, rejected_text,
+                            corpus_mode, responses, prompts, chosen_temp, rejected_temp,
                         ),
                         None,
                     )
                 except Exception as e:
-                    return idx, None, str(e)
+                    return idx, None, e
 
         tasks = [_generate_pair(i, s) for i, s in enumerate(samples)]
         for coro in tqdm(
@@ -487,13 +544,6 @@ class PreferenceGenerationTask(BaseGenerationTask):
             if ds is not None:
                 results_map[idx] = ds
             else:
-                self._rejected.append(
-                    RejectedSample(
-                        **sample.model_dump(exclude={"metadata"}),
-                        rejection_reason=f"generation_parse_failed:{self.task_name}",
-                        rejecting_step=self.task_name,
-                        metadata={**sample.metadata, "partial_result": str(err)},
-                    )
-                )
+                self._rejected.append(self._two_pass_rejection(sample, err))
 
         return [results_map[i] for i in sorted(results_map)]

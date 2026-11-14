@@ -21,7 +21,7 @@ def _conversation(later_turn):
 
 def _toxicity_gate():
     gate = ToxicityGate.__new__(ToxicityGate)
-    gate.text_field, gate.llm = "auto", None
+    gate.text_field, gate.llm, gate.detoxify_model = "auto", None, "unbiased"
     gate.classifier_pass_threshold, gate.classifier_reject_threshold = 0.3, 0.7
     gate._config_hash = lambda: "h"
     gate._load_classifier = lambda: SimpleNamespace(
@@ -301,3 +301,72 @@ def test_the_llm_judge_reads_the_text_that_scored_worst_even_when_labels_could_c
     )
     passed, rejected = gate.run([sample])
     assert not passed and judged and "BADWORD" in judged[0]
+
+
+def test_text_in_a_script_the_classifier_cannot_read_is_flagged_unscreened(caplog):
+    # Detoxify scores Korean and Chinese it was not trained on as safe (#51): flag the pass, don't hide it.
+    gate = _toxicity_gate()
+    gate.detoxify_model = "multilingual"
+    ko = DataSample(source_uri="x", instruction="Explain.", output="너는 멍청한 바보야. 죽여버릴 거야.")
+    zh = DataSample(source_uri="x", instruction="你是个愚蠢的白痴", output="我要杀了你。")
+    ru = DataSample(source_uri="x", instruction="Q?", output="Пункт требует своевременной поставки.")
+    with caplog.at_level("WARNING", logger="curatorkit.hygiene.toxicity"):
+        passed, rejected = gate.run([ko, zh, ru])
+    notes = [s.provenance_chain[-1].notes for s in passed]
+    assert not rejected
+    assert notes[0]["unscreened_fields"] == ["output"]
+    assert notes[1]["unscreened_fields"] == ["output", "instruction"]
+    assert "unscreened_fields" not in notes[2]  # the multilingual model reads Russian
+    assert "2 of 3 samples" in caplog.text
+    gate.detoxify_model = "unbiased"  # English only
+    passed, _ = gate.run([ru])
+    assert passed[0].provenance_chain[-1].notes["unscreened_fields"] == ["output"]
+
+
+def test_toxicity_gate_passes_its_device_to_detoxify_and_records_it(monkeypatch):
+    import sys
+
+    import curatorkit.hygiene.toxicity as tox
+
+    made = []
+
+    class FakeDetoxify:
+        def __init__(self, model_type, device="cpu"):
+            made.append((model_type, device))
+
+        def predict(self, text):
+            return {"toxicity": 0.95 if "BADWORD" in text else 0.01}
+
+    monkeypatch.setattr(tox, "_ensure_detoxify", lambda: FakeDetoxify)
+    monkeypatch.setitem(sys.modules, "torch", SimpleNamespace(
+        cuda=SimpleNamespace(is_available=lambda: False),
+        backends=SimpleNamespace(mps=SimpleNamespace(is_available=lambda: True))))
+    samples = [DataSample(source_uri="x", output=t, task_type="language_modeling")
+               for t in ("Fine text.", "BADWORD here")]
+
+    passed, rejected = ToxicityGate().run([s.model_copy(deep=True) for s in samples])  # "auto"
+    assert made[-1] == ("unbiased", "cpu")  # no CUDA: cpu, never MPS
+    assert passed[0].provenance_chain[-1].notes["device"] == "cpu"
+    assert rejected[0].provenance_chain[-1].notes["device"] == "cpu"
+
+    monkeypatch.setitem(sys.modules, "torch", SimpleNamespace(cuda=SimpleNamespace(is_available=lambda: True)))
+    p2, r2 = ToxicityGate(device=None).run([s.model_copy(deep=True) for s in samples])
+    assert made[-1] == ("unbiased", "cuda") and p2[0].provenance_chain[-1].notes["device"] == "cuda"
+    assert [s.output for s in p2] == [s.output for s in passed]  # same decisions on either device
+
+    ToxicityGate(device="cuda:1", detoxify_model="multilingual").run([samples[0].model_copy(deep=True)])
+    assert made[-1] == ("multilingual", "cuda:1")
+
+
+def test_toxicity_device_is_a_yaml_and_curator_config_key():
+    from curatorkit import Curator, CuratorConfig
+    from curatorkit.cli import _build_steps
+    from curatorkit.config import GateConfig, PipelineConfig, ReaderConfig
+
+    cfg = PipelineConfig(readers=[ReaderConfig(type="jsonl", path="d.jsonl")],
+                         gates=[GateConfig(type="toxicity", toxicity_device="cuda:1")])
+    steps, _ = _build_steps(cfg, verbose=False, include_exporters=False)
+    assert next(s for s in steps if isinstance(s, ToxicityGate)).device == "cuda:1"
+    steps = Curator(CuratorConfig(dataset="d.jsonl", toxicity_gate=True, toxicity_device="cpu"))._build_steps(
+        include_exporters=False)
+    assert next(s for s in steps if isinstance(s, ToxicityGate)).device == "cpu"

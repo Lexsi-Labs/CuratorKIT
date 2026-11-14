@@ -129,6 +129,13 @@ hygiene = [
     "faker>=26.0",
 ]
 
+# GuardModelGate: a Hugging Face guard model (Qwen3Guard-Gen, Llama Guard) as a safety gate.
+# Uses CUDA when torch sees a GPU, else CPU; install a CUDA build of torch first for GPU.
+guard = [
+    "transformers>=4.56",
+    "torch>=2.3",
+]
+
 # PII detection with transformer-based NER models (PIIPseudonymizer nlp_engine=
 # "transformers") — clinical/legal-grade recall, at the cost of the torch +
 # transformers stack. Install alongside `hygiene`.

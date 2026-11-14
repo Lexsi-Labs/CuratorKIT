@@ -160,8 +160,7 @@ def run(
 
     # Output split — shuffle accepted samples and export each split to a subdir
     if splitting:
-        import math
-        import random as _random
+        from curatorkit.splits import split_samples, warn_on_leakage
 
         split_def = config.output_split
         total_frac = sum(split_def.values())
@@ -172,23 +171,28 @@ def run(
             )
             raise typer.Exit(1)
 
-        shuffled = list(result.passed)
-        _random.Random(getattr(config, "output_split_seed", 42)).shuffle(shuffled)
-        n = len(shuffled)
-        start = 0
-        split_items = list(split_def.items())
-        for i, (split_name, fraction) in enumerate(split_items):
-            end = n if i == len(split_items) - 1 else start + math.floor(n * fraction)
-            split_samples = shuffled[start:end]
+        group_key = getattr(config, "output_split_group", None)
+        splits = split_samples(
+            result.passed,
+            split_def,
+            seed=getattr(config, "output_split_seed", 42),
+            group_key=group_key,
+        )
+        if group_key:
+            warn_on_leakage(
+                splits,
+                group_key,
+                near_dup_threshold=getattr(config, "output_split_near_dup_threshold", 0.8),
+            )
+        for split_name, rows in splits.items():
             split_dir = output_dir / split_name
             split_dir.mkdir(parents=True, exist_ok=True)
             for e in config.exporters:
                 cls = EXPORTERS.get(e.type)
                 if cls:
-                    cls().export(split_samples, split_dir)
+                    cls().export(rows, split_dir)
             if verbose:
-                typer.echo(f"  {split_name}: {len(split_samples):,} samples → {split_dir}/")
-            start = end
+                typer.echo(f"  {split_name}: {len(rows):,} samples → {split_dir}/")
 
     provenance = build_provenance(
         method=",".join(g.type for g in config.generators) or "curate",
@@ -197,6 +201,8 @@ def run(
             **step_models(steps),
             "export_formats": [e.type for e in config.exporters],
             "output_split": config.output_split,
+            "output_split_group": getattr(config, "output_split_group", None),
+            "output_split_near_dup_threshold": getattr(config, "output_split_near_dup_threshold", 0.8),
             "pipeline_config_hash": config_hash,
         },
     )
@@ -305,6 +311,11 @@ def _print_dry_run_plan(config: object, output_dir: Path) -> None:
                 f"(pass={g.toxicity_classifier_pass_threshold}, "
                 f"reject={g.toxicity_classifier_reject_threshold})"
             )
+        elif g.type == "guard":
+            typer.echo(
+                f"  {step_num}. Gate: guard (model={g.guard_model}, "
+                f"only_unscreened={g.guard_only_unscreened})"
+            )
         step_num += 1
 
     for gen in config.generators:
@@ -407,6 +418,7 @@ def _build_llm(
             max_tokens=max_tokens,
             timeout=timeout,
             max_retries=max_retries,
+            retry_after_max=llm_cfg.retry_after_max,
         )
 
     return LiteLLMBackend(
@@ -417,6 +429,7 @@ def _build_llm(
         api_base=api_base,
         timeout=timeout,
         max_retries=max_retries,
+        retry_after_max=llm_cfg.retry_after_max,
         drop_params=drop_params,
         extra_body=extra_body or None,
     )
@@ -623,6 +636,24 @@ def _build_steps(config: object, verbose: bool, include_exporters: bool = True) 
                     llm=tox_llm,
                     llm_reject_threshold=g.toxicity_llm_reject_threshold,
                     text_field=g.toxicity_text_field,
+                    device=g.toxicity_device,
+                )
+            )
+        elif g.type == "guard":
+            from curatorkit.hygiene.guard import GuardModelGate
+
+            steps.append(
+                GuardModelGate(
+                    model=g.guard_model,
+                    revision=g.guard_revision,
+                    text_field=g.guard_text_field,
+                    only_unscreened=g.guard_only_unscreened,
+                    reject_controversial=g.guard_reject_controversial,
+                    on_parse_error=g.guard_on_parse_error,
+                    batch_size=g.guard_batch_size,
+                    device=g.guard_device,
+                    max_new_tokens=g.guard_max_new_tokens,
+                    content_parts=g.guard_content_parts,
                 )
             )
 
@@ -669,6 +700,7 @@ def _build_steps(config: object, verbose: bool, include_exporters: bool = True) 
                     rejected_prompt=gen.rejected_prompt_template,
                     mode=gen.preference_mode,
                     concurrency=concurrency,
+                    rejected_temperature_offset=gen.rejected_temperature_offset,
                 )
             )
         elif gen.type == "grpo":
@@ -705,6 +737,8 @@ def _build_steps(config: object, verbose: bool, include_exporters: bool = True) 
                     adversarial_prompt_template=gen.adversarial_prompt_template,
                     difficulty=gen.difficulty,
                     concurrency=concurrency,
+                    adversarial_temperature=gen.adversarial_temperature,
+                    naive_rejected_temperature=gen.naive_rejected_temperature,
                 )
             )
         elif gen.type == "adversarial_qa":

@@ -32,7 +32,9 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 import re
+import unicodedata
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
@@ -47,6 +49,13 @@ if TYPE_CHECKING:
 _WINDOW = 2048  # characters the classifier reads at once
 _STRIDE = 1536  # windows overlap by a quarter
 _SHORT = 64  # a structural string at least this long is scored on its own
+
+logger = logging.getLogger(__name__)
+
+# Scripts each Detoxify model was trained on (Detoxify README): "unbiased" and "original" are
+# English; "multilingual" is en, fr, es, it, pt, tr and ru.
+_MODEL_SCRIPTS = {"multilingual": ("LATIN", "CYRILLIC")}
+_DEFAULT_SCRIPTS = ("LATIN",)
 
 STEP_VERSION = "1.1.0"
 
@@ -73,6 +82,81 @@ Respond with JSON only (no markdown fences):
 
 Valid categories: toxicity, severe_toxicity, obscene, identity_attack, insult, threat, sexual_explicit, safe
 /no_think"""
+
+
+def _unreadable(text: str, scripts: tuple[str, ...]) -> bool:
+    """Most of the letters in ``text`` are in a script the classifier was not trained on
+    (Hangul, Han, Arabic, Devanagari, ...), so its low score means nothing."""
+    # ponytail: script check only, no language ID. An unsupported language in a supported script
+    # (Swahili, or French under "unbiased") is not caught; a language-ID step would catch it.
+    letters = [c for c in text if c.isalpha()]
+    other = sum(1 for c in letters if not unicodedata.name(c, "").startswith(scripts))
+    return other * 2 > len(letters)
+
+
+def fields_to_score(sample: DataSample, text_field: str = "auto") -> list[tuple[str, str]]:
+    """
+    Return (field_name, text) pairs to screen for this sample (shared by ToxicityGate and
+    GuardModelGate, so their field labels match).
+    For multi-field task types each field is scored independently
+    so one toxic completion in a preference pair triggers rejection.
+    """
+    if text_field != "auto":
+        text = getattr(sample, text_field, "") or ""
+        return [(text_field, text)] if text.strip() else []
+
+    task = sample.task_type
+    if task == "language_modeling":
+        return [("output", sample.output)] if sample.output.strip() else []
+
+    if task in ("preference", "implicit_preference"):
+        pairs = []
+        if sample.chosen.strip():
+            pairs.append(("chosen", sample.chosen))
+        if sample.rejected.strip():
+            pairs.append(("rejected", sample.rejected))
+        return pairs
+
+    if task == "grpo":
+        pairs = [(f"response_{i}", r) for i, r in enumerate(sample.responses) if r.strip()]
+        if sample.output.strip():  # the gold answer is exported as `reference`
+            pairs.append(("reference", sample.output))
+        return pairs
+
+    # instruction_following, conversational, prompt_only, source_chunk, etc.
+    pairs = []
+    if sample.output.strip():
+        pairs.append(("output", sample.output))
+    if sample.instruction.strip():
+        pairs.append(("instruction", sample.instruction))
+    if sample.input.strip():  # the exporters append `input` to the user turn
+        pairs.append(("input", sample.input))
+    # A conversation's system prompt and later turns live in metadata, and the exporters write them.
+    # Each piece of text is scored on its own, so a short toxic turn is not diluted by clean ones
+    # and a long string under an unexpected key is not hidden inside a joined field. Only short
+    # structural strings (role names, keys, part types) share a field. Labels carry an index, so
+    # two slots never share a name.
+    structural: list[str] = []
+    for n, (label, container, key) in enumerate(conversation_slots(sample, read_only=True)):
+        text = container[key]
+        if not text.strip():
+            continue
+        if len(text) < _SHORT and (label.endswith("<key>") or key in _STRUCTURAL_KEYS):
+            structural.append(text)
+        else:
+            pairs.append((f"{label}#{n}", text))
+    if structural:
+        pairs.append(("conversation_structure", "\n".join(structural)))
+    return pairs
+
+
+def _resolve_device(device: str | None) -> str:
+    """``None`` / ``"auto"`` → cuda when available, else cpu. Never picks MPS on its own."""
+    if device not in (None, "auto"):
+        return device
+    import torch
+
+    return "cuda" if torch.cuda.is_available() else "cpu"
 
 
 def _ensure_detoxify() -> Any:
@@ -109,10 +193,21 @@ class ToxicityGate(BaseGate):
         LLM toxicity score at or above which a borderline sample is rejected.
     detoxify_model : str
         "unbiased" (default, recommended), "original", or "multilingual".
+        "unbiased" and "original" read English; "multilingual" reads English,
+        French, Spanish, Italian, Portuguese, Turkish and Russian. A passing
+        sample whose text is mostly in a script the model was not trained on
+        (Korean, Chinese, Arabic, ...) lists those fields under
+        ``unscreened_fields`` in its provenance, and the run logs a warning.
     text_field : str
         "auto" scores the fields most relevant to the task_type; or pass
         a specific DataSample field name.
+    device : str | None
+        Where Detoxify runs. "auto" (default) or None: cuda when available,
+        else cpu (never MPS). Or "cuda:1", "cpu", ... Recorded as ``device``
+        in the provenance; scores and decisions do not depend on it.
     """
+
+    _device: str | None = None  # resolved when the classifier loads
 
     def __init__(
         self,
@@ -122,6 +217,7 @@ class ToxicityGate(BaseGate):
         llm_reject_threshold: float = 0.5,
         detoxify_model: str = "unbiased",
         text_field: str = "auto",
+        device: str | None = "auto",
     ) -> None:
         if classifier_pass_threshold >= classifier_reject_threshold:
             raise ValueError(
@@ -133,12 +229,14 @@ class ToxicityGate(BaseGate):
         self.llm_reject_threshold = llm_reject_threshold
         self.detoxify_model = detoxify_model
         self.text_field = text_field
+        self.device = device
         self._classifier: Any = None
 
     def _load_classifier(self) -> Any:
         if self._classifier is None:
             Detoxify = _ensure_detoxify()
-            self._classifier = Detoxify(self.detoxify_model)
+            self._device = _resolve_device(self.device)
+            self._classifier = Detoxify(self.detoxify_model, device=self._device)
         return self._classifier
 
     def _config_hash(self) -> str:
@@ -157,58 +255,7 @@ class ToxicityGate(BaseGate):
         return hashlib.sha256(payload.encode()).hexdigest()[:16]
 
     def _fields_to_score(self, sample: DataSample) -> list[tuple[str, str]]:
-        """
-        Return (field_name, text) pairs to score for this sample.
-        For multi-field task types each field is scored independently
-        so one toxic completion in a preference pair triggers rejection.
-        """
-        if self.text_field != "auto":
-            text = getattr(sample, self.text_field, "") or ""
-            return [(self.text_field, text)] if text.strip() else []
-
-        task = sample.task_type
-        if task == "language_modeling":
-            return [("output", sample.output)] if sample.output.strip() else []
-
-        if task in ("preference", "implicit_preference"):
-            pairs = []
-            if sample.chosen.strip():
-                pairs.append(("chosen", sample.chosen))
-            if sample.rejected.strip():
-                pairs.append(("rejected", sample.rejected))
-            return pairs
-
-        if task == "grpo":
-            pairs = [(f"response_{i}", r) for i, r in enumerate(sample.responses) if r.strip()]
-            if sample.output.strip():  # the gold answer is exported as `reference`
-                pairs.append(("reference", sample.output))
-            return pairs
-
-        # instruction_following, conversational, prompt_only, source_chunk, etc.
-        pairs = []
-        if sample.output.strip():
-            pairs.append(("output", sample.output))
-        if sample.instruction.strip():
-            pairs.append(("instruction", sample.instruction))
-        if sample.input.strip():  # the exporters append `input` to the user turn
-            pairs.append(("input", sample.input))
-        # A conversation's system prompt and later turns live in metadata, and the exporters write them.
-        # Each piece of text is scored on its own, so a short toxic turn is not diluted by clean ones
-        # and a long string under an unexpected key is not hidden inside a joined field. Only short
-        # structural strings (role names, keys, part types) share a field. Labels carry an index, so
-        # two slots never share a name.
-        structural: list[str] = []
-        for n, (label, container, key) in enumerate(conversation_slots(sample, read_only=True)):
-            text = container[key]
-            if not text.strip():
-                continue
-            if len(text) < _SHORT and (label.endswith("<key>") or key in _STRUCTURAL_KEYS):
-                structural.append(text)
-            else:
-                pairs.append((f"{label}#{n}", text))
-        if structural:
-            pairs.append(("conversation_structure", "\n".join(structural)))
-        return pairs
+        return fields_to_score(sample, self.text_field)
 
     @staticmethod
     def _windows(text: str) -> list[str]:
@@ -266,11 +313,15 @@ class ToxicityGate(BaseGate):
         ts = datetime.now(UTC)
         passed: list[DataSample] = []
         rejected: list[RejectedSample] = []
+        scripts = _MODEL_SCRIPTS.get(self.detoxify_model, _DEFAULT_SCRIPTS)
+        n_unscreened = 0
 
         from tqdm import tqdm
 
         for sample in tqdm(samples, desc="ToxicityGate", unit="sample"):
             field_pairs = self._fields_to_score(sample)
+            # The classifier scores text it cannot read as safe; say so instead of passing it silently.
+            unread = [name for name, text in field_pairs if _unreadable(text, scripts)]
 
             if not field_pairs:
                 sample.append_provenance(
@@ -309,15 +360,18 @@ class ToxicityGate(BaseGate):
                         timestamp=ts,
                         config_hash=cfg_hash,
                         notes={
+                            "device": self._device,
                             "passed": True,
                             "phase": "classifier",
                             "max_toxicity_score": worst_max,
                             "worst_field": worst_field,
                             "field_scores": field_scores,
+                            **({"unscreened_fields": unread} if unread else {}),
                         },
                     )
                 )
                 passed.append(sample)
+                n_unscreened += bool(unread)
                 continue
 
             # Stage 1: clearly toxic or no LLM available
@@ -334,6 +388,7 @@ class ToxicityGate(BaseGate):
                         timestamp=ts,
                         config_hash=cfg_hash,
                         notes={
+                            "device": self._device,
                             "passed": False,
                             "phase": "classifier",
                             "max_toxicity_score": worst_max,
@@ -361,6 +416,7 @@ class ToxicityGate(BaseGate):
                         timestamp=ts,
                         config_hash=cfg_hash,
                         notes={
+                            "device": self._device,
                             "passed": False,
                             "phase": "llm_judge",
                             "classifier_max_score": worst_max,
@@ -373,6 +429,7 @@ class ToxicityGate(BaseGate):
                 )
                 rejected.append(rej)
             else:
+                unread = [f for f in unread if f != worst_field]  # the judge read worst_field
                 sample.append_provenance(
                     ProvenanceRecord(
                         step_name="ToxicityGate",
@@ -380,6 +437,7 @@ class ToxicityGate(BaseGate):
                         timestamp=ts,
                         config_hash=cfg_hash,
                         notes={
+                            "device": self._device,
                             "passed": True,
                             "phase": "llm_judge",
                             "classifier_max_score": worst_max,
@@ -387,9 +445,22 @@ class ToxicityGate(BaseGate):
                             "llm_score": llm_score,
                             "categories": categories,
                             "reasoning": reasoning,
+                            **({"unscreened_fields": unread} if unread else {}),
                         },
                     )
                 )
                 passed.append(sample)
+                n_unscreened += bool(unread)
 
+        if n_unscreened:
+            logger.warning(
+                "ToxicityGate passed %d of %d samples with text mostly in a script the Detoxify "
+                "'%s' model was not trained on; their toxicity was not screened (see "
+                "unscreened_fields in the provenance). Screen them with a model that reads "
+                "the language: add GuardModelGate(only_unscreened=True) after this gate "
+                "(YAML: type: guard, guard_only_unscreened: true).",
+                n_unscreened,
+                len(samples),
+                self.detoxify_model,
+            )
         return passed, rejected

@@ -130,6 +130,7 @@ class LLMConfig(BaseModel):
     concurrency: int = 10
     timeout: float = 120.0
     max_retries: int = 3
+    retry_after_max: float = 60.0  # longest wait honoured from a provider's Retry-After
     drop_params: bool = True
     extra_body: dict = Field(default_factory=dict)
 
@@ -231,6 +232,7 @@ class GenerationConfig(BaseModel):
 
     # ---- Preference-specific ----
     preference_mode: Literal["single_call", "two_pass"] = "single_call"
+    rejected_temperature_offset: float = 0.3  # two_pass: rejected sampled at llm temperature + this
     chosen_prompt_template: str | None = None  # two_pass: prompt for chosen generation
     rejected_prompt_template: str | None = None  # two_pass: prompt for rejected generation
 
@@ -256,6 +258,8 @@ class GenerationConfig(BaseModel):
     injection_seed: int = 42
     adversarial_prompt_template: str | None = None
     high_temp: float = 1.4  # adversarial_qa: temperature for high_temperature_drift injection
+    adversarial_temperature: float = 0.8  # adversarial_preference: adversarial rejected call
+    naive_rejected_temperature: float = 0.9  # adversarial_preference: naive degraded rejected call
 
     # ---- Gate prompt overrides ----
     hallucination_prompt_template: str | None = None
@@ -278,9 +282,9 @@ class GateConfig(BaseModel):
     """One quality gate in the pipeline YAML (`gates:` list).
 
     `type` selects the gate: "schema", "hallucination", "reward",
-    "diversity", "secrets", or "toxicity". Prefixed field groups apply only
+    "diversity", "secrets", "toxicity", or "guard". Prefixed field groups apply only
     to the matching gate type (`hallucination_*`, `reward_*`, `secrets_*`,
-    `toxicity_*`; the embedding/similarity fields belong to the diversity
+    `toxicity_*`, `guard_*`; the embedding/similarity fields belong to the diversity
     gate, and `required_fields`/`min_tokens`/`max_tokens` to the schema
     gate) — fields for other types are ignored.
 
@@ -289,7 +293,7 @@ class GateConfig(BaseModel):
     `hallucination_llm_model` / `reward_llm_model`.
     """
 
-    type: Literal["schema", "hallucination", "reward", "diversity", "secrets", "toxicity"]
+    type: Literal["schema", "hallucination", "reward", "diversity", "secrets", "toxicity", "guard"]
 
     # ---- Schema gate ----
     required_fields: list[str] = Field(default_factory=lambda: ["instruction", "output"])
@@ -346,6 +350,19 @@ class GateConfig(BaseModel):
     toxicity_llm: LLMOverrideConfig | None = None  # full sampling-param override
     toxicity_llm_reject_threshold: float = 0.5
     toxicity_text_field: str = "auto"
+    toxicity_device: str | None = None  # "cuda" | "cuda:1" | "cpu" | None (auto: cuda, else cpu)
+
+    # ---- GuardModelGate (data hygiene; HF guard model, e.g. Qwen3Guard-Gen) ----
+    guard_model: str = "Qwen/Qwen3Guard-Gen-0.6B"
+    guard_revision: str | None = None
+    guard_text_field: str = "auto"
+    guard_only_unscreened: bool = False  # only fields an earlier toxicity gate could not read
+    guard_reject_controversial: bool = True
+    guard_on_parse_error: Literal["reject", "pass"] = "reject"
+    guard_batch_size: int = 8
+    guard_device: str | None = None  # "cuda" | "cuda:1" | "cpu" | None (auto: cuda, else cpu)
+    guard_max_new_tokens: int = 32
+    guard_content_parts: bool = False
 
 
 # =========================================================================
@@ -472,6 +489,8 @@ class PipelineConfig(BaseModel):
     # Example: {train: 0.8, val: 0.1, test: 0.1}
     output_split: dict[str, float] | None = None
     output_split_seed: int = 42  # seed for the pre-split shuffle
+    output_split_group: str | None = None  # metadata key; a group stays in one split
+    output_split_near_dup_threshold: float | None = 0.8  # grouped runs; null skips the near-dup check
     # Also write README.md with load_dataset configs; a user's own README.md is never overwritten.
     write_hf_readme: bool = True
 

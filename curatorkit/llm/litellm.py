@@ -67,6 +67,8 @@ class LiteLLMBackend(BaseLLM):
         Request timeout in seconds.
     max_retries : int
         Retries on transient failures.
+    retry_after_max : float
+        Longest wait (seconds) honoured from a provider's Retry-After before a retry.
     drop_params : bool
         If True, litellm silently drops unsupported params for each provider.
     extra_body : dict | None
@@ -88,6 +90,7 @@ class LiteLLMBackend(BaseLLM):
         api_base: str | None = None,
         timeout: float = 120.0,
         max_retries: int = 3,
+        retry_after_max: float = 60.0,
         drop_params: bool = True,
         extra_body: dict | None = None,
     ) -> None:
@@ -101,6 +104,7 @@ class LiteLLMBackend(BaseLLM):
             api_key=api_key,
             timeout=timeout,
             max_retries=max_retries,
+            retry_after_max=retry_after_max,
         )
         self.api_base = api_base
         self.drop_params = drop_params

@@ -232,9 +232,9 @@ class TestPreferenceForcedFailurePaths:
         assert len(task._rejected) == 1
         assert "generation_parse_failed" in task._rejected[0].rejection_reason
 
-    def test_valid_faithful_json_with_failing_rejected_call_drops_pair(self):
-        """If the faithful call parses fine but the inline rejected-response
-        call raises, rejected_text stays empty and the pair is dropped."""
+    def test_valid_faithful_json_with_failing_rejected_call_is_rejected_as_generation_failed(self):
+        """If the faithful call parses fine but the inline rejected-response call raises, the
+        source sample is rejected as generation_failed (not dropped, not a parse failure)."""
 
         class _TwoCallFakeLLM(BaseLLM):
             def __init__(self):
@@ -253,9 +253,9 @@ class TestPreferenceForcedFailurePaths:
         task = AdversarialPreferenceTask(llm=llm, injection_rate=1.0, injection_types=["contradicts_source"])
         results = task.run(_seeds(1))
         assert results == []
-        # First call succeeds (faithful); every subsequent call raises. The
-        # rejected-generation call retries internally (BaseLLM.generate's own
-        # max_retries) before _parse_response gives up and drops the pair, and
-        # BaseGenerationTask.run() retries the whole sample once more on an
-        # empty parse — so call count is >1, not a fixed number.
-        assert llm.calls > 1
+        assert len(task._rejected) == 1
+        assert task._rejected[0].rejection_reason.startswith("generation_failed:")
+        assert "rejected-generation failure" in task._rejected[0].metadata["error"]
+        # The faithful call, then the rejected-answer call with BaseLLM's own retry (max_retries=1).
+        # No sample-level re-run: an API error is not a parse failure.
+        assert llm.calls == 3

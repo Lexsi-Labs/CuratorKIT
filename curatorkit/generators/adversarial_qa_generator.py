@@ -52,7 +52,7 @@ from tqdm import tqdm
 from curatorkit.generators.base import coerce_text
 from curatorkit.generators.qa_generator import _DEFAULT_QA_PROMPT, QAGenerationTask
 from curatorkit.llm.base import LLMResponse
-from curatorkit.schema import DataSample, ProvenanceRecord, RejectedSample
+from curatorkit.schema import DataSample, ProvenanceRecord
 
 InjectionType = Literal[
     "contradicts_source",
@@ -226,13 +226,7 @@ class AdversarialQAGenerationTask(QAGenerationTask):
                         seed, inj_type, datetime.now(UTC)
                     )
                 except Exception as exc:
-                    self._rejected.append(
-                        RejectedSample(
-                            **seed.model_dump(),
-                            rejection_reason=f"generation_failed:{exc}",
-                            rejecting_step=self.task_name,
-                        )
-                    )
+                    self._rejected.append(self._failed(seed, exc))
 
         tasks = [_process(i, s) for i, s in enumerate(seeds)]
         for coro in tqdm(
@@ -284,13 +278,7 @@ class AdversarialQAGenerationTask(QAGenerationTask):
             try:
                 results.extend(self._generate_one(seed, inj_type, ts))
             except Exception as exc:
-                self._rejected.append(
-                    RejectedSample(
-                        **seed.model_dump(),
-                        rejection_reason=f"generation_failed:{exc}",
-                        rejecting_step=self.task_name,
-                    )
-                )
+                self._rejected.append(self._failed(seed, exc))
 
         return results
 
@@ -317,13 +305,7 @@ class AdversarialQAGenerationTask(QAGenerationTask):
                     self._generate_multi_one(chunk_a, chunk_b, combined_ctx, inj_type, ts)
                 )
             except Exception as exc:
-                self._rejected.append(
-                    RejectedSample(
-                        **chunk_a.model_dump(),
-                        rejection_reason=f"multi_passage_generation_failed:{exc}",
-                        rejecting_step=self.task_name,
-                    )
-                )
+                self._rejected.append(self._failed(chunk_a, exc, "multi_passage_generation_failed"))
 
         return results
 

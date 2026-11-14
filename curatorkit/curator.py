@@ -250,6 +250,13 @@ class CuratorConfig:
     # Example: {"train": 0.8, "val": 0.1, "test": 0.1}
     output_split: dict[str, float] | None = None
     output_split_seed: int = 42  # seed for the pre-split shuffle
+    # output_split_group: a metadata key (an input column ends up in metadata). Every
+    # sample sharing its value lands in one split, so translations can't straddle them.
+    output_split_group: str | None = None
+    # A grouped run warns about near-duplicate prompts in more than one split (MinHash Jaccard at
+    # or above this). It costs about as much as MinHash dedup; None skips it (groups and exact
+    # duplicates are still checked).
+    output_split_near_dup_threshold: float | None = 0.8
     # Also write README.md (dataset card + load_dataset configs). An existing
     # README.md that curatorkit did not write is never overwritten.
     write_hf_readme: bool = True
@@ -275,6 +282,7 @@ class CuratorConfig:
     llm_concurrency: int = 10
     llm_timeout: float = 120.0
     llm_max_retries: int = 3
+    llm_retry_after_max: float = 60.0  # longest wait honoured from a provider's Retry-After (all roles)
     llm_drop_params: bool = True  # silently drop unsupported params per provider
     llm_extra_body: dict = field(
         default_factory=dict
@@ -326,6 +334,7 @@ class CuratorConfig:
     generate_answers: bool = True
     cot_mode: str = "generate"  # generate | wrap
     preference_mode: str = "single_call"  # single_call | two_pass
+    rejected_temperature_offset: float = 0.3  # two_pass: rejected sampled at llm temperature + this (0 = equal)
     # turn_by_turn (default): each turn is its own LLM call, not customizable
     # via multiturn_prompt_template. single_call: one LLM call generates the
     # whole conversation, using multiturn_prompt_template if set — that field
@@ -360,6 +369,8 @@ class CuratorConfig:
     injection_types: list[str] = field(default_factory=list)  # empty = all types
     injection_seed: int = 42
     high_temp: float = 1.4  # adversarial_qa: temperature for high_temperature_drift
+    adversarial_temperature: float = 0.8  # adversarial_preference: adversarial rejected call
+    naive_rejected_temperature: float = 0.9  # adversarial_preference: naive degraded rejected call
 
     # ── Quality gates ───────────────────────────────────────────────────────
     hallucination_threshold: float | None = None  # None = off; set a float to enable
@@ -439,9 +450,18 @@ class CuratorConfig:
     # toxicity_classifier_pass_threshold    Below this → pass immediately. Default 0.1.
     # toxicity_classifier_reject_threshold  Above this → reject immediately. Default 0.5.
     # toxicity_detoxify_model  "unbiased" | "original" | "multilingual". Default "unbiased".
+    #                          "multilingual" reads en/fr/es/it/pt/tr/ru; the others English only.
     # toxicity_llm_judge       Enable LLM second-opinion for borderline band. Default False.
     # toxicity_llm_reject_threshold  LLM judge rejection threshold for borderline band. Default 0.5.
     # toxicity_text_field      Field to score. "auto" = task-aware; or a specific field name.
+    # toxicity_device          Where Detoxify runs. None = cuda when available, else cpu.
+    # guard_gate               Screen with a Hugging Face guard model (GuardModelGate), after the
+    #                          toxicity gate. Reads languages Detoxify cannot. Needs [guard] extras.
+    # guard_model              HF id. Default "Qwen/Qwen3Guard-Gen-0.6B".
+    # guard_only_unscreened    Screen only the fields the toxicity gate could not read. Default False.
+    # guard_reject_controversial  Reject a "Controversial" verdict too. Default True.
+    # guard_on_parse_error     "reject" | "pass" when the guard's reply has no verdict. Default "reject".
+    # guard_batch_size / guard_device / guard_revision  Batching, device (None = cuda, else cpu), pin.
     secrets_gate: bool = False
     secrets_code_corpus_mode: bool = False
     secrets_fields: list[str] = field(default_factory=list)
@@ -465,6 +485,16 @@ class CuratorConfig:
     toxicity_llm_judge: bool = False
     toxicity_llm_reject_threshold: float = 0.5
     toxicity_text_field: str = "auto"
+    toxicity_device: str | None = None
+    guard_gate: bool = False
+    guard_model: str = "Qwen/Qwen3Guard-Gen-0.6B"
+    guard_revision: str | None = None
+    guard_text_field: str = "auto"
+    guard_only_unscreened: bool = False
+    guard_reject_controversial: bool = True
+    guard_on_parse_error: str = "reject"
+    guard_batch_size: int = 8
+    guard_device: str | None = None
 
     # ── Checkpointing ─────────────────────────────────────────────────────────
     # enable_checkpoint    Save stage and batch checkpoints so a failed run can
@@ -1109,6 +1139,23 @@ class Curator:
                     llm=_tox_llm,
                     llm_reject_threshold=cfg.toxicity_llm_reject_threshold,
                     text_field=cfg.toxicity_text_field,
+                    device=cfg.toxicity_device,
+                )
+            )
+
+        if cfg.guard_gate:
+            from curatorkit.hygiene.guard import GuardModelGate
+
+            steps.append(
+                GuardModelGate(
+                    model=cfg.guard_model,
+                    revision=cfg.guard_revision,
+                    text_field=cfg.guard_text_field,
+                    only_unscreened=cfg.guard_only_unscreened,
+                    reject_controversial=cfg.guard_reject_controversial,
+                    on_parse_error=cfg.guard_on_parse_error,
+                    batch_size=cfg.guard_batch_size,
+                    device=cfg.guard_device,
                 )
             )
 
@@ -1308,6 +1355,7 @@ class Curator:
                 temperature=temperature,
                 max_tokens=max_tokens,
                 timeout=timeout,
+                retry_after_max=self.config.llm_retry_after_max,
             )
 
         from curatorkit.llm.litellm import LiteLLMBackend
@@ -1320,6 +1368,7 @@ class Curator:
             api_base=api_base,
             timeout=timeout,
             max_retries=max_retries,
+            retry_after_max=self.config.llm_retry_after_max,
             drop_params=drop_params,
             extra_body=extra_body or None,
         )
@@ -1496,6 +1545,7 @@ class Curator:
                 rejected_prompt=cfg.preference_rejected_prompt,
                 mode=cfg.preference_mode,
                 concurrency=concurrency,
+                rejected_temperature_offset=cfg.rejected_temperature_offset,
             )
         elif task == "grpo":
             from curatorkit.generators.grpo_rollout import GRPORolloutTask
@@ -1562,6 +1612,8 @@ class Curator:
                 faithful_prompt_template=cfg.qa_prompt_template,
                 adversarial_prompt_template=cfg.adversarial_prompt_template,
                 concurrency=concurrency,
+                adversarial_temperature=cfg.adversarial_temperature,
+                naive_rejected_temperature=cfg.naive_rejected_temperature,
             )
         elif task == "adversarial_qa":
             from curatorkit.generators.adversarial_qa_generator import AdversarialQAGenerationTask
@@ -1706,47 +1758,35 @@ class Curator:
         self, samples: list, output_dir: Path, formats: list[str] | None = None
     ) -> None:
         """Split accepted samples and export each split to suffixed files."""
-        import math
-        import random as _random
+        from curatorkit.splits import split_samples, warn_on_leakage
 
         if formats is None:
             formats = self._resolve_export_formats()
 
-        split_def = self.config.output_split  # e.g. {"train": 0.8, "val": 0.1, "test": 0.1}
-        total = sum(split_def.values())
-        if abs(total - 1.0) > 1e-6:
-            raise ValueError(
-                f"output_split fractions must sum to 1.0, got {total:.4f}. "
-                f"Adjust your split ratios."
+        cfg = self.config
+        splits = split_samples(
+            samples,
+            cfg.output_split,  # e.g. {"train": 0.8, "val": 0.1, "test": 0.1}
+            seed=cfg.output_split_seed,
+            group_key=cfg.output_split_group,
+        )
+        if cfg.output_split_group:
+            warn_on_leakage(
+                splits, cfg.output_split_group, near_dup_threshold=cfg.output_split_near_dup_threshold
             )
-
-        shuffled = list(samples)
-        _random.Random(self.config.output_split_seed).shuffle(shuffled)
-        n = len(shuffled)
 
         _exporter_map = _exporter_classes()
 
-        start = 0
-        split_items = list(split_def.items())
-        for i, (split_name, fraction) in enumerate(split_items):
-            # Last split gets all remaining samples to avoid rounding loss
-            if i == len(split_items) - 1:
-                end = n
-            else:
-                end = start + math.floor(n * fraction)
-
-            split_samples = shuffled[start:end]
+        for split_name, rows in splits.items():
             split_dir = output_dir / split_name
             split_dir.mkdir(parents=True, exist_ok=True)
 
             for fmt in formats:
                 cls = _exporter_map.get(fmt.lower())
                 if cls:
-                    cls().export(split_samples, split_dir)
+                    cls().export(rows, split_dir)
                 else:
                     warnings.warn(f"Unknown export format '{fmt}' — skipped.")
-
-            start = end
 
     def _write_provenance(self, result, output_dir: Path, steps: list | None = None) -> None:
         from curatorkit.manifest import (
@@ -1775,6 +1815,8 @@ class Curator:
                     {s.task_type for s in result.passed}
                 ),
                 "output_split": cfg.output_split,
+                "output_split_group": cfg.output_split_group,
+                "output_split_near_dup_threshold": cfg.output_split_near_dup_threshold,
                 "pipeline_config_hash": cfg_hash,
             },
         )

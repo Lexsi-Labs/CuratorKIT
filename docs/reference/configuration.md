@@ -103,9 +103,19 @@ for full usage examples.
 | `toxicity_gate` | `bool` | `False` | Enable `ToxicityGate`. Two-stage: Stage 1 (local Detoxify classifier) first, then optional Stage 2 (LLM judge) for borderline samples. |
 | `toxicity_classifier_pass_threshold` | `float` | `0.1` | Max-dimension Detoxify score below this → immediate pass (no LLM call). |
 | `toxicity_classifier_reject_threshold` | `float` | `0.5` | Max-dimension Detoxify score above this → immediate reject (no LLM call). Scores between the two thresholds are escalated to the LLM judge if `toxicity_llm_judge=True`. |
-| `toxicity_detoxify_model` | `str` | `"unbiased"` | Detoxify model variant. `"unbiased"` for general corpora; `"original"` for informal web text; `"multilingual"` for non-English. |
+| `toxicity_detoxify_model` | `str` | `"unbiased"` | Detoxify model variant. `"unbiased"` for general corpora; `"original"` for informal web text; `"multilingual"` for English, French, Spanish, Italian, Portuguese, Turkish and Russian only. Text mostly in another script (Korean, Chinese, Arabic, ...) is not screened: it passes with `unscreened_fields` in its provenance and a warning. Other Latin-script languages (Swahili, for example) are not detected. |
 | `toxicity_llm_judge` | `bool` | `False` | Enable LLM second opinion for borderline samples. Requires `llm_model` to be set. |
 | `toxicity_llm_reject_threshold` | `float` | `0.5` | LLM judge score at or above which a borderline sample is rejected (only used when `toxicity_llm_judge=True`). |
+| `toxicity_device` | `str \| None` | `None` | Where Detoxify runs. `None` picks `cuda` when available, else `cpu` (never MPS); or `"cuda:1"`, `"cpu"`, ... Recorded as `device` in the provenance; decisions do not depend on it. YAML: `toxicity_device` on a `type: toxicity` gate. |
+| `guard_gate` | `bool` | `False` | Enable `GuardModelGate` (runs after `ToxicityGate`): a Hugging Face guard model screens each field and the sample is rejected on an unsafe verdict. Reads languages Detoxify cannot (Korean, Chinese, Swahili, ...). Needs `pip install "curatorkit[guard]"`. YAML: a gate with `type: guard` and the same settings prefixed `guard_`. |
+| `guard_model` | `str` | `"Qwen/Qwen3Guard-Gen-0.6B"` | Guard model id. Qwen3Guard-Gen (`Safety: ...` replies) and Llama Guard 3 (`safe` / `unsafe` + `S1,...`) replies are parsed. |
+| `guard_only_unscreened` | `bool` | `False` | Screen only the fields `ToxicityGate` listed as `unscreened_fields`; other samples pass with a `skipped` note. That list goes by script, so Latin-script languages Detoxify does not read (Swahili) are not routed; leave this off to screen everything. |
+| `guard_reject_controversial` | `bool` | `True` | Reject Qwen3Guard's `Controversial` verdict too. |
+| `guard_on_parse_error` | `str` | `"reject"` | `"reject"` or `"pass"` when the guard's reply has no verdict. |
+| `guard_batch_size` | `int` | `8` | Conversations per `generate` call. |
+| `guard_device` | `str \| None` | `None` | `None` picks `cuda` when available, else `cpu` (never MPS); or `"cuda:1"`, `"cpu"`, ... |
+| `guard_revision` | `str \| None` | `None` | Model revision to pin; part of the config hash. |
+| `guard_text_field` | `str` | `"auto"` | Same field selection as `toxicity_text_field`. |
 
 ---
 
@@ -117,6 +127,8 @@ for full usage examples.
 | `export_formats` | `list[str] \| None` | `None` (auto) | Which exporters to run. Options: `"alpaca"`, `"sharegpt"`, `"dpo"`, `"grpo"`, `"ppo"`, `"corpus"`. `None` auto-aligns to whichever task_type `generation_task` produces, or (with no `generation_task`) to whatever task_type the readers actually emit — see [Exporters → Compatibility](../guides/exporters.md#compatibility-matrix). Set explicitly to override. |
 | `output_split` | `dict[str, float] \| None` | `None` | Split accepted samples into subdirectories. E.g. `{"train": 0.8, "val": 0.1, "test": 0.1}`. Must sum to 1.0. |
 | `output_split_seed` | `int` | `42` | Seed for the pre-split shuffle. Set the same value across runs to get identical train/val/test assignments. |
+| `output_split_group` | `str \| None` | `None` | Metadata key that keeps a group in one split, so translations can't land in both. Split sizes then only approximate the fractions. See [Train / val / test splits](../guides/exporters.md#train-val-test-splits). |
+| `output_split_near_dup_threshold` | `float \| None` | `0.8` | With `output_split_group`, warn about prompts in more than one split at or above this MinHash Jaccard similarity. `None` skips the near-duplicate pass; groups and exact duplicates are still checked. |
 | `write_hf_readme` | `bool` | `True` | Also write `README.md` with `load_dataset` configs. An existing `README.md` that CuratorKIT did not write is never overwritten. Also a YAML top-level key. |
 
 ---
@@ -153,6 +165,7 @@ for full usage examples.
 | `llm_concurrency` | `int` | `10` | Max parallel LLM requests for generation |
 | `llm_timeout` | `float` | `120.0` | Request timeout in seconds |
 | `llm_max_retries` | `int` | `3` | Retry attempts on transient errors |
+| `llm_retry_after_max` | `float` | `60.0` | Longest wait, in seconds, honoured from a provider's `Retry-After` (or `retry_after` / `retry-after-ms`, and on a 429 `x-ratelimit-reset-requests`) before a retry. With no such header the wait is 1 s, 2 s, 4 s ... (up to 30 s) with jitter. One value for every role (generator, judge, probe, refiner); YAML: `llm.retry_after_max` |
 | `llm_drop_params` | `bool` | `True` | Silently drop unsupported params rather than raising (LiteLLM behaviour) |
 | `llm_extra_body` | `dict` | `{}` | Extra fields forwarded verbatim in the API request body (e.g. `{"chat_template_kwargs": {"enable_thinking": True}}`) |
 
@@ -285,6 +298,7 @@ Same 3-tier cascade and role-default table as the Python API (see above), includ
 | `cot_mode` | `str` | `"generate"` | Chain-of-thought mode: `"generate"` (LLM produces CoT from scratch) or `"wrap"` (wrap an existing answer with reasoning) |
 | `cot_marker` | `str \| None` | `None` | Separator inserted between the reasoning block and the final answer in `cot` output. `None` = the built-in separator (`"\n\n## Answer\n"`). |
 | `preference_mode` | `str` | `"single_call"` | Preference pair generation: `"single_call"` (one call for both chosen/rejected) or `"two_pass"` (separate calls) |
+| `rejected_temperature_offset` | `float` | `0.3` | `preference_mode="two_pass"`: the rejected answer is sampled at the LLM temperature plus this (at most 1.5, or the base temperature if higher). `0` samples both sides at the same temperature. Both temperatures are recorded per sample (`metadata["chosen_temperature"]`, `["rejected_temperature"]`) and in its provenance record. |
 | `multiturn_mode` | `str` | `"turn_by_turn"` | Multi-turn generation: `"turn_by_turn"` (each turn is its own LLM call, conditioned on prior real turns) or `"single_call"` (one call generates the whole conversation — required for `multiturn_prompt_template` to have any effect) |
 | `generation_concurrency` | `int \| None` | `None` | Concurrency for the generation task. `None` = use `llm_concurrency`. |
 | `judge_concurrency` | `int \| None` | `None` | Concurrency for scoring/judging calls. `None` = use `llm_concurrency`. |
@@ -331,6 +345,8 @@ All default to `None` (built-in template used). `multiturn_mode` defaults to `"t
 | `injection_rate` | `float` | `0.5` | Fraction of questions to inject adversarial hallucinations into (0.0–1.0) |
 | `injection_types` | `list[str]` | `[]` | Which injection strategies to use. For `adversarial_preference`: `"contradicts_source"`, `"parametric_drift"`, `"domain_mismatch"`, `"instruction_quality"`. For `adversarial_qa`: same four plus `"high_temperature_drift"`. Empty = all types for the active task. |
 | `injection_seed` | `int` | `42` | Random seed for injection sampling |
+| `adversarial_temperature` | `float` | `0.8` | `adversarial_preference`: temperature of the call that writes an adversarial rejected answer |
+| `naive_rejected_temperature` | `float` | `0.9` | `adversarial_preference`: temperature of the call that writes a naive, degraded rejected answer. The chosen answer uses the LLM temperature. Both sides' temperatures are recorded per sample like `rejected_temperature_offset` |
 | `high_temp` | `float` | `1.4` | Sampling temperature used for the `high_temperature_drift` injection type (`adversarial_qa` only) |
 
 ---

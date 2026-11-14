@@ -31,8 +31,56 @@ All notable changes to CuratorKIT are documented here. The format follows
   drops data: `metadata["system_prompt"]` becomes a leading `system` turn, a non-empty `input` is
   appended to the first `human` turn, and later turns given as role/content are converted to
   from/value instead of being copied through as-is.
+- The `SecretsGate` install error and the data-hygiene guide name `pip install detect-secrets`,
+  the one package the gate needs; `curatorkit[hygiene]` stays the way to get every hygiene gate
+  (#52).
 
 ### Added
+- `BaseLLM` waits as long as the provider asks before a retry (#54). A `retry_after` attribute on
+  the error, or the response headers `retry-after-ms`, `retry-after` (seconds or an HTTP date)
+  and, on a 429, `x-ratelimit-reset-requests`, set the delay, capped by the new `retry_after_max`
+  (default 60 s; on `BaseLLM`, `LiteLLMBackend` and `OllamaBackend`; `llm_retry_after_max` in
+  `CuratorConfig`, `llm.retry_after_max` in YAML, one value for every role). Before, every retry
+  waited 1 s, 2 s, 4 s whatever the provider said, so with the default three retries all attempts
+  fell inside one per-minute rate-limit window. Without such a header the wait is unchanged:
+  1 s, 2 s, 4 s ... (up to 30 s) with jitter.
+- `PreferenceGenerationTask(rejected_temperature_offset=0.3)` (#55): the `two_pass` rejected
+  answer is sampled at the LLM temperature plus this offset (at most 1.5, or the base temperature
+  if higher); `0` samples both sides at the same temperature. Default unchanged. Config:
+  `rejected_temperature_offset` in `CuratorConfig` and on a YAML `type: preference` generator.
+- `AdversarialPreferenceTask(adversarial_temperature=0.8, naive_rejected_temperature=0.9)`: the
+  rejected-call temperatures that were hard-coded; same defaults. Config:
+  `adversarial_temperature` / `naive_rejected_temperature` in `CuratorConfig` and YAML.
+- Two-pass and adversarial preference samples record `chosen_temperature` and
+  `rejected_temperature` in `metadata` (#55).
+- Samples built from several LLM calls carry a generation provenance record, as one-call samples
+  already did: two_pass preference, turn-by-turn multi-turn, GRPO rollouts and the evolved-answer
+  pass (a second `EvolInstructTask` record with `stage: "answer"`). It has the model, token counts
+  and latency summed over the calls, `prompt_hash`, `llm_calls` and `temperatures_used`; two_pass
+  preference also has both temperatures and the offset (#55).
+- `ToxicityGate(device="auto")`: Detoxify runs on CUDA when torch sees a GPU, else CPU (it always ran on
+  CPU before); `"cuda:1"`, `"cpu"` etc. pick one. The device is recorded as `device` in the provenance;
+  scores and decisions do not depend on it. Config: `toxicity_device` in `CuratorConfig` and on a YAML
+  `type: toxicity` gate, like `guard_device`.
+- `GuardModelGate` (#51): screens samples with a Hugging Face guard model, default
+  `Qwen/Qwen3Guard-Gen-0.6B` (119 languages, no access request); Qwen3Guard-Gen and Llama Guard
+  replies are parsed, and `parser=` / `generator=` take other formats and loaders. Each field
+  ToxicityGate scores is screened (prompt-side as a user message, replies with their prompt),
+  long text in the same 2 048-character windows, in batches, on CUDA when available, else CPU.
+  `Unsafe` rejects; `Controversial` and unparseable replies reject by default. Provenance has the
+  verdict and categories per field. `only_unscreened=True` screens only the fields ToxicityGate
+  listed as `unscreened_fields`. Config: `guard_gate` / `guard_*` in `CuratorConfig`, `type: guard`
+  in YAML; new extra `curatorkit[guard]`.
+- `output_split_group` (`CuratorConfig`, YAML): a metadata key whose value keeps a group in one
+  split, so the translations or paraphrases of an item can't land in both train and test. A group's
+  split is a hash of its id and `output_split_seed`, so an item keeps its split as the corpus grows,
+  and split sizes only approximate the fractions (closely with hundreds of groups, loosely with a
+  few dozen). Without it, splitting is unchanged (#53).
+- `curatorkit.splits`: `split_samples` (now the one split path for `Curator` and `curatorkit run`)
+  and `leakage_report`, which finds groups, exact prompts and near-duplicate prompts in more than one
+  split; a conversation's prompt is every user turn, not only the first. A grouped run warns when it
+  finds any. `output_split_near_dup_threshold` (default `0.8`, `None` skips the MinHash pass) tunes
+  the near-duplicate part (#53).
 - `messages` exporter (`sft_messages.jsonl`): the same turns as chat `messages`
   (`[{"role", "content"}, ...]`), the layout TRL's `SFTTrainer` and tokenizer chat templates take
   directly. Auto-resolved `export_formats` include it wherever `sharegpt` is chosen.
@@ -104,6 +152,27 @@ All notable changes to CuratorKIT are documented here. The format follows
   of exporting seed prompts before `GRPORolloutTask` has run.
 
 ### Fixed
+- `ToxicityGate` passed text Detoxify cannot read (Korean, Chinese and other scripts the chosen
+  model was not trained on) as clean, because the classifier gives it a low score. Such a pass now
+  lists the fields under `unscreened_fields` in its provenance and the run logs a warning with the
+  count; pass and reject decisions are unchanged. The check goes by script, so an unsupported
+  Latin-script language such as Swahili is not flagged. The docs name the languages each Detoxify
+  model reads instead of "multilingual for non-English" (#51).
+- A generation call that raised (rate limit, timeout, HTTP 5xx) is recorded as
+  `generation_failed:<ExceptionType>` in every generator, with the message in
+  `metadata["error"]`, instead of being filed as a parse failure or lost. `PreferenceGenerationTask`
+  `two_pass` (sync and async) recorded every error as `generation_parse_failed`, so a
+  rate-limited run looked like bad model output (#54). `AdversarialPreferenceTask` swallowed an
+  error from the rejected-answer call: `run()` re-ran the sample and recorded a parse failure,
+  `run_async()` recorded nothing; the whole source sample is now rejected, with no partial pairs.
+  `EvolInstructTask(generate_answers=True)` kept the sample with an empty answer when the answer
+  call failed; it is now rejected. The reason no longer carries the message (it was
+  `generation_failed:RuntimeError:LLM call failed after ...` in `BaseGenerationTask` and
+  `GRPORolloutTask`), so `rejected_breakdown` in the manifest has one bucket per error type
+  (`RateLimitError`, `Timeout`, ...), the type of the original error rather than the
+  `RuntimeError` that `BaseLLM` wraps it in. Anything that matched the old text should match
+  `generation_failed:` and read `metadata["error"]`. `generation_parse_failed` now means only
+  that the model replied and the reply could not be used.
 - `PIIPseudonymizer` replaces overlapping Presidio spans once, as the type of the span that starts first (on a tie, the longest, then the highest score). It used
   to replace each span in turn, so a date found inside an IBAN or card number shifted the offsets
   and left digits of the original value in the output. `entities_replaced` counts a merged group

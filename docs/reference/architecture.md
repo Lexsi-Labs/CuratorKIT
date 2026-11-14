@@ -200,7 +200,7 @@ BaseGenerationTask
   .flush_rejected() -> list[RejectedSample]  # return and clear accumulated failures
 ```
 
-**Parse failure handling:** if `_parse_response()` returns `[]` (parse failed), the source sample is emitted as a `RejectedSample` with `rejection_reason="generation_parse_failed:{task_name}"`. No silent drops.
+**Failure handling:** if `_parse_response()` returns `[]` (the model replied, the reply could not be used), the source sample is emitted as a `RejectedSample` with `rejection_reason="generation_parse_failed:{task_name}"`. If the LLM call itself raised (rate limit, timeout, 5xx), the reason is `generation_failed:{ExceptionType}` (the type of the original error, e.g. `RateLimitError`) and the message is in `metadata["error"]`. No silent drops; `rejected_breakdown` in the manifest counts each reason.
 
 ### Available generation tasks
 
@@ -523,6 +523,8 @@ version: "0.2.0"
 max_samples: null              # cap on total samples, applied right after readers
 output_split: null             # e.g. {train: 0.8, val: 0.1, test: 0.1}; fractions sum to 1.0
 output_split_seed: 42
+output_split_group: null       # metadata key; samples sharing its value stay in one split
+output_split_near_dup_threshold: 0.8  # grouped runs; null skips the near-duplicate check
 
 readers:
   - type: jsonl | json | csv | parquet | huggingface | pdf
@@ -574,6 +576,7 @@ llm:                                 # global LLM config, shared by generators a
   concurrency: 10
   timeout: 120.0
   max_retries: 3
+  retry_after_max: 60.0   # cap on a provider's Retry-After wait, seconds
   drop_params: true
   extra_body: {}
 

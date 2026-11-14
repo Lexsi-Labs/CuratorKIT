@@ -10,9 +10,10 @@
 ## Reporting a vulnerability
 
 Please **do not open a public issue** for security vulnerabilities. Report them
-privately to **pratinav.seth@lexsi.ai** (or via GitHub's private vulnerability reporting on
-this repository). Include a description, reproduction steps, and the affected
-version. You can expect an acknowledgement within **5 business days**.
+privately through GitHub's private vulnerability reporting, using the
+[advisory form](https://github.com/Lexsi-Labs/CuratorKIT/security/advisories/new).
+Include a description, reproduction steps, and the affected version. You can
+expect an acknowledgement within **5 business days**.
 
 ## Scope notes for the hygiene gates
 

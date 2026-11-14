@@ -204,11 +204,14 @@ class GRPORolloutTask(BaseGenerationTask):
         except JudgeParseError as e:
             raise ScoringError(str(e)) from e
 
-    @staticmethod
-    def _rejection_reason(error: Exception) -> str:
+    def _rejection(self, sample: DataSample, error: Exception) -> RejectedSample:
         if isinstance(error, ScoringError):
-            return f"scoring_failed:{type(error.__cause__ or error).__name__}:{error}"
-        return f"generation_failed:{type(error).__name__}:{error}"
+            return RejectedSample(
+                **sample.model_dump(),
+                rejection_reason=f"scoring_failed:{type(error.__cause__ or error).__name__}:{error}",
+                rejecting_step=self.task_name,
+            )
+        return self._failed(sample, error)
 
     def _score_single(self, instruction: str, response_text: str) -> float:
         """Score a single response using the scoring LLM.
@@ -254,8 +257,10 @@ class GRPORolloutTask(BaseGenerationTask):
                 responses: list[str] = []
 
                 response_status: list[str] = []
+                calls: list = []  # (response, messages, temperature) for the provenance record
                 for temp in temperatures:
                     resp = self.llm.generate(messages, temperature=temp)
+                    calls.append((resp, messages, temp))
                     text = resp.text.strip()
                     if text:
                         responses.append(text)
@@ -285,7 +290,7 @@ class GRPORolloutTask(BaseGenerationTask):
                 else:
                     scores = [0.0] * len(responses)
 
-                results.append(
+                ds = (
                     DataSample(
                         id=str(uuid.uuid4()),
                         source_uri=sample.source_uri,
@@ -307,15 +312,10 @@ class GRPORolloutTask(BaseGenerationTask):
                         provenance_chain=list(sample.provenance_chain),
                     )
                 )
+                results.append(self._record_calls(ds, sample.id, calls))
 
             except Exception as e:
-                self._rejected.append(
-                    RejectedSample(
-                        **sample.model_dump(),
-                        rejection_reason=self._rejection_reason(e),
-                        rejecting_step=self.task_name,
-                    )
-                )
+                self._rejected.append(self._rejection(sample, e))
 
         return results
 
@@ -358,8 +358,10 @@ class GRPORolloutTask(BaseGenerationTask):
                     responses: list[str] = []
                     response_status: list[str] = []
 
+                    calls: list = []  # (response, messages, temperature) for the provenance record
                     for temp in temperatures:
                         resp = await self.llm.agenerate(messages, temperature=temp)
+                        calls.append((resp, messages, temp))
                         text = resp.text.strip()
                         if text:
                             responses.append(text)
@@ -386,7 +388,7 @@ class GRPORolloutTask(BaseGenerationTask):
                     else:
                         scores = [0.0] * len(responses)
 
-                    results_map[idx] = DataSample(
+                    ds = DataSample(
                         id=str(uuid.uuid4()),
                         source_uri=sample.source_uri,
                         instruction=instruction,
@@ -406,14 +408,9 @@ class GRPORolloutTask(BaseGenerationTask):
                         },
                         provenance_chain=list(sample.provenance_chain),
                     )
+                    results_map[idx] = self._record_calls(ds, sample.id, calls)
                 except Exception as e:
-                    self._rejected.append(
-                        RejectedSample(
-                            **sample.model_dump(),
-                            rejection_reason=self._rejection_reason(e),
-                            rejecting_step=self.task_name,
-                        )
-                    )
+                    self._rejected.append(self._rejection(sample, e))
 
         tasks = [_process_one(i, s) for i, s in enumerate(samples)]
         for coro in tqdm(
