@@ -204,11 +204,14 @@ class GRPORolloutTask(BaseGenerationTask):
         except JudgeParseError as e:
             raise ScoringError(str(e)) from e
 
-    @staticmethod
-    def _rejection_reason(error: Exception) -> str:
+    def _rejection(self, sample: DataSample, error: Exception) -> RejectedSample:
         if isinstance(error, ScoringError):
-            return f"scoring_failed:{type(error.__cause__ or error).__name__}:{error}"
-        return f"generation_failed:{type(error).__name__}:{error}"
+            return RejectedSample(
+                **sample.model_dump(),
+                rejection_reason=f"scoring_failed:{type(error.__cause__ or error).__name__}:{error}",
+                rejecting_step=self.task_name,
+            )
+        return self._failed(sample, error)
 
     def _score_single(self, instruction: str, response_text: str) -> float:
         """Score a single response using the scoring LLM.
@@ -309,13 +312,7 @@ class GRPORolloutTask(BaseGenerationTask):
                 )
 
             except Exception as e:
-                self._rejected.append(
-                    RejectedSample(
-                        **sample.model_dump(),
-                        rejection_reason=self._rejection_reason(e),
-                        rejecting_step=self.task_name,
-                    )
-                )
+                self._rejected.append(self._rejection(sample, e))
 
         return results
 
@@ -407,13 +404,7 @@ class GRPORolloutTask(BaseGenerationTask):
                         provenance_chain=list(sample.provenance_chain),
                     )
                 except Exception as e:
-                    self._rejected.append(
-                        RejectedSample(
-                            **sample.model_dump(),
-                            rejection_reason=self._rejection_reason(e),
-                            rejecting_step=self.task_name,
-                        )
-                    )
+                    self._rejected.append(self._rejection(sample, e))
 
         tasks = [_process_one(i, s) for i, s in enumerate(samples)]
         for coro in tqdm(

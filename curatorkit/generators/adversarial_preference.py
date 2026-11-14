@@ -338,6 +338,8 @@ class AdversarialPreferenceTask(BaseGenerationTask):
         pairs = self._extract_pairs(response.text)
         context = self._get_context(sample)
         results = []
+        # An error from the rejected-answer call propagates: the source sample is rejected as
+        # generation_failed, not dropped or retried as a parse failure.
 
         for pair in pairs:
             question = coerce_text(pair.get("question") or pair.get("q", ""))
@@ -350,18 +352,10 @@ class AdversarialPreferenceTask(BaseGenerationTask):
 
             if use_adversarial:
                 adv_msgs = self._build_adversarial_messages(context, question, injection_type)
-                try:
-                    adv_resp = self.llm.generate(adv_msgs, temperature=0.8)
-                    rejected_text = adv_resp.text.strip()
-                except Exception:
-                    rejected_text = ""
+                rejected_text = self.llm.generate(adv_msgs, temperature=0.8).text.strip()
             else:
                 naive_msgs = self._build_naive_rejected_messages(context, question)
-                try:
-                    naive_resp = self.llm.generate(naive_msgs, temperature=0.9)
-                    rejected_text = naive_resp.text.strip()
-                except Exception:
-                    rejected_text = ""
+                rejected_text = self.llm.generate(naive_msgs, temperature=0.9).text.strip()
 
             if not rejected_text or _same_text(answer, rejected_text):
                 continue
@@ -431,18 +425,12 @@ class AdversarialPreferenceTask(BaseGenerationTask):
                             adv_msgs = self._build_adversarial_messages(
                                 context, question, injection_type
                             )
-                            try:
-                                adv_resp = await self.llm.agenerate(adv_msgs, temperature=0.8)
-                                rejected_text = adv_resp.text.strip()
-                            except Exception:
-                                rejected_text = ""
+                            adv_resp = await self.llm.agenerate(adv_msgs, temperature=0.8)
+                            rejected_text = adv_resp.text.strip()
                         else:
                             naive_msgs = self._build_naive_rejected_messages(context, question)
-                            try:
-                                naive_resp = await self.llm.agenerate(naive_msgs, temperature=0.9)
-                                rejected_text = naive_resp.text.strip()
-                            except Exception:
-                                rejected_text = ""
+                            naive_resp = await self.llm.agenerate(naive_msgs, temperature=0.9)
+                            rejected_text = naive_resp.text.strip()
 
                         if not rejected_text or _same_text(answer, rejected_text):
                             continue
@@ -456,13 +444,7 @@ class AdversarialPreferenceTask(BaseGenerationTask):
 
                     results_map[idx] = out
                 except Exception as e:
-                    self._rejected.append(
-                        RejectedSample(
-                            **sample.model_dump(),
-                            rejection_reason=f"generation_failed:{type(e).__name__}:{e}",
-                            rejecting_step=self.task_name,
-                        )
-                    )
+                    self._rejected.append(self._failed(sample, e))
 
         tasks = [_process_one(i, s) for i, s in enumerate(samples)]
         for coro in tqdm(

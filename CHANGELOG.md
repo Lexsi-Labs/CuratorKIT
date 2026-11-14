@@ -136,6 +136,21 @@ All notable changes to CuratorKIT are documented here. The format follows
   count; pass and reject decisions are unchanged. The check goes by script, so an unsupported
   Latin-script language such as Swahili is not flagged. The docs name the languages each Detoxify
   model reads instead of "multilingual for non-English" (#51).
+- A generation call that raised (rate limit, timeout, HTTP 5xx) is recorded as
+  `generation_failed:<ExceptionType>` in every generator, with the message in
+  `metadata["error"]`, instead of being filed as a parse failure or lost. `PreferenceGenerationTask`
+  `two_pass` (sync and async) recorded every error as `generation_parse_failed`, so a
+  rate-limited run looked like bad model output (#54). `AdversarialPreferenceTask` swallowed an
+  error from the rejected-answer call: `run()` re-ran the sample and recorded a parse failure,
+  `run_async()` recorded nothing; the whole source sample is now rejected, with no partial pairs.
+  `EvolInstructTask(generate_answers=True)` kept the sample with an empty answer when the answer
+  call failed; it is now rejected. The reason no longer carries the message (it was
+  `generation_failed:RuntimeError:LLM call failed after ...` in `BaseGenerationTask` and
+  `GRPORolloutTask`), so `rejected_breakdown` in the manifest has one bucket per error type
+  (`RateLimitError`, `Timeout`, ...), the type of the original error rather than the
+  `RuntimeError` that `BaseLLM` wraps it in. Anything that matched the old text should match
+  `generation_failed:` and read `metadata["error"]`. `generation_parse_failed` now means only
+  that the model replied and the reply could not be used. The retry delay is unchanged (1, 2, 4 s).
 - `PIIPseudonymizer` replaces overlapping Presidio spans once, as the type of the span that starts first (on a tie, the longest, then the highest score). It used
   to replace each span in turn, so a date found inside an IBAN or card number shifted the offsets
   and left digits of the original value in the output. `entities_replaced` counts a merged group

@@ -316,9 +316,9 @@ class EvolInstructTask(BaseGenerationTask):
                 prompt = self._answer_prompt(sample)
                 response = self.llm.generate([{"role": "user", "content": prompt}])
                 sample.output = response.text.strip()
-            except Exception:
-                pass
-            return idx, sample
+            except Exception as e:
+                return idx, sample, e
+            return idx, sample, None
 
         with ThreadPoolExecutor(max_workers=self.concurrency) as pool:
             futures = {pool.submit(_answer_one, (i, s)): i for i, s in enumerate(evolved)}
@@ -328,8 +328,12 @@ class EvolInstructTask(BaseGenerationTask):
                 desc="[EvolInstruct] answering",
                 unit="sample",
             ):
-                idx, sample = future.result()
-                answered[idx] = sample
+                idx, sample, err = future.result()
+                if err is None:
+                    answered[idx] = sample
+                else:
+                    # Not kept: an evolved instruction without its answer is not a finished sample.
+                    self._rejected.append(self._failed(sample, err))
 
         return [s for s in answered if s is not None]
 
@@ -366,8 +370,10 @@ class EvolInstructTask(BaseGenerationTask):
                     prompt = self._answer_prompt(sample)
                     response = await self.llm.agenerate([{"role": "user", "content": prompt}])
                     sample.output = response.text.strip()
-                except Exception:
-                    pass
+                except Exception as e:
+                    # Not kept: an evolved instruction without its answer is not a finished sample.
+                    self._rejected.append(self._failed(sample, e))
+                    return
                 answered_map[idx] = sample
 
         tasks = [_answer_one(i, s) for i, s in enumerate(evolved)]

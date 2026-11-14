@@ -275,13 +275,7 @@ class QAGenerationTask(BaseGenerationTask):
             try:
                 response = self.llm.generate(messages)
             except Exception as exc:
-                self._rejected.append(
-                    RejectedSample(
-                        **chunk_a.model_dump(),
-                        rejection_reason=f"multi_passage_generation_failed:{exc}",
-                        rejecting_step=self.task_name,
-                    )
-                )
+                self._rejected.append(self._failed(chunk_a, exc, "multi_passage_generation_failed"))
                 continue
 
             text = response.text.strip()

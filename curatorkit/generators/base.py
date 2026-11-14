@@ -157,6 +157,24 @@ class BaseGenerationTask(BaseNormalizer):
             return ""
         return f"Source passage:\n---\n{source_context}\n---\n\n"
 
+    def _failed(
+        self, sample: DataSample, error: Exception, prefix: str = "generation_failed"
+    ) -> RejectedSample:
+        """Reject `sample` because the LLM call (or the code around it) raised.
+
+        The reason is `<prefix>:<ExceptionType>`, so it stays distinct from an unparseable reply
+        (`generation_parse_failed`) and counts as one bucket per error type in the manifest's
+        `rejected_breakdown`. BaseLLM wraps provider errors in a RuntimeError, so the type is that
+        of the original error (`RateLimitError`, `Timeout`, ...). The message goes to
+        `metadata["error"]`. Every generator that catches a raised error routes through here.
+        """
+        return RejectedSample(
+            **sample.model_dump(exclude={"metadata"}),
+            rejection_reason=f"{prefix}:{type(error.__cause__ or error).__name__}",
+            rejecting_step=self.task_name,
+            metadata={**sample.metadata, "error": str(error)[:500]},
+        )
+
     # ------------------------------------------------------------------
     # Abstract interface — subclasses implement these
     # ------------------------------------------------------------------
@@ -235,13 +253,7 @@ class BaseGenerationTask(BaseNormalizer):
                     results.append(gen_sample)
 
             except Exception as e:
-                self._rejected.append(
-                    RejectedSample(
-                        **sample.model_dump(),
-                        rejection_reason=f"generation_failed:{type(e).__name__}:{e}",
-                        rejecting_step=self.task_name,
-                    )
-                )
+                self._rejected.append(self._failed(sample, e))
 
         return results
 
@@ -322,13 +334,7 @@ class BaseGenerationTask(BaseNormalizer):
                     return generated
 
                 except Exception as e:
-                    self._rejected.append(
-                        RejectedSample(
-                            **sample.model_dump(),
-                            rejection_reason=f"generation_failed:{type(e).__name__}:{e}",
-                            rejecting_step=self.task_name,
-                        )
-                    )
+                    self._rejected.append(self._failed(sample, e))
                     return []
 
         # When checkpointing is enabled, chunk_size equals checkpoint_batch_size

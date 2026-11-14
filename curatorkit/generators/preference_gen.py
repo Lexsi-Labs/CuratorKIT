@@ -273,6 +273,18 @@ class PreferenceGenerationTask(BaseGenerationTask):
             )
         ]
 
+    def _two_pass_rejection(self, sample: DataSample, err: object) -> RejectedSample:
+        """A raised error (rate limit, timeout, 5xx) is a generation failure; anything else the
+        worker returned is a reply that could not be used, i.e. a parse failure."""
+        if isinstance(err, Exception):
+            return self._failed(sample, err)
+        return RejectedSample(
+            **sample.model_dump(exclude={"metadata"}),
+            rejection_reason=f"generation_parse_failed:{self.task_name}",
+            rejecting_step=self.task_name,
+            metadata={**sample.metadata, "partial_result": str(err)},
+        )
+
     # ── run() ────────────────────────────────────────────────────────────────
 
     def run(self, samples: list[DataSample]) -> list[DataSample]:
@@ -307,6 +319,8 @@ class PreferenceGenerationTask(BaseGenerationTask):
                     text = re.sub(r"```\s*$", "", text)
                     try:
                         parsed = json.loads(text)
+                        if not isinstance(parsed, dict):
+                            return idx, None, "corpus_parse_failed"
                         instruction = coerce_text(parsed.get("question", ""))
                         chosen_text = coerce_text(parsed.get("chosen", ""))
                         rejected_text = coerce_text(parsed.get("rejected", ""))
@@ -356,7 +370,7 @@ class PreferenceGenerationTask(BaseGenerationTask):
                     None,
                 )
             except Exception as e:
-                return idx, None, str(e)
+                return idx, None, e
 
         with ThreadPoolExecutor(max_workers=self.concurrency) as pool:
             futures = {pool.submit(_generate_pair, (i, s)): s for i, s in enumerate(samples)}
@@ -371,14 +385,7 @@ class PreferenceGenerationTask(BaseGenerationTask):
                 if ds is not None:
                     results_map[idx] = ds
                 else:
-                    self._rejected.append(
-                        RejectedSample(
-                            **sample.model_dump(exclude={"metadata"}),
-                            rejection_reason=f"generation_parse_failed:{self.task_name}",
-                            rejecting_step=self.task_name,
-                            metadata={**sample.metadata, "partial_result": str(err)},
-                        )
-                    )
+                    self._rejected.append(self._two_pass_rejection(sample, err))
 
         return [results_map[i] for i in sorted(results_map)]
 
@@ -422,6 +429,8 @@ class PreferenceGenerationTask(BaseGenerationTask):
                         text = re.sub(r"```\s*$", "", text)
                         try:
                             parsed = json.loads(text)
+                            if not isinstance(parsed, dict):
+                                return idx, None, "corpus_parse_failed"
                             instruction = coerce_text(parsed.get("question", ""))
                             chosen_text = coerce_text(parsed.get("chosen", ""))
                             rejected_text = coerce_text(parsed.get("rejected", ""))
@@ -473,7 +482,7 @@ class PreferenceGenerationTask(BaseGenerationTask):
                         None,
                     )
                 except Exception as e:
-                    return idx, None, str(e)
+                    return idx, None, e
 
         tasks = [_generate_pair(i, s) for i, s in enumerate(samples)]
         for coro in tqdm(
@@ -487,13 +496,6 @@ class PreferenceGenerationTask(BaseGenerationTask):
             if ds is not None:
                 results_map[idx] = ds
             else:
-                self._rejected.append(
-                    RejectedSample(
-                        **sample.model_dump(exclude={"metadata"}),
-                        rejection_reason=f"generation_parse_failed:{self.task_name}",
-                        rejecting_step=self.task_name,
-                        metadata={**sample.metadata, "partial_result": str(err)},
-                    )
-                )
+                self._rejected.append(self._two_pass_rejection(sample, err))
 
         return [results_map[i] for i in sorted(results_map)]

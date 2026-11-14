@@ -244,6 +244,16 @@ class MultiTurnTask(BaseGenerationTask):
             return None
         return self._turns_to_sample(sample, turns)
 
+    def _turn_by_turn_rejection(self, sample: DataSample, err: Exception | None) -> RejectedSample:
+        """A raised error is a generation failure; no error means fewer than two usable turns."""
+        if err is not None:
+            return self._failed(sample, err)
+        return RejectedSample(
+            **sample.model_dump(),
+            rejection_reason=f"generation_failed:{self.task_name}:empty",
+            rejecting_step=self.task_name,
+        )
+
     # ── run() ─────────────────────────────────────────────────────────────────
 
     def run(self, samples: list[DataSample]) -> list[DataSample]:
@@ -260,7 +270,7 @@ class MultiTurnTask(BaseGenerationTask):
                 ds = self._generate_turn_by_turn(sample)
                 return idx, ds, None
             except Exception as e:
-                return idx, None, str(e)
+                return idx, None, e
 
         with ThreadPoolExecutor(max_workers=self.concurrency) as pool:
             futures = {pool.submit(_process, (i, s)): s for i, s in enumerate(samples)}
@@ -275,13 +285,7 @@ class MultiTurnTask(BaseGenerationTask):
                 if ds is not None:
                     results_map[idx] = ds
                 else:
-                    self._rejected.append(
-                        RejectedSample(
-                            **sample.model_dump(),
-                            rejection_reason=f"generation_failed:{self.task_name}:{err or 'empty'}",
-                            rejecting_step=self.task_name,
-                        )
-                    )
+                    self._rejected.append(self._turn_by_turn_rejection(sample, err))
 
         return [results_map[i] for i in sorted(results_map)]
 
@@ -311,18 +315,12 @@ class MultiTurnTask(BaseGenerationTask):
                     err = None
                 except Exception as e:
                     ds = None
-                    err = str(e)
+                    err = e
 
                 if ds is not None:
                     results_map[idx] = ds
                 else:
-                    self._rejected.append(
-                        RejectedSample(
-                            **sample.model_dump(),
-                            rejection_reason=f"generation_failed:{self.task_name}:{err or 'empty'}",
-                            rejecting_step=self.task_name,
-                        )
-                    )
+                    self._rejected.append(self._turn_by_turn_rejection(sample, err))
 
         tasks = [_process(i, s) for i, s in enumerate(samples)]
         for coro in tqdm(

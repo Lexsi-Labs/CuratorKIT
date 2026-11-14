@@ -200,7 +200,7 @@ BaseGenerationTask
   .flush_rejected() -> list[RejectedSample]  # return and clear accumulated failures
 ```
 
-**Parse failure handling:** if `_parse_response()` returns `[]` (parse failed), the source sample is emitted as a `RejectedSample` with `rejection_reason="generation_parse_failed:{task_name}"`. No silent drops.
+**Failure handling:** if `_parse_response()` returns `[]` (the model replied, the reply could not be used), the source sample is emitted as a `RejectedSample` with `rejection_reason="generation_parse_failed:{task_name}"`. If the LLM call itself raised (rate limit, timeout, 5xx), the reason is `generation_failed:{ExceptionType}` (the type of the original error, e.g. `RateLimitError`) and the message is in `metadata["error"]`. No silent drops; `rejected_breakdown` in the manifest counts each reason.
 
 ### Available generation tasks
 
