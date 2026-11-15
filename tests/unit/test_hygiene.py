@@ -7,11 +7,31 @@ mocked so these tests run without the actual packages installed.
 
 from __future__ import annotations
 
+import importlib.util
 from unittest.mock import MagicMock, patch
 
 import pytest
 
 from curatorkit.schema import DataSample
+
+
+def _missing(module: str) -> bool:
+    return importlib.util.find_spec(module) is None
+
+
+# Most tests here mock the hygiene packages. These markers cover the few that
+# still import one, so the rest run in CI, which installs without the extra.
+needs_detect_secrets = pytest.mark.skipif(
+    _missing("detect_secrets"), reason="needs detect-secrets (pip install detect-secrets)"
+)
+needs_presidio = pytest.mark.skipif(
+    _missing("presidio_analyzer"),
+    reason="needs presidio-analyzer (pip install 'curatorkit[hygiene]')",
+)
+needs_transformers = pytest.mark.skipif(
+    _missing("transformers"),
+    reason="needs transformers (pip install 'curatorkit[hygiene,hygiene-transformers]')",
+)
 
 
 def make_sample(**kwargs) -> DataSample:
@@ -322,6 +342,8 @@ class TestSecretsGate:
         assert passed == []
         assert rejected == []
 
+    # SecretsGate() builds detect-secrets entropy plugins even with the import patched
+    @needs_detect_secrets
     def test_code_corpus_mode_includes_keyword_detector(self):
         with patch("curatorkit.hygiene.secrets._ensure_detect_secrets"):
             from curatorkit.hygiene.secrets import _PLUGIN_KEYWORD, SecretsGate
@@ -329,6 +351,8 @@ class TestSecretsGate:
             gate = SecretsGate(code_corpus_mode=True)
             assert _PLUGIN_KEYWORD in gate._plugins
 
+    # SecretsGate() builds detect-secrets entropy plugins even with the import patched
+    @needs_detect_secrets
     def test_prose_mode_excludes_keyword_detector(self):
         with patch("curatorkit.hygiene.secrets._ensure_detect_secrets"):
             from curatorkit.hygiene.secrets import _PLUGIN_KEYWORD, SecretsGate
@@ -336,6 +360,7 @@ class TestSecretsGate:
             gate = SecretsGate(code_corpus_mode=False)
             assert _PLUGIN_KEYWORD not in gate._plugins
 
+    @needs_detect_secrets
     def test_default_fields_include_chosen_rejected(self):
         with patch("curatorkit.hygiene.secrets._ensure_detect_secrets"):
             from curatorkit.hygiene.secrets import SecretsGate
@@ -376,6 +401,7 @@ class TestSecretsGate:
         assert len(rejected) == 1
 
 
+@needs_detect_secrets
 class TestSecretsGateRealDetection:
     """
     Exercises the actual detect-secrets integration (no mocking of _scan_sample).
@@ -386,8 +412,6 @@ class TestSecretsGateRealDetection:
     gate to reject ~100% of ordinary prose. See _scan_text's docstring in
     curatorkit/hygiene/secrets.py for the mechanism.
     """
-
-    pytest.importorskip("detect_secrets")
 
     PROSE = [
         "The capital of France is Paris.",
@@ -682,12 +706,16 @@ class TestPIIPseudonymizerEngineSelection:
             assert p.nlp_engine == "spacy"
             assert p.transformer_model is None
 
+    # _build_analyzer imports presidio (and checks the engine's extra) before validating
+    @needs_presidio
+    @needs_transformers
     def test_transformers_engine_requires_model(self):
         from curatorkit.hygiene.pii import _build_analyzer
 
         with pytest.raises(ValueError, match="transformer_model is required"):
             _build_analyzer("transformers", "en_core_web_sm", None, "en", "en", None)
 
+    @needs_presidio
     def test_unknown_engine_raises(self):
         from curatorkit.hygiene.pii import _build_analyzer
 
