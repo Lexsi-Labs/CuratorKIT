@@ -1,17 +1,31 @@
 """
 Unit tests for the data hygiene components.
 
-All external dependencies (detoxify, detect_secrets, presidio, faker) are
-mocked so these tests run without the actual packages installed.
+Most tests mock the external dependencies (detoxify, detect_secrets, presidio,
+faker) and run without the hygiene extra installed. The few that still need a
+real package carry a ``needs_*`` skip marker.
 """
 
 from __future__ import annotations
 
+import importlib.util
+import sys
 from unittest.mock import MagicMock, patch
 
 import pytest
 
 from curatorkit.schema import DataSample
+
+
+def _missing(module: str) -> bool:
+    return importlib.util.find_spec(module) is None
+
+
+# Most tests here mock the hygiene packages. These markers cover the few that
+# still import one, so the rest run in CI, which installs without the extra.
+needs_detect_secrets = pytest.mark.skipif(
+    _missing("detect_secrets"), reason="needs detect-secrets (pip install detect-secrets)"
+)
 
 
 def make_sample(**kwargs) -> DataSample:
@@ -322,6 +336,8 @@ class TestSecretsGate:
         assert passed == []
         assert rejected == []
 
+    # SecretsGate() builds detect-secrets entropy plugins even with the import patched
+    @needs_detect_secrets
     def test_code_corpus_mode_includes_keyword_detector(self):
         with patch("curatorkit.hygiene.secrets._ensure_detect_secrets"):
             from curatorkit.hygiene.secrets import _PLUGIN_KEYWORD, SecretsGate
@@ -329,6 +345,8 @@ class TestSecretsGate:
             gate = SecretsGate(code_corpus_mode=True)
             assert _PLUGIN_KEYWORD in gate._plugins
 
+    # SecretsGate() builds detect-secrets entropy plugins even with the import patched
+    @needs_detect_secrets
     def test_prose_mode_excludes_keyword_detector(self):
         with patch("curatorkit.hygiene.secrets._ensure_detect_secrets"):
             from curatorkit.hygiene.secrets import _PLUGIN_KEYWORD, SecretsGate
@@ -336,6 +354,7 @@ class TestSecretsGate:
             gate = SecretsGate(code_corpus_mode=False)
             assert _PLUGIN_KEYWORD not in gate._plugins
 
+    @needs_detect_secrets
     def test_default_fields_include_chosen_rejected(self):
         with patch("curatorkit.hygiene.secrets._ensure_detect_secrets"):
             from curatorkit.hygiene.secrets import SecretsGate
@@ -376,6 +395,7 @@ class TestSecretsGate:
         assert len(rejected) == 1
 
 
+@needs_detect_secrets
 class TestSecretsGateRealDetection:
     """
     Exercises the actual detect-secrets integration (no mocking of _scan_sample).
@@ -386,8 +406,6 @@ class TestSecretsGateRealDetection:
     gate to reject ~100% of ordinary prose. See _scan_text's docstring in
     curatorkit/hygiene/secrets.py for the mechanism.
     """
-
-    pytest.importorskip("detect_secrets")
 
     PROSE = [
         "The capital of France is Paris.",
@@ -682,15 +700,20 @@ class TestPIIPseudonymizerEngineSelection:
             assert p.nlp_engine == "spacy"
             assert p.transformer_model is None
 
-    def test_transformers_engine_requires_model(self):
+    # The bad-argument errors must come before any import: with presidio and
+    # transformers made unimportable, a missing-package ImportError would win.
+    def test_transformers_engine_requires_model(self, monkeypatch):
         from curatorkit.hygiene.pii import _build_analyzer
 
+        monkeypatch.setitem(sys.modules, "presidio_analyzer", None)
+        monkeypatch.setitem(sys.modules, "transformers", None)
         with pytest.raises(ValueError, match="transformer_model is required"):
             _build_analyzer("transformers", "en_core_web_sm", None, "en", "en", None)
 
-    def test_unknown_engine_raises(self):
+    def test_unknown_engine_raises(self, monkeypatch):
         from curatorkit.hygiene.pii import _build_analyzer
 
+        monkeypatch.setitem(sys.modules, "presidio_analyzer", None)
         with pytest.raises(ValueError, match="Unknown nlp_engine"):
             _build_analyzer("flair", "en_core_web_sm", None, "en", "en", None)
 

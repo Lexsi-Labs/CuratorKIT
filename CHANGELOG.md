@@ -34,6 +34,10 @@ All notable changes to CuratorKIT are documented here. The format follows
 - The `SecretsGate` install error and the data-hygiene guide name `pip install detect-secrets`,
   the one package the gate needs; `curatorkit[hygiene]` stays the way to get every hygiene gate
   (#52).
+- `PIIPseudonymizer` checks `nlp_engine` and `transformer_model` before importing Presidio, so
+  an unknown engine or `nlp_engine="transformers"` without a model raises its `ValueError` even
+  when the hygiene packages are not installed, instead of an `ImportError` for a missing package
+  (#57).
 
 ### Added
 - `BaseLLM` waits as long as the provider asks before a retry (#54). A `retry_after` attribute on

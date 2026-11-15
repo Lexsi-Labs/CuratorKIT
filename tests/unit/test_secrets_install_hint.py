@@ -1,8 +1,4 @@
-"""SecretsGate's install hint, tested without detect-secrets installed.
-
-Kept out of test_hygiene.py, whose class-level ``pytest.importorskip`` skips the
-whole module when detect-secrets is missing.
-"""
+"""SecretsGate's install hint, tested with detect-secrets made unimportable."""
 
 from __future__ import annotations
 

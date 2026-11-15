@@ -16,6 +16,8 @@ Covers:
 
 from __future__ import annotations
 
+import importlib.util
+
 import pytest
 
 from curatorkit.llm.base import BaseLLM, LLMResponse
@@ -330,9 +332,12 @@ class TestChainOfThoughtContextSectionPairing:
         assert content == "Think.\nQ: Why?"
 
 
-pytest.importorskip("litellm", reason="litellm not installed — install curatorkit[generation]")
-
-
+# Curator._build_generator builds a LiteLLM client. A module-level importorskip here
+# skipped every test in this file, so only this class is skipped.
+@pytest.mark.skipif(
+    importlib.util.find_spec("litellm") is None,
+    reason="litellm not installed — install curatorkit[generation]",
+)
 class TestMultiturnModeWiring:
     """multiturn_prompt_template had zero effect: MultiTurnTask only reads
     prompt_template in mode="single_call", but Curator never passed a mode
