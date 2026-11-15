@@ -9,6 +9,7 @@ real package carry a ``needs_*`` skip marker.
 from __future__ import annotations
 
 import importlib.util
+import sys
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -24,14 +25,6 @@ def _missing(module: str) -> bool:
 # still import one, so the rest run in CI, which installs without the extra.
 needs_detect_secrets = pytest.mark.skipif(
     _missing("detect_secrets"), reason="needs detect-secrets (pip install detect-secrets)"
-)
-needs_presidio = pytest.mark.skipif(
-    _missing("presidio_analyzer"),
-    reason="needs presidio-analyzer (pip install 'curatorkit[hygiene]')",
-)
-needs_transformers = pytest.mark.skipif(
-    _missing("transformers"),
-    reason="needs transformers (pip install 'curatorkit[hygiene,hygiene-transformers]')",
 )
 
 
@@ -707,19 +700,20 @@ class TestPIIPseudonymizerEngineSelection:
             assert p.nlp_engine == "spacy"
             assert p.transformer_model is None
 
-    # _build_analyzer imports presidio (and checks the engine's extra) before validating
-    @needs_presidio
-    @needs_transformers
-    def test_transformers_engine_requires_model(self):
+    # The bad-argument errors must come before any import: with presidio and
+    # transformers made unimportable, a missing-package ImportError would win.
+    def test_transformers_engine_requires_model(self, monkeypatch):
         from curatorkit.hygiene.pii import _build_analyzer
 
+        monkeypatch.setitem(sys.modules, "presidio_analyzer", None)
+        monkeypatch.setitem(sys.modules, "transformers", None)
         with pytest.raises(ValueError, match="transformer_model is required"):
             _build_analyzer("transformers", "en_core_web_sm", None, "en", "en", None)
 
-    @needs_presidio
-    def test_unknown_engine_raises(self):
+    def test_unknown_engine_raises(self, monkeypatch):
         from curatorkit.hygiene.pii import _build_analyzer
 
+        monkeypatch.setitem(sys.modules, "presidio_analyzer", None)
         with pytest.raises(ValueError, match="Unknown nlp_engine"):
             _build_analyzer("flair", "en_core_web_sm", None, "en", "en", None)
 

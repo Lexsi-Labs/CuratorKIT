@@ -252,6 +252,18 @@ def _build_analyzer(
     language: str,
     ner_model_configuration: dict | None,
 ) -> Any:
+    # Check the arguments before importing anything, so a bad config names itself
+    # instead of surfacing as a missing package.
+    if nlp_engine not in ("spacy", "stanza", "transformers"):
+        raise ValueError(
+            f"Unknown nlp_engine: {nlp_engine!r}. Use 'spacy', 'stanza', or 'transformers'."
+        )
+    if nlp_engine == "transformers" and not transformer_model:
+        raise ValueError(
+            "transformer_model is required when nlp_engine='transformers'. "
+            "See curatorkit.hygiene.pii.RECOMMENDED_NER_MODELS for options."
+        )
+
     AnalyzerEngine, _ = _ensure_presidio()
     _ensure_engine_extra(nlp_engine)
     from presidio_analyzer.nlp_engine import NlpEngineProvider
@@ -266,12 +278,7 @@ def _build_analyzer(
             "nlp_engine_name": "stanza",
             "models": [{"lang_code": language, "model_name": stanza_model}],
         }
-    elif nlp_engine == "transformers":
-        if not transformer_model:
-            raise ValueError(
-                "transformer_model is required when nlp_engine='transformers'. "
-                "See curatorkit.hygiene.pii.RECOMMENDED_NER_MODELS for options."
-            )
+    else:  # "transformers", checked above
         configuration = {
             "nlp_engine_name": "transformers",
             "models": [
@@ -282,10 +289,6 @@ def _build_analyzer(
             ],
             "ner_model_configuration": ner_model_configuration or _DEFAULT_TRANSFORMER_NER_CONFIG,
         }
-    else:
-        raise ValueError(
-            f"Unknown nlp_engine: {nlp_engine!r}. Use 'spacy', 'stanza', or 'transformers'."
-        )
 
     provider = NlpEngineProvider(nlp_configuration=configuration)
     engine = provider.create_engine()
