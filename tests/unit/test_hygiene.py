@@ -1,8 +1,9 @@
 """
 Unit tests for the data hygiene components.
 
-All external dependencies (detoxify, detect_secrets, presidio, faker) are
-mocked so these tests run without the actual packages installed.
+Most tests mock the external dependencies (detoxify, detect_secrets, presidio,
+faker) and run without the hygiene extra installed. The few that still need a
+real package carry a ``needs_*`` skip marker.
 """
 
 from __future__ import annotations
